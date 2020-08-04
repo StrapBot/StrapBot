@@ -3,3 +3,4 @@ asyncio
 python-dotenv
 pynacl
 youtube-dl
+python-box
