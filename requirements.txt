@@ -1,0 +1,5 @@
+discord.py
+asyncio
+python-dotenv
+pynacl
+youtube-dl
