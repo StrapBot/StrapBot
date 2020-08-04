@@ -166,22 +166,6 @@ class Fun(commands.Cog):
         await ctx.send(text)
         
     @commands.command()
-    async def meme(self, ctx):
-        """Get a random meme. The stuff of life."""
-        r = await self.bot.session.get("https://www.reddit.com/r/dankmemes/top.json?sort=top&t=day&limit=500")
-        r = await r.json()
-        r = box.Box(r)
-        data = choice(r.data.children).data
-        img = data.url
-        title = data.title
-        upvotes = data.ups
-        downvotes = data.downs
-        em = discord.Embed(color=ctx.author.color, title=title)
-        em.set_image(url=img)
-        em.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
-        em.set_footer(text=f"👍{upvotes} | 👎 {downvotes}")
-        await ctx.send(embed=em)
-    @commands.command()
     async def emojify(self, ctx, *, text: str):
         """Turns your text into emojis!"""
         try:
