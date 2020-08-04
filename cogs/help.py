@@ -42,7 +42,6 @@ class HelpCommand(commands.Cog):
 			**{ctx.prefix}lmgtfy** - Create a lmgtfy link.
 			**{ctx.prefix}say** - Make the bot say something.
 			**{ctx.prefix}reverse** - !txet ruoy esreveR
-			**{ctx.prefix}meme** - Get a random meme.
 			**{ctx.prefix}emojify** - Turns your text into emojis!
 			**{ctx.prefix}roast** - Roast someone! If you suck at roasting them yourself.
 			**{ctx.prefix}smallcaps** - ᴄᴏɴᴠᴇʀᴛ ʏᴏᴜʀ ᴛᴇxᴛ ᴛᴏ ꜱᴍᴀʟʟ ᴄᴀᴘꜱ!!
