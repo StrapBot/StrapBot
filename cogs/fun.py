@@ -2,11 +2,9 @@ from enum import Enum
 from random import randint,choice
 import discord
 from discord.ext import commands
-from core import checks
 import box
 import json
 import string
-from core.models import PermissionLevel
 
 
 def escape(text: str, *, mass_mentions: bool = False, formatting: bool = False) -> str:
