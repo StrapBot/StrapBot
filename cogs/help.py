@@ -18,7 +18,7 @@ class HelpCommand(commands.Cog):
 			**{ctx.prefix}ping** - Shows ping.
 			**{ctx.prefix}servers** - Shows the total number of servers I'm in.
 		""", inline=True)
-		.add_field(name="Music", value=f"""
+		.add_field(name="Music (broken; don't use as for now)", value=f"""
 			**{ctx.prefix}join** - Joins a voice channel.
 			**{ctx.prefix}leave** - Clears the queue and leaves the voice channel.
 			**{ctx.prefix}loop** - Loops the currently playing song.
