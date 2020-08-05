@@ -17,6 +17,7 @@ class HelpCommand(commands.Cog):
 			**{ctx.prefix}testù** - testù
 			**{ctx.prefix}ping** - Shows ping.
 			**{ctx.prefix}servers** - Shows the total number of servers I'm in.
+			**{ctx.prefix}invite** - Invite me on your servers!
 		""", inline=True)
 		.add_field(name="Music (broken; don't use as for now)", value=f"""
 			**{ctx.prefix}join** - Joins a voice channel.
