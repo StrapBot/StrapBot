@@ -19,7 +19,7 @@ class HelpCommand(commands.Cog):
 			**{ctx.prefix}servers** - Shows the total number of servers I'm in.
 			**{ctx.prefix}invite** - Invite me on your servers!
 		""", inline=True)
-		.add_field(name="Music (broken; don't use as for now)", value=f"""
+		.add_field(name="Music", value=f"""
 			**{ctx.prefix}join** - Joins a voice channel.
 			**{ctx.prefix}leave** - Clears the queue and leaves the voice channel.
 			**{ctx.prefix}loop** - Loops the currently playing song.
