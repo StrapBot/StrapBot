@@ -138,7 +138,7 @@ class Fun(commands.Cog):
         """Ask 8 ball a question.
         Question must end with a question mark.
         """
-        embed = discord.Embed(title='Question: | :8ball:', description=question, color=0x2332e4)
+        embed = discord.Embed(title='Question: | :8ball:', description=question, color=discord.Color.lighter_grey())
         embed.add_field(name='Answer:', value=choice(self.ball), inline=False)
         
         if question.endswith("?") and question != "?":
