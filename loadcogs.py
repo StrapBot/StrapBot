@@ -1,17 +1,16 @@
 import os, shutil
 
-def cogs(cogpath):
-    files = os.listdir(cogpath)
-    cogs = f"{cogpath}." + " ".join(files)
-
-    cog = cogs.replace(".py", "").replace(" ", f" {cogpath}.").split()
-
-    if f"{cogpath}.__pycache__" in cog:
-        cog.remove(f"{cogpath}.__pycache__")
-    if f"{cogpath}..DS_Store" in cog:
-        cog.remove(f"{cogpath}..DS_Store")
-    if f"{cogpath}..gitignore" in cog:
-        cog.remove(f"{cogpath}..gitignore")
-
+def cogs():
+    files = os.listdir("cogs")
+    cogs = f"cogs." + " ".join(files)
+    cog = cogs.replace(".py", "").replace(" ", f" cogs.").split()
+    #TODO: Remove all the files that don't end with .py from the list.
+    if f"cogs.__pycache__" in cog:
+        cog.remove(f"cogs.__pycache__")
+    if f"cogs..DS_Store" in cog:
+        cog.remove(f"cogs..DS_Store")
+    if f"cogs..gitignore" in cog:
+        cog.remove(f"cogs..gitignore")
     return cog
-#print(cogs("cogs"))
+
+#print(cogs())

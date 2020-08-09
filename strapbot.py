@@ -13,13 +13,18 @@ bot.remove_command("help")
 if __name__ == "__main__":
 	print("Starting up!")
 	print("Loading cogs...")
-	for cog in cogs("cogs"):
+	for cog in cogs():
 		try:
 			bot.load_extension(cog)
 			print(f"Loaded {cog.replace('cogs.', '')}.")
+		except discord.ext.commands.errors.ExtensionNotFound:
+			pass
+		#TODO: Add a cog identification.
+		except discord.ext.commands.errors.NoEntryPointError:
+			print(f"Could not load {cog.replace('cogs.', '')}, are you sure you added the setup() function?")
 		except Exception as e:
-			print("Unable to load {cog.replace('cogs.', '')}.")
-			print(traceback_format_exc())
+			print(f"Could not load {cog.replace('cogs.', '')}.")
+			print(traceback.format_exc())
 	print("Logging in...")
 
 @bot.event
