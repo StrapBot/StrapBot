@@ -1,10 +1,10 @@
 {
   "name": "StrapBot",
-  "description": "Install StrapBot on your bot!",
+  "description": "Deploy an instance of the bot on your Heroku instance!",
   "repository": "https://github.com/Ergastolator1/StrapBot",
   "env": {
     "TOKEN": {
-      "description": "Your discord bot's token.",
+      "description": "Your Discord bot's token.",
       "required": true
     }
   }
