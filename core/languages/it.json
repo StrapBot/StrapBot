@@ -63,7 +63,7 @@
                     "description": "Fai dire qualcosa al bot."
                 },
                 "8": {
-                    "name": "reverse"
+                    "name": "reverse",
                     "description": "!otset out li itrevnI"
                 },
                 "9": {
@@ -74,7 +74,7 @@
                 },
                 "10": {
                     "name": "roast",
-                    "description": "Insulta qualcuno! Se tu fai schifo a farlo da solo..."
+                    "description": "Insulta qualcuno! Se tu fai schifo a farlo da solo...",
                     "roasts": [
                         "I'd give you a nasty look but you've already got one.",
                         "If you're going to be two-faced, at least make one of them pretty.",
