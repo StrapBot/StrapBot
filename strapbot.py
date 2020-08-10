@@ -28,11 +28,21 @@ if __name__ == "__main__":
 	print("Logging in...")
 
 @bot.event
+async def on_guild_leave(guild):
+await bot.change_presence(
+		activity=discord.Activity(
+			type=discord.ActivityType.watching,
+			name=f"In {len(bot.guilds)} servers! Use {bot.command_prefix}help for help."
+		),
+		status=discord.Status.online
+	)
+
+@bot.event
 async def on_ready():
 	await bot.change_presence(
 		activity=discord.Activity(
 			type=discord.ActivityType.watching,
-			name=f"{bot.command_prefix}help for help."
+			name=f"In {len(bot.guilds)} servers! Use {bot.command_prefix}help for help."
 		),
 		status=discord.Status.online
 	)
