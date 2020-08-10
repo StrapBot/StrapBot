@@ -138,11 +138,8 @@ class Fun(commands.Cog):
         """Ask 8 ball a question.
         Question must end with a question mark.
         """
-        embed = discord.Embed(title='Question: | :8ball:', description=question, color=discord.Color.lighter_grey())
-        embed.add_field(name='Answer:', value=choice(self.ball), inline=False)
-        
         if question.endswith("?") and question != "?":
-            await ctx.send(embed=embed)
+            await ctx.send((choice(self.ball) if question != "testù?" else "testù, testù, testù testù! testù testù testù"))
         else:
             await ctx.send("That doesn't look like a question.")
         
