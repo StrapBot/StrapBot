@@ -6,7 +6,7 @@
             "commands": [{
                 "1": {
                     "name": "8ball",
-                    "description": "Chiedi una domanda alla 8ball."
+                    "description": "Chiedi una domanda alla 8ball.",
                     "answers": [
                         "Come la vedo io, sì.",
                         "È certo.",
