@@ -34,7 +34,7 @@ async def on_guild_join(guild):
 	await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching,name=f"{len(bot.guilds)} servers! | Use {bot.command_prefix}help for help."),status=discord.Status.online)
 
 @bot.event
-async def on_guild_leave(guild):
+async def on_guild_remove(guild):
 	await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching,name=f"{len(bot.guilds)} servers! | Use {bot.command_prefix}help for help."),status=discord.Status.online)
 
 bot.run(token)
