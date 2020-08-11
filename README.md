@@ -1,5 +1,5 @@
 # StrapBot
-A bot which replaces ErgastolatorBot v2.0 and is built better than ErgastolatorBot v2.0.
+A bot which replaces ErgastolatorBot v2.0 and VincyBot07, and it's built better than ErgastolatorBot v2.0 and VincyBot07.
 
 ## Changelog
 
