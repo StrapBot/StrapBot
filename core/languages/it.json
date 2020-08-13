@@ -110,6 +110,25 @@
                     "description": "rEnDe iL TuO TeStO CrInGe!!"
                 }
             }]
-        }
+        },
+        "2": {
+            "name": "Musica",
+            "description": "Ascolta la musica che vuoi con StrapBot!",
+            "error": "C'è stato un errore:"
+            "commands": [{
+                "1": {
+                    "name": "summon",
+                    "description": "Entra in un canale vocale.",
+                    "error": "Non sei un un canale vocale, o non hai specificato il canale vocale dove entrare."
+                },
+                "2": {
+                    "name": "leave",
+                    "description": "Esce dal canale vocale.",
+                    "error": "Non sei in un canale vocale."
+                },
+                "3": {
+                    "name": "now",
+                    "description": "Mostra la canzone in riproduzione."
+            }]
     }]
 }
