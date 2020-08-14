@@ -114,7 +114,7 @@
         "2": {
             "name": "Musica",
             "description": "Ascolta la musica che vuoi con StrapBot!",
-            "error": "C'è stato un errore:"
+            "error": "C'è stato un errore:",
             "commands": [{
                 "1": {
                     "name": "summon",
