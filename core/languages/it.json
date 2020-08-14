@@ -114,7 +114,7 @@
         "2": {
             "name": "Musica",
             "description": "Ascolta la musica che vuoi con StrapBot!",
-            "error": "C'è stato un errore:",
+            "error": "C'è stato un errore: {}",
             "commands": [{
                 "1": {
                     "name": "summon",
@@ -147,7 +147,7 @@
                     "description": "Salta alla prossima canzone nella coda.",
                     "error": "Non sto riproducendo alcuna canzone al momento...",
                     "vote": {
-                        "success": "Voto per saltare aggiunto. Adesso siamo a",
+                        "success": "Voto per saltare aggiunto. Adesso siamo a **{}**",
                         "error": "Hai già votato per saltare questa canzone."
                     }
                 },
@@ -155,8 +155,8 @@
                     "name": "queue",
                     "description": "Mostra la coda.",
                     "error": "Coda vuota.",
-                    "pages": "Visualizzando la pagina",
-                    "tracks": "tracce"
+                    "pages": "Visualizzando la pagina {}/{}.",
+                    "tracks": "**{} tracce:**\n\n{}"
                 },
                 "9": {
                     "name": "shuffle",
@@ -176,7 +176,7 @@
                 "12": {
                     "name": "play",
                     "description": "Riproduce una canzone.",
-                    "error": "C'è stato un errore mentre cercavo di riprodurre questa canzone:",
+                    "error": "C'è stato un errore mentre cercavo di riprodurre questa canzone: {}",
                     "queued": "Ho inserito {} nella coda."
                 }
             }]
