@@ -129,6 +129,57 @@
                 "3": {
                     "name": "now",
                     "description": "Mostra la canzone in riproduzione."
+                },
+                "4": {
+                    "name": "pause",
+                    "description": "Mette in pausa la canzone in riproduzione."
+                },
+                "5": {
+                    "name": "resume",
+                    "description": "Rimette una canzone in pausa in riproduzione."
+                },
+                "6": {
+                    "name": "stop",
+                    "description": "Smette di riprodurre una canzone e svuota la coda."
+                },
+                "7": {
+                    "name": "skip",
+                    "description": "Salta alla prossima canzone nella coda.",
+                    "error": "Non sto riproducendo alcuna canzone al momento...",
+                    "vote": {
+                        "success": "Voto per saltare aggiunto. Adesso siamo a",
+                        "error": "Hai già votato per saltare questa canzone."
+                    }
+                },
+                "8": {
+                    "name": "queue",
+                    "description": "Mostra la coda.",
+                    "error": "Coda vuota.",
+                    "pages": "Visualizzando la pagina",
+                    "tracks": "tracce"
+                },
+                "9": {
+                    "name": "shuffle",
+                    "description": "Attiva la riproduzione casuale.",
+                    "error": "Coda vuota"
+                },
+                "10": {
+                    "name": "remove",
+                    "description": "Rimuove una canzone dalla coda.",
+                    "error": "Coda vuota."
+                },
+                "11": {
+                    "name": "loop",
+                    "description": "Attiva la ripetizione del brano.",
+                    "error": "Non c'è nulla in riproduzione al momento."
+                },
+                "12": {
+                    "name": "play",
+                    "description": "Riproduce una canzone.",
+                    "error": "C'è stato un errore mentre cercavo di riprodurre questa canzone:",
+                    "queued": "Ho inserito {} nella coda."
+                }
             }]
+        }
     }]
 }
