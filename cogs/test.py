@@ -46,7 +46,7 @@ class Test(commands.Cog):
 		"""Invite me on your servers!"""
 		return await ctx.send(embed=discord.Embed(
 			title="Invite me!",
-			description=f"If you want to invite me, [click here](https://bit.ly/StrapBot)!",
+			description=f"If you want to invite me, [click here](https://strapbot.xyz/invite)!",
 			color=discord.Color.lighter_grey()
 		)
 		.set_footer(text="Made by Ergastolator#0001 and Vincy.exe#1447")
