@@ -33,7 +33,8 @@
                 },
                 "2": {
                     "name": "choose",
-                    "description": "Scegli tra più opzioni."
+                    "description": "Scegli tra più opzioni.",
+                    "nochoose": "Non ci sono abbastanza opzioni da scegliere."
                 },
                 "3": {
                     "name": "roll",
