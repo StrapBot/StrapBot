@@ -6,6 +6,14 @@
     "TOKEN": {
       "description": "Your Discord bot's token.",
       "required": true
+    },
+    "MONGODB_URI": {
+      "description": "Your MongoDB connection URI to selfhost data.",
+      "required": true
+    },
+    "DEFAULT_LANGUAGE": {
+        "description": "Your bot's default language. Can be `it` (italian) or `en` (english). Defaults to `en`",
+        "required": false
     }
   }
 }
