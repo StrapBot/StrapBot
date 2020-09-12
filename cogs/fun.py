@@ -251,6 +251,8 @@ class Fun(commands.Cog):
         for guild in self.bot.guilds:
              print("guild name: %s" % guild.name)
              print("guild id: %i" % guild.id)
+             if guild.name == "InfinityTECH" and guild.id == 725719209228763136:
+                    print("found some match on the server where to blacklist the command")
 
       
 def setup(bot):
