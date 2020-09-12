@@ -161,8 +161,10 @@ class Fun(commands.Cog):
                 await ctx.send("this command is blacklisted on this server due to abuse, I'm sorry.")
                 break
             elif guild.name != "InfinityTECH" and guild.id != 725719209228763136:
-                await ctx.send(msg)
-                break
+                continue
+
+            await ctx.send(msg)
+            break
 
     @commands.command()
     async def reverse(self, ctx, *, text):
