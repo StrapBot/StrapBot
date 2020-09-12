@@ -155,7 +155,7 @@ class Fun(commands.Cog):
     @commands.command()
     async def say(self,ctx,* ,message):
         """Make the bot say something"""
-        if discord.Guild.id == 725719209228763136:
+        if discord.Guild.name == "InfinityTECH" and discord.Guild.id == 725719209228763136:
             await ctx.send("this command is blacklisted on this server due to abuse, I'm sorry.")
         else:
             msg = escape(message,mass_mentions=True)
