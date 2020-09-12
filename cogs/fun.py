@@ -156,12 +156,12 @@ class Fun(commands.Cog):
     async def say(self,ctx,* ,message):
         """Make the bot say something"""
         for guild in self.bot.guilds:
-            if guild.name == "InfinityFREE" and guild.id == 725719209228763136:
-                await ctx.send("this command is blacklisted on this server due to abuse, I'm sorry.")
-                break
             msg = escape(message,mass_mentions=True)
             await ctx.send(msg)
             break
+            if guild.name == "InfinityFREE" and guild.id == 725719209228763136:
+                await ctx.send("this command is blacklisted on this server due to abuse, I'm sorry.")
+                break
 
     @commands.command()
     async def reverse(self, ctx, *, text):
