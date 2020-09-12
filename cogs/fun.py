@@ -155,8 +155,11 @@ class Fun(commands.Cog):
     @commands.command()
     async def say(self,ctx,* ,message):
         """Make the bot say something"""
-        msg = escape(message,mass_mentions=True)
-        await ctx.send(msg)
+        if discord.Guild == 725719209228763136:
+            await ctx.send("this command is blacklisted on this server due to abuse, I'm sorry.")
+        else:
+            msg = escape(message,mass_mentions=True)
+            await ctx.send(msg)
     @commands.command()
     async def reverse(self, ctx, *, text):
         """!txeT ruoY esreveR"""
