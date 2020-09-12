@@ -26,7 +26,6 @@ if __name__ == "__main__":
 				pass
 			else:
 				print(f"Failed to load extension {extension}.")
-				print(traceback_format_exc())
 
 @bot.event
 async def on_ready():
