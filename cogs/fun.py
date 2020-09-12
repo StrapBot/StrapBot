@@ -245,6 +245,13 @@ class Fun(commands.Cog):
         await ctx.send(message)
         await ctx.message.delete()
 
+    @commands.command()
+    async def debugCommand(self,ctx):
+        """debugging"""
+        for guild in self.bot.guilds:
+             print("guild name: %s" % guild.name)
+             print("guild id: %i" % guild.id)
+
       
 def setup(bot):
     bot.add_cog(Fun(bot))
