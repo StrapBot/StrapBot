@@ -160,8 +160,7 @@ class Fun(commands.Cog):
             if guild.name == "InfinityTECH" and guild.id == 725719209228763136:
                 await ctx.send("this command is blacklisted on this server due to abuse, I'm sorry.")
                 break
-            else:
-                continue
+            elif guild.name != "InfinityTECH" and guild.id != 725719209228763136:
                 await ctx.send(msg)
                 break
 
@@ -245,15 +244,5 @@ class Fun(commands.Cog):
         await ctx.send(message)
         await ctx.message.delete()
 
-    @commands.command()
-    async def debugCommand(self,ctx):
-        """debugging"""
-        for guild in self.bot.guilds:
-             print("guild name: %s" % guild.name)
-             print("guild id: %i" % guild.id)
-             if guild.name == "InfinityTECH" and guild.id == 725719209228763136:
-                    print("found some match on the server where to blacklist the command")
-
-      
 def setup(bot):
     bot.add_cog(Fun(bot))
