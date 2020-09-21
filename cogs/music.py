@@ -460,7 +460,7 @@ class Music(commands.Cog):
         if not ctx.voice_state.voice:
             await ctx.invoke(self._summon)
         async with ctx.typing():
-            song = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(streamurl))
+            song = Song(await YTDLSource.create_source(ctx, streamurl, loop=self.bot.loop, stream=True))
             song.title = "Stream at %s" % streamurl
             song.duration = "Infinite"
             song.uploader = discord.User.mention
@@ -468,7 +468,7 @@ class Music(commands.Cog):
             song.url = streamurl
             song.image = None
             song.thumbnail = None
-            await ctx.voice_state.songs.put(Song(song))
+            await ctx.voice_state.songs.put(song)
             await ctx.send(content="Stream at URL %s put on queue" % streamurl)
 
     @_summon.before_invoke
