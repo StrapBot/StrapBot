@@ -26,7 +26,6 @@ class HelpCommand(commands.Cog):
 			**{ctx.prefix}now** - Displays the currently playing song.
 			**{ctx.prefix}pause** - Pauses the currently playing song.
 			**{ctx.prefix}play** - Plays a song.
-			**{ctx.prefix}streamplay - Plays a stream.
 			**{ctx.prefix}queue** - Shows the player's queue.
 			**{ctx.prefix}remove** - Removes a song from the queue at a given index.
 			**{ctx.prefix}resume** - Resumes a currently paused song.
