@@ -461,8 +461,9 @@ class Music(commands.Cog):
             await ctx.invoke(self._summon)
         async with ctx.typing():
             song = await YTDLSource.create_source(ctx, streamurl, loop=self.bot.loop)
-            song.title = "Stream at %s" % streamurl
+            song.title = str("Stream at %s" % streamurl)
             song.duration = "Infinite"
+            song.upload_date = None
             song.uploader = "StrapBot"
             song.uploader_url = "https://strapbot.xyz/en"
             song.url = streamurl
