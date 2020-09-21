@@ -460,7 +460,7 @@ class Music(commands.Cog):
         if not ctx.voice_state.voice:
             await ctx.invoke(self._summon)
         async with ctx.typing():
-            song = Song(await YTDLSource.create_source(ctx, streamurl, loop=self.bot.loop, stream=True))
+            song = Song(await YTDLSource.from_url(streamurl, loop=self.bot.loop, stream=True))
             song.title = "Stream at %s" % streamurl
             song.duration = "Infinite"
             song.uploader = discord.User.mention
