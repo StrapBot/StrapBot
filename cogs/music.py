@@ -463,8 +463,8 @@ class Music(commands.Cog):
             song = await YTDLSource.create_source(ctx, streamurl, loop=self.bot.loop)
             song.title = "Stream at %s" % streamurl
             song.duration = "Infinite"
-            song.uploader = discord.User.mention
-            song.uploader_url = None
+            song.uploader = "StrapBot"
+            song.uploader_url = "https://strapbot.xyz/en"
             song.url = streamurl
             song.thumbnail = "https://i.imgur.com/6DBybIg.png"
             await ctx.voice_state.songs.put(Song(song))
