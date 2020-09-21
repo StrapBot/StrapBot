@@ -431,7 +431,7 @@ class Music(commands.Cog):
         ctx.voice_state.loop = not ctx.voice_state.loop
         await ctx.message.add_reaction('✅')
 
-    @commands.group(name='play')
+    @commands.command(name='play')
     async def _play(self, ctx: commands.Context, *, search: str):
         """Plays a song.
         If there are songs in the queue, this will be queued until the
@@ -454,7 +454,7 @@ class Music(commands.Cog):
                 await ctx.voice_state.songs.put(song)
                 await ctx.send('Enqueued {}'.format(str(source)))
 
-    @_play.command(name='stream')
+    @commands.command(name='streamplay')
     async def _streamplay(self, ctx: commands.Context, *, streamurl: str):
         """Plays a stream URL."""
         if not ctx.voice_state.voice:
