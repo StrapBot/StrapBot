@@ -466,8 +466,7 @@ class Music(commands.Cog):
             song.uploader = discord.User.mention
             song.uploader_url = None
             song.url = streamurl
-            song.image = None
-            song.thumbnail = None
+            song.thumbnail = "https://i.imgur.com/6DBybIg.png"
             await ctx.voice_state.songs.put(song)
             await ctx.send(content="Stream at URL %s put on queue" % streamurl)
 
