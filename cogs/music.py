@@ -454,26 +454,8 @@ class Music(commands.Cog):
                 await ctx.voice_state.songs.put(song)
                 await ctx.send('Enqueued {}'.format(str(source)))
 
-    @commands.command(name='streamplay')
-    async def _streamplay(self, ctx: commands.Context, *, streamurl: str):
-        """Plays a stream URL."""
-        if not ctx.voice_state.voice:
-            await ctx.invoke(self._summon)
-        async with ctx.typing():
-            song = await YTDLSource.create_source(ctx, streamurl, loop=self.bot.loop)
-            song.title = str("Stream at %s" % streamurl)
-            song.duration = "Infinite"
-            song.upload_date = None
-            song.uploader = "StrapBot"
-            song.uploader_url = "https://strapbot.xyz/en"
-            song.url = streamurl
-            song.thumbnail = "https://i.imgur.com/6DBybIg.png"
-            await ctx.voice_state.songs.put(Song(song))
-            await ctx.send(content="Stream at URL %s put on queue" % streamurl)
-
     @_summon.before_invoke
     @_play.before_invoke
-    @_streamplay.before_invoke
     async def ensure_voice_state(self, ctx: commands.Context):
         if not ctx.author.voice or not ctx.author.voice.channel:
             raise commands.CommandError('You are not connected to any voice channel.')
