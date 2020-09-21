@@ -431,7 +431,7 @@ class Music(commands.Cog):
         ctx.voice_state.loop = not ctx.voice_state.loop
         await ctx.message.add_reaction('✅')
 
-    @commands.command(name='play')
+    @commands.group(name='play')
     async def _play(self, ctx: commands.Context, *, search: str):
         """Plays a song.
         If there are songs in the queue, this will be queued until the
@@ -454,8 +454,26 @@ class Music(commands.Cog):
                 await ctx.voice_state.songs.put(song)
                 await ctx.send('Enqueued {}'.format(str(source)))
 
+    @_play.command(name='stream')
+    async def _streamplay(self, ctx: commands.Context, *, streamurl: str):
+        """Plays a stream URL."""
+        if not ctx.voice_state.voice:
+            await ctx.invoke(self._summon)
+        async with ctx.typing():
+            song = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(streamurl))
+            song.title = "Stream at %s" % streamurl
+            song.duration = "Infinite"
+            song.uploader = discord.User.mention
+            song.uploader_url = None
+            song.url = streamurl
+            song.image = None
+            song.thumbnail = None
+            await ctx.voice_state.songs.put(Song(song))
+            await ctx.send(content="Stream at URL %s put on queue" % streamurl)
+
     @_summon.before_invoke
     @_play.before_invoke
+    @_stream.before_invoke
     async def ensure_voice_state(self, ctx: commands.Context):
         if not ctx.author.voice or not ctx.author.voice.channel:
             raise commands.CommandError('You are not connected to any voice channel.')
