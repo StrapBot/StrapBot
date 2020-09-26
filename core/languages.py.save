@@ -1,9 +1,0 @@
-import os
-import json
-
-default_language = os.getenv("DEFAULT_LANGUAGE")
-
-if default_language == None: #defaults to English
-    default_language = "en"
-
-
