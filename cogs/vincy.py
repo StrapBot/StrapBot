@@ -121,9 +121,11 @@ class Vincy(commands.Cog):
                     kicks = self.agree["kicks"][str(message.author.id)]
                 if kicks < 5:
                     kicks += 1
+                    await message.delete()
                     await message.author.kick(reason=f"Invece di accettare le regole ha scritto questo:\n{message.content}")
                     await self.bot.get_channel(595327311012823045).send(f"**{message.author}** non ha accettato le regole, il kick era meritato.\Aveva scritto questo:\n{message.content}\n\nhttps://imgur.com/V4TVpbC")
                 else:
+                    await message.delete()
                     await message.author.ban(delete_message_days=0, reason=f"Invece di accettare le regole ha scritto questo:\n{message.content}")
                     await self.bot.get_channel(595327311012823045).send(f"**{message.author}** non ha accettato le regole, stavolta si è meritato il ban!\nAveva scritto questo:\n{message.content}\n\nhttps://imgur.com/V4TVpbC")
                     
