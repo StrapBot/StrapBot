@@ -19,7 +19,7 @@ class Vincy(commands.Cog):
     @commands.command()
     @commands.has_role(595651372247154729)
     async def vincyrules(self, ctx):
-       embed = discord.Embed(
+        embed = discord.Embed(
             title="Regole del server",
             url="https://vincybot07.vincysuper07.cf",
             description="Questo server, come tutti gli altri, ha delle regole che __devono__ essere rispettate.",
