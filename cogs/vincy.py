@@ -73,7 +73,8 @@ class Vincy(commands.Cog):
             "•Violazione di una regola: __Warn__\n"
             "4 Warn in 2 settimane: **Mute per __2 giorni__**\n"
             "5 Warn in 2 settimane: **__Ban__**!\n"
-            "•Gli <@&595651372247154729> possono bannarti senza warn in qualsiasi momento!",
+            "•Gli <@&595651372247154729> possono bannarti senza warn in qualsiasi momento!"
+            "•L'unico link di invito valido è https://discord.gg/5kHtcjU",
             inline=False,
         ).set_footer(text="Buona permanenza nel server!")
         await ctx.send(embed=embed)

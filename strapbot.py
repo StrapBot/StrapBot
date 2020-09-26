@@ -14,9 +14,13 @@ db = pymongo.MongoClient(os.getenv("MONGO_URI"))
 
 bot = commands.Bot(command_prefix="sb.")
 bot.remove_command("help")
-
+exts = []
 if __name__ == "__main__":
-	for extension in [f.replace(".py", "") for f in os.listdir("cogs") if isfile(join("cogs", f))]:
+	for ext in os.listdir("cogs"):
+		if ext.endswith(".py"):
+			exts.append(ext.replace(".py", ""))
+
+	for extension in exts:
 		try:
 			bot.load_extension(f'cogs.{extension}')
 		except (discord.ClientException, ModuleNotFoundError):
