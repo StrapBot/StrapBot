@@ -94,8 +94,19 @@ class Vincy(commands.Cog):
             )
         )
         self.agree["message_id"] = msg.id
+        json.dump(self.guild, open(self.path), indent=4)
         
-        
+    @commands.Cog.listener()
+    async def on_raw_reaction_add(self, payload):
+        if payload.message_id == self.agree["message_id"]:
+            if payload.emoji == self.agree["emoji"]:
+                await payload.member.add_roles(self.bot.get_role(595318972178497547), reason="Ha accettato le regole")
+                await self.bot.get_channel(595327311012823045).send(f"**{payload.member}** ha accettato le regole.")
+            else:
+                await bot.http.remove_reaction(self.agree["channel_id"], self.agree["message_id"], self.agree["emoji"], payload.member.id)
+            
+            
+            
         
         
         
