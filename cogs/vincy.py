@@ -108,7 +108,7 @@ class Vincy(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        ctx = self.bot.get_context(message)
+        ctx = await self.bot.get_context(message)
         if message.channel.id == int(self.agree["message_id"]):
             if message.content == "accetto" or message.content == "Accetto" or message.content == "ACCETTO":
                 await payload.member.add_roles(self.bot.get_guild(595318301127868417).get_role(595318972178497547), reason="Ha accettato le regole")
