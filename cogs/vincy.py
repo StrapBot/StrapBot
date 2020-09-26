@@ -99,22 +99,35 @@ class Vincy(commands.Cog):
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
         print(f"A reaction was added to a message:\nMessage ID: {payload.message_id} - {self.agree['message_id']}\nEmoji: {payload.emoji} - {self.agree['emoji']}\nChannel ID: {payload.channel_id} - {self.agree['channel_id']}") 
-        if payload.message_id == int(self.agree["message_id"]):
+        if int(payload.message_id) == int(self.agree["message_id"]):
             if str(payload.emoji) == str(self.agree["emoji"]):
-                await payload.member.add_roles(self.bot.get_role(595318972178497547), reason="Ha accettato le regole")
+                await payload.member.add_roles(self.bot.get_guild(595318301127868417).get_role(595318972178497547), reason="Ha accettato le regole")
                 await self.bot.get_channel(595327311012823045).send(f"**{payload.member}** ha accettato le regole.")
             else:
                 await self.bot.http.remove_reaction(int(self.agree["channel_id"]), int(self.agree["message_id"]), self.agree["emoji"], payload.user_id)
-            
-            
-            
-        
-        
-        
-        
-        
-        
-        
+
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        ctx = self.bot.get_context(message)
+        if message.channel.id == int(self.agree["message_id"]):
+            if message.content == "accetto" or message.content == "Accetto" or message.content == "ACCETTO":
+                await payload.member.add_roles(self.bot.get_guild(595318301127868417).get_role(595318972178497547), reason="Ha accettato le regole")
+                await self.bot.get_channel(595327311012823045).send(f"**{message.author}** ha accettato le regole.")
+            else:
+                try:
+                    kicks = self.agree["kicks"][str(message.author.id)]
+                except KeyError:
+                    self.agree["kicks"][str(message.author.id)] = 0
+                    kicks = self.agree["kicks"][str(message.author.id)]
+                if kicks < 5:
+                    kicks += 1
+                    await message.author.kick(reason=f"Invece di accettare le regole ha scritto questo:\n{message.content}")
+                    await self.bot.get_channel(595327311012823045).send(f"**{message.author}** non ha accettato le regole, il kick era meritato.\Aveva scritto questo:\n{message.content}\n\nhttps://imgur.com/V4TVpbC")
+                else:
+                    await message.author.ban(delete_message_days=0, reason=f"Invece di accettare le regole ha scritto questo:\n{message.content}")
+                    await self.bot.get_channel(595327311012823045).send(f"**{message.author}** non ha accettato le regole, stavolta si è meritato il ban!\nAveva scritto questo:\n{message.content}\n\nhttps://imgur.com/V4TVpbC")
+                    
+
 
 def setup(bot):
     bot.add_cog(Vincy(bot))
