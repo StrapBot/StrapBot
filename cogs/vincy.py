@@ -89,6 +89,9 @@ class Vincy(commands.Cog):
                     f"Se non funziona la reazione, scrivi `{self.agree['to_send']}`, se non funziona nemmeno quello, tagga "
                     f"<@595651372247154729>, ti aggiungeremo noi il ruolo manualmente. Un qualsiasi messaggio che non è `{self.agree['to_send']}` "
                     "o <@595651372247154729> equivale a un kick. 5 kick = ban!"
+                )
+            )
+        )
         self.agree["message_id"] = msg.id
         
         
