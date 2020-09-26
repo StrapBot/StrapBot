@@ -103,7 +103,7 @@ class Vincy(commands.Cog):
                 await payload.member.add_roles(self.bot.get_role(595318972178497547), reason="Ha accettato le regole")
                 await self.bot.get_channel(595327311012823045).send(f"**{payload.member}** ha accettato le regole.")
             else:
-                await bot.http.remove_reaction(self.agree["channel_id"], self.agree["message_id"], self.agree["emoji"], payload.member.id)
+                await self.bot.http.remove_reaction(self.agree["channel_id"], self.agree["message_id"], self.agree["emoji"], payload.member.id)
             
             
             
