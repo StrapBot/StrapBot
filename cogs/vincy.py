@@ -128,8 +128,9 @@ class Vincy(commands.Cog):
                     await message.delete()
                     await message.author.ban(delete_message_days=0, reason=f"Invece di accettare le regole ha scritto questo:\n{message.content}")
                     await self.bot.get_channel(595327311012823045).send(f"**{message.author}** non ha accettato le regole, stavolta si è meritato il ban!\nAveva scritto questo:\n{message.content}\n\nhttps://imgur.com/V4TVpbC")
-                    
-
+                print(self.guild)
+                json.dump(self.guild, open(self.path, "w"), indent=4)
+                
 
 def setup(bot):
     bot.add_cog(Vincy(bot))
