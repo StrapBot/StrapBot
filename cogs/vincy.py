@@ -9,7 +9,7 @@ class Vincy(commands.Cog):
         self.guild = json.load(open(self.path))
         self.agree = self.guild["agree"]
     
-    async def bot_check(self, ctx):
+    async def cog_check(self, ctx):
         if ctx.guild.id == self.guild["id"]:
             return True
         else:
