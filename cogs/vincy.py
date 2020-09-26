@@ -100,7 +100,7 @@ class Vincy(commands.Cog):
     async def on_raw_reaction_add(self, payload):
         print(f"A reaction was added to a message:\nMessage ID: {payload.message_id} - {self.agree['message_id']}\nEmoji: {payload.emoji} - {self.agree['emoji']}\nChannel ID: {payload.channel_id} - {self.agree['channel_id']}") 
         if payload.message_id == int(self.agree["message_id"]):
-            if payload.emoji == self.agree["emoji"]:
+            if str(payload.emoji) == str(self.agree["emoji"]):
                 await payload.member.add_roles(self.bot.get_role(595318972178497547), reason="Ha accettato le regole")
                 await self.bot.get_channel(595327311012823045).send(f"**{payload.member}** ha accettato le regole.")
             else:
