@@ -87,9 +87,10 @@ class Vincy(commands.Cog):
                 description=(
                     f"Leggi le <#641268747667111938>, dopodichè aggiungi la reazione {self.agree['emoji']} qui sotto. "
                     f"Se non funziona la reazione, scrivi `{self.agree['to_send']}`, se non funziona nemmeno quello, tagga "
-                    f"<@595651372247154729>, ti aggiungeremo noi il ruolo manualmente. Un qualsiasi messaggio che non è `{self.agree['to_send']}` "
-                    "o <@595651372247154729> equivale a un kick. 5 kick = ban!"
-                )
+                    f"<@&595651372247154729>, ti aggiungeremo noi il ruolo manualmente. Un qualsiasi messaggio che non è `{self.agree['to_send']}` "
+                    "o <@&595651372247154729> equivale a un kick. 5 kick = ban!"
+                ),
+                color=discord.Color.blurple()
             )
         )
         self.agree["message_id"] = msg.id
