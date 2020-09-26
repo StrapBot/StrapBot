@@ -94,7 +94,7 @@ class Vincy(commands.Cog):
             )
         )
         self.agree["message_id"] = msg.id
-        json.dump(self.guild, open(self.path), indent=4)
+        json.dump(self.guild, open(self.path, "w"), indent=4)
         
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
