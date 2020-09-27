@@ -8,8 +8,6 @@ A bot which replaces ErgastolatorBot v2.0 and VincyBot07, and it's built better 
 + Help command is no longer buggy on mobile phones.
 + Added an `app.json` file for deploy.
 
-More stuff is coming soon™
-
 ### v1.0
 + First release.
 
