@@ -6,3 +6,4 @@ youtube-dl
 python-box
 pymongo
 dnspython
+motor
