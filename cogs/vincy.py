@@ -115,15 +115,13 @@ class Vincy(commands.Cog):
                 await self.bot.get_channel(595327311012823045).send(f"**{message.author}** ha accettato le regole.")
             else:
                 try:
-                    kicks = self.agree["kicks"][str(message.author.id)]
+                    self.agree["kicks"][str(message.author.id)] += 1
                 except KeyError:
                     self.agree["kicks"][str(message.author.id)] = 1
-                    kicks = self.agree["kicks"][str(message.author.id)]
                 if kicks < 5:
-                    kicks += 1
                     await message.delete()
                     await message.author.kick(reason=f"Invece di accettare le regole ha scritto questo:\n{message.content}")
-                    await self.bot.get_channel(595327311012823045).send(f"**{message.author}** non ha accettato le regole, il kick era meritato.\Aveva scritto questo:\n{message.content}")
+                    await self.bot.get_channel(595327311012823045).send(f"**{message.author}** non ha accettato le regole, il kick era meritato.\nAveva scritto questo:\n{message.content}")
                 else:
                     await message.delete()
                     await message.author.ban(delete_message_days=0, reason=f"Invece di accettare le regole ha scritto questo:\n{message.content}")
