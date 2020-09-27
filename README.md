@@ -3,14 +3,14 @@ A bot which replaces ErgastolatorBot v2.0 and VincyBot07, and it's built better 
 
 ## Changelog
 
-v1.1:
+###v1.1: Second release
 + Added MongoDB support.
 + Help command is no longer buggy on mobile phones.
 + Added an `app.json` file for deploy.
 
 More stuff is coming soon™
 
-v1.0:
+###v1.0
 + First release.
 
 ## Invite me on Discord!
