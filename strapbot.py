@@ -1,19 +1,24 @@
 import os
 from os.path import isfile, join
-import pymongo
 import discord
 import asyncio
 from discord.ext import commands
 from dotenv import load_dotenv as import_dotenv
 from core.languages import default_language
+from core.mongodb import *
 
 import_dotenv()
 token = os.getenv("TOKEN")
 
-db = pymongo.MongoClient(os.getenv("MONGO_URI"))
+@property
+def mdb(self) -> ApiClient:
+    if self._mdb is None:
+        self._mdb = MongoDBClient(bot)
+    return self._mdb 
 
 bot = commands.Bot(command_prefix="sb.")
 bot.remove_command("help")
+bot.db = mdb
 exts = []
 if __name__ == "__main__":
 	for ext in os.listdir("cogs"):
