@@ -3,4 +3,4 @@ import discord
 
 default_language = os.getenv("DEFAULT_LANGUAGE", "en")
 
-#raise NotImplementedError
+# raise NotImplementedError

@@ -11,15 +11,17 @@ from core.mongodb import *
 
 import_dotenv()
 
+
 class StrapBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix="sb.")
-        self.remove_command("help")
+        # self.remove_command("help")
         self._db = None
         self.token = os.getenv("TOKEN")
         self._session = None
         self._connected = asyncio.Event()
         self.wait_until_connected = self.wait_for_connected
+
         # load cogs
         self.exts = []
         for ext in os.listdir("cogs"):
@@ -28,7 +30,7 @@ class StrapBot(commands.Bot):
 
         for extension in self.exts:
             try:
-                self.load_extension(f'cogs.{extension}')
+                self.load_extension(f"cogs.{extension}")
             except (discord.ClientException, ModuleNotFoundError):
                 if extension == ".DS_Store":
                     pass
@@ -36,6 +38,9 @@ class StrapBot(commands.Bot):
                     pass
                 else:
                     print(f"Failed to load extension {extension}.")
+            except Exception:
+                print(f"Could not load cog {extension}")
+                raise
 
     @property
     def session(self) -> ClientSession:
@@ -55,6 +60,13 @@ class StrapBot(commands.Bot):
             return await self.close()
         await self.db.setup_indexes()
         self._connected.set()
+
+    async def on_ready(self):
+        await self.wait_for_connected()
+        if default_language == "en":
+            print("StrapBot is logged in as {0.user}!".format(bot))
+        elif default_language == "it":
+            print("StrapBot loggato come {0.user}!".format(bot))
 
     @property
     def db(self) -> ApiClient:
@@ -77,7 +89,9 @@ class StrapBot(commands.Bot):
             for task in asyncio.all_tasks(self.loop):
                 task.cancel()
             try:
-                self.loop.run_until_complete(asyncio.gather(*asyncio.all_tasks(self.loop)))
+                self.loop.run_until_complete(
+                    asyncio.gather(*asyncio.all_tasks(self.loop))
+                )
             except asyncio.CancelledError:
                 pass
             finally:
@@ -88,31 +102,55 @@ class StrapBot(commands.Bot):
 bot = StrapBot()
 
 if default_language == "en":
-    bot.activity = discord.Activity(type=discord.ActivityType.watching, name=f"{len(bot.guilds)} servers! | Use {bot.command_prefix}help for help.")
+    bot.activity = discord.Activity(
+        type=discord.ActivityType.watching,
+        name=f"{len(bot.guilds)} servers! | Use {bot.command_prefix}help for help.",
+    )
 elif default_language == "it":
-    bot.activity = discord.Activity(type=discord.ActivityType.watching, name=f"{len(bot.guilds)} server! | Usa {bot.command_prefix}help per i comandi.")
+    bot.activity = discord.Activity(
+        type=discord.ActivityType.watching,
+        name=f"{len(bot.guilds)} server! | Usa {bot.command_prefix}help per i comandi.",
+    )
 
-@bot.event
-async def on_ready():
-	await bot.wait_for_connected()
-	if default_language == "en":
-		print('StrapBot is logged in as {0.user}!'.format(bot))
-	elif default_language == "it":
-		print("StrapBot loggato come {0.user}!".format(bot))
 
 @bot.event
 async def on_guild_join(guild):
-	if default_language == "en":
-		await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching,name=f"{len(bot.guilds)} servers! | Use {bot.command_prefix}help for help."),status=discord.Status.online)
-	elif default_language == "it":
-		await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching,name=f"{len(bot.guilds)} server! | Usa {bot.command_prefix}help per i comandi."),status=discord.Status.online)
+    if default_language == "en":
+        await bot.change_presence(
+            activity=discord.Activity(
+                type=discord.ActivityType.watching,
+                name=f"{len(bot.guilds)} servers! | Use {bot.command_prefix}help for help.",
+            ),
+            status=discord.Status.online,
+        )
+    elif default_language == "it":
+        await bot.change_presence(
+            activity=discord.Activity(
+                type=discord.ActivityType.watching,
+                name=f"{len(bot.guilds)} server! | Usa {bot.command_prefix}help per i comandi.",
+            ),
+            status=discord.Status.online,
+        )
 
 
 @bot.event
 async def on_guild_remove(guild):
-	if default_language == "en":
-		await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching,name=f"{len(bot.guilds)} servers! | Use {bot.command_prefix}help for help."),status=discord.Status.online)
-	elif default_language == "it":
-		await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching,name=f"{len(bot.guilds)} server! | Usa {bot.command_prefix}help per i comandi."),status=discord.Status.online)
+    if default_language == "en":
+        await bot.change_presence(
+            activity=discord.Activity(
+                type=discord.ActivityType.watching,
+                name=f"{len(bot.guilds)} servers! | Use {bot.command_prefix}help for help.",
+            ),
+            status=discord.Status.online,
+        )
+    elif default_language == "it":
+        await bot.change_presence(
+            activity=discord.Activity(
+                type=discord.ActivityType.watching,
+                name=f"{len(bot.guilds)} server! | Usa {bot.command_prefix}help per i comandi.",
+            ),
+            status=discord.Status.online,
+        )
+
 
 bot.run()

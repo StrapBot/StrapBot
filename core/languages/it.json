@@ -1,11 +1,10 @@
 {
     "cogs": [{
-        "1": {
+        "Fun": {
             "name": "Divertimento",
             "description": "Qualche comando divertente",
-            "commands": [{
-                "1": {
-                    "name": "8ball",
+            "commands": {
+                "8ball": {
                     "description": "Chiedi una domanda alla 8ball.",
                     "answers": [
                         "Come la vedo io, sì.",
@@ -31,50 +30,41 @@
                         "testù, testù, testù testù! testù testù testù"
                     ]
                 },
-                "2": {
-                    "name": "choose",
+                "choose": {
                     "description": "Scegli tra più opzioni.",
                     "nochoose": "Non ci sono abbastanza opzioni da scegliere."
                 },
-                "3": {
-                    "name": "roll",
+                "roll": {
                     "description": "Sceglie un numero a caso tra 1 e 6",
                     "one": "Non dovrebbe essere più alto di 1? ;P"
                 },
-                "4": {
-                    "name": "flip",
+                "flip": {
                     "description": "Lancia una moneta.",
                     "heads": "È uscito testa.",
                     "tails": "È uscito croce."
                 },
-                "5": {
-                    "name": "rps",
+                "rps": {
                     "description": "Gioca a sasso, carta, forbici.",
                     "invalid": "Questa non è un opzione valida. Prova rock, paper o scissors.",
                     "win": "Hai vinto",
                     "lose": "Hai perso",
                     "square": "Siamo pari"
                 },
-                "6": {
-                    "name": "lmgtfy",
+                "lmgtfy": {
                     "description": "Crea un link Lmgtfy."
                 },
-                "7": {
-                    "name": "say",
+                "say": {
                     "description": "Fai dire qualcosa al bot."
                 },
-                "8": {
-                    "name": "reverse",
+                "reverse": {
                     "description": "!otset out li itrevnI"
                 },
-                "9": {
-                    "name": "emojify",
+                "emojify": {
                     "description": "Converte il tuo testo in emoji!",
                     "unsupported": "I caratteri possono essere solo lettere o numeri. Altri simboli non sono supportati.",
                     "toomany": "L'emoji è troppo grande per entrare in un messaggio!"
                 },
-                "10": {
-                    "name": "roast",
+                "roast": {
                     "description": "Insulta qualcuno! Se fai schifo a farlo da solo...",
                     "roasts": [
                         "Ti darei uno sguardo cattivo ma ne hai già uno.",
@@ -102,49 +92,40 @@
                     ],
                     "roastyou": "Uh?!! Bel tentativo! Non insulterò me stesso. Invece adesso insulto te."
                 },
-                "11": {
-                    "name": "smallcaps",
+                "smallcaps": {
                     "description": "ᴛʀᴀꜱꜰᴏʀᴍᴀ ɪʟ ᴛᴜᴏ ᴛᴇꜱᴛᴏ ɪɴ ᴄᴀʀᴀᴛᴛᴇʀɪ ᴍɪɴᴜꜱᴄᴏʟɪ!!"
                 },
-                "12": {
-                    "name": "cringe",
+                "cringe": {
                     "description": "rEnDe iL TuO TeStO CrInGe!!"
                 }
-            }]
+            }
         },
-        "2": {
+        "Music": {
             "name": "Musica",
-            "description": "Ascolta la musica che vuoi con StrapBot!",
+            "description": "Ascolta le tue canzoni preferite con StrapBot!",
             "error": "C'è stato un errore: {}",
-            "commands": [{
-                "1": {
-                    "name": "summon",
+            "commands": {
+                "summon": {
                     "description": "Entra in un canale vocale.",
                     "error": "Non sei un un canale vocale, o non hai specificato il canale vocale dove entrare."
                 },
-                "2": {
-                    "name": "leave",
+                "leave": {
                     "description": "Esce dal canale vocale.",
                     "error": "Non sei in un canale vocale."
                 },
-                "3": {
-                    "name": "now",
+                "now": {
                     "description": "Mostra la canzone in riproduzione."
                 },
-                "4": {
-                    "name": "pause",
+                "pause": {
                     "description": "Mette in pausa la canzone in riproduzione."
                 },
-                "5": {
-                    "name": "resume",
+                "resume": {
                     "description": "Rimette una canzone in pausa in riproduzione."
                 },
-                "6": {
-                    "name": "stop",
+                "stop": {
                     "description": "Smette di riprodurre una canzone e svuota la coda."
                 },
-                "7": {
-                    "name": "skip",
+                "skip": {
                     "description": "Salta alla prossima canzone nella coda.",
                     "error": "Non sto riproducendo alcuna canzone al momento...",
                     "vote": {
@@ -152,35 +133,30 @@
                         "error": "Hai già votato per saltare questa canzone."
                     }
                 },
-                "8": {
-                    "name": "queue",
+                "queue": {
                     "description": "Mostra la coda.",
                     "error": "Coda vuota.",
                     "pages": "Visualizzando la pagina {}/{}.",
                     "tracks": "**{} tracce:**\n\n{}"
                 },
-                "9": {
-                    "name": "shuffle",
+                "shuffle": {
                     "description": "Attiva la riproduzione casuale.",
                     "error": "Coda vuota"
                 },
-                "10": {
-                    "name": "remove",
+                "remove": {
                     "description": "Rimuove una canzone dalla coda.",
                     "error": "Coda vuota."
                 },
-                "11": {
-                    "name": "loop",
+                "loop": {
                     "description": "Attiva la ripetizione del brano.",
                     "error": "Non c'è nulla in riproduzione al momento."
                 },
-                "12": {
-                    "name": "play",
+                "play": {
                     "description": "Riproduce una canzone.",
                     "error": "C'è stato un errore mentre cercavo di riprodurre questa canzone: {}",
                     "queued": "Ho inserito {} nella coda."
                 }
-            }]
+            }
         }
     }]
 }

@@ -15,6 +15,7 @@ from logging import getLogger
 
 logger = getLogger("Stockdroid Fans Bot")
 
+
 class ApiClient:
     def __init__(self, bot, db):
         self.bot = bot
@@ -52,7 +53,9 @@ class ApiClient:
             `str` if the returned data is not a valid json data,
             the raw response.
         """
-        async with self.session.request(method, url, headers=headers, json=payload) as resp:
+        async with self.session.request(
+            method, url, headers=headers, json=payload
+        ) as resp:
             if return_response:
                 return resp
             try:
@@ -79,7 +82,7 @@ class MongoDBClient(ApiClient):
                 "Otherwise check the following line:"
             )
             logger.critical(e)
-            sys.exit(0)
+            sys.exit(1)
 
         super().__init__(bot, db)
 
@@ -100,7 +103,11 @@ class MongoDBClient(ApiClient):
             logger.info('Creating "text" index for logs collection.')
             logger.info("Name: %s", index_name)
             await coll.create_index(
-                [("messages.content", "text"), ("messages.author.name", "text"), ("key", "text")]
+                [
+                    ("messages.content", "text"),
+                    ("messages.author.name", "text"),
+                    ("key", "text"),
+                ]
             )
         logger.debug("Successfully configured and verified database indexes.")
 
@@ -133,4 +140,4 @@ class MongoDBClient(ApiClient):
 
     def get_cog_partition(self, cog):
         cls_name = cog.__class__.__name__
-        return self.db.plugins[cls_name]
+        return self.db.cogs[cls_name]
