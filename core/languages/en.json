@@ -1,11 +1,12 @@
 {
-    "cogs": [{
+    "cogs": {
         "Fun": {
             "name": "Fun",
             "description": "Some fun commands",
-            "commands": [{
+            "commands": {
                 "8ball": {
                     "description": "Ask 8ball a question.",
+                    "question": "That doesn't look like a question.",
                     "answers": [
                         "As I see it, yes",
                         "It is certain",
@@ -34,13 +35,12 @@
                     "nochoose": "Not enough options to pick from."
                 },
                 "roll": {
-                    "description": "Roll a random number",
-                    "one": "Maybe higher than one? ;P"
+                    "description": "Roll a random number"
                 },
                 "flip": {
                     "description": "Flip a coin.",
-                    "heads": "Heads.",
-                    "tails": "Tails."
+                    "heads": "Got heads.",
+                    "tails": "Got tails."
                 },
                 "rps": {
                     "description": "Play rock, paper, scissors.",
@@ -100,16 +100,16 @@
                 "cringe": {
                     "description": "mAkE ThE TeXt cRiNgY!!"
                 }
-            }]
+            }
         },
         "Music": {
             "name": "Music",
             "description": "Listen to your favorite music with StrapBot!",
-            "error": "An error occurred: {}"
+            "error": "An error occurred: {}",
             "commands": {
                 "summon": {
                     "description": "Summons the bot to a voice channel.",
-                    "error": "Clears the queue and leaves the voice channel."
+                    "error": "You are neither connected to a voice channel nor specified a channel to join."
                 },
                 "leave": {
                     "description": "Clears the queue and leaves the voice channel.",
@@ -130,7 +130,10 @@
                 "skip": {
                     "description": "Skips to the next song.",
                     "error": "Not playing any music right now...",
-                    "vote": "Skip vote added, currently at **{}**"
+                    "vote": {
+                        "success": "Skip vote added, currently at **{}**",
+                        "error": "You have already voted to skip this song."
+                    }
                 },
                 "queue": {
                     "description": "Shows the player's queue.",
@@ -139,7 +142,7 @@
                     "pages": "Viewing page {}/{}"
                 },
                 "shuffle": {
-                    "description": "Shuffles the queue."
+                    "description": "Shuffles the queue.",
                     "error": "Empty queue."
                 },
                 "remove": {
@@ -156,6 +159,45 @@
                     "queued": "Enqueued {}"
                 }
             }
+        },
+        "Config": {
+            "name": "Config",
+            "description": "Configure StrapBot!",
+            "commands": {
+                "config user lang": {
+                    "description": "Configure your language.\n**NOTA:** the only valid languages\nare `en` and `it` for now.",
+                    "embed": {
+                        "title": "Language changed!",
+                        "description": "You set your language to English!"
+                    }
+                },
+                "config server lang": {
+                    "description": "Configure server's language.\n**NOTA:** the only valid languages\nare `en` and `it` for now.",
+                    "embed": {
+                        "title": "Language changed!",
+                        "description": "You set the server's language to English!"
+                    }
+                }
+            }
+        },
+        "Help": {
+            "name": "Help",
+            "commands": {
+                "help": {
+                    "description": "Shows this message.",
+                    "embed": {
+                        "description": "This is a list of commands in this bot.\n\n**{prefix}help** - Shows this message.\n**{prefix}config** - Configure StrapBot.",
+                        "footer": {
+                            "text": "Made by Ergastolator1#5522 and Vincy.exe#1447",
+                            "icon_url": "https://cdn.discordapp.com/avatars/740140581174378527/226deca56aaa9cbe5f27dcbf7dda732d.webp"
+                        },
+                        "author": {
+                            "name": "StrapBot",
+                            "icon_url": "https://cdn.discordapp.com/avatars/740140581174378527/226deca56aaa9cbe5f27dcbf7dda732d.webp"
+                        }
+                    }
+                }
+            }
         }
-    }]
+    }
 }

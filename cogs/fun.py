@@ -56,34 +56,9 @@ class RPSParser:
 
 class Fun(commands.Cog):
     """Some Fun commands"""
-
-    ball = [
-        "As I see it, yes",
-        "It is certain",
-        "It is decidedly so",
-        "Most likely",
-        "Outlook good",
-        "Signs point to yes",
-        "Without a doubt",
-        "Yes",
-        "Yes – definitely",
-        "You may rely on it",
-        "Reply hazy, try again",
-        "Ask again later",
-        "Better not tell you now",
-        "Cannot predict now",
-        "Concentrate and ask again",
-        "Don't count on it",
-        "My reply is no",
-        "My sources say no",
-        "Outlook not so good",
-        "Very doubtful",
-    ]
-
     def __init__(self, bot):
         super().__init__()
         self.bot = bot
-        # self.db = bot.plugin_db.get_partition(self)
 
     @commands.command()
     async def choose(self, ctx, *choices):
@@ -91,9 +66,10 @@ class Fun(commands.Cog):
         To denote options which include whitespace, you should use
         double quotes.
         """
+        lang = await ctx.get_lang(self)
         choices = [escape(c, mass_mentions=True) for c in choices]
         if len(choices) < 2:
-            await ctx.send(_("Not enough options to pick from."))
+            await ctx.send(_(lang["nochoose"]))
         else:
             await ctx.send(choice(choices))
 
@@ -110,25 +86,24 @@ class Fun(commands.Cog):
                 "{author.mention} :game_die: {n} :game_die:".format(author=author, n=n)
             )
         else:
-            await ctx.send(
-                _("{author.mention} Maybe higher than 1? ;P").format(author=author)
-            )
+            await ctx.send("testù")
 
     @commands.command()
     async def flip(self, ctx):
         """Flip a coin"""
-        answer = choice(["HEADS!*", "TAILS!*"])
-        await ctx.send(f"*Flips a coin and...{answer}")
+        lang = await ctx.get_lang(self)
+        answer = choice(["heads", "tails"])
+        answer = lang[answer]
+        await ctx.send(answer)
 
     @commands.command()
     async def rps(self, ctx, your_choice: RPSParser):
         """Play Rock,Paper,Scissors"""
+        lang = await ctx.get_lang(self)
         author = ctx.author
         player_choice = your_choice.choice
         if not player_choice:
-            return await ctx.send(
-                "This isn't a valid option. Try rock, paper, or scissors."
-            )
+            return await ctx.send(lang["invalid"])
         # TODO: translate this
         bot_choice = choice((RPS.rock, RPS.paper, RPS.scissors))
         cond = {
@@ -144,11 +119,11 @@ class Fun(commands.Cog):
         else:
             outcome = cond[(player_choice, bot_choice)]
         if outcome is True:
-            await ctx.send(f"{bot_choice.value} You win {author.mention}!")
+            await ctx.send(f"{bot_choice.value} {lang['win']} {author.mention}!")
         elif outcome is False:
-            await ctx.send(f"{bot_choice.value} You lose {author.mention}!")
+            await ctx.send(f"{bot_choice.value} {lang['lose']} {author.mention}!")
         else:
-            await ctx.send(f"{bot_choice.value} We're square {author.mention}!")
+            await ctx.send(f"{bot_choice.value} {lang['square']} {author.mention}!")
 
     @commands.command(name="8ball", aliases=["8"])
     async def _8ball(self, ctx, *, question: str):
@@ -156,15 +131,16 @@ class Fun(commands.Cog):
         Question must end with a question mark.
         """
         if question.endswith("?") and question != "?":
+            answers = (await ctx.get_lang(self))["answers"]
             await ctx.send(
                 (
-                    choice(self.ball)
+                    choice(answers)
                     if question != "testù?"
                     else "testù, testù, testù testù! testù testù testù"
                 )
             )
         else:
-            await ctx.send("That doesn't look like a question.")
+            await ctx.send((await ctx.get_lang(self))["question"])
 
     @commands.command()
     async def lmgtfy(self, ctx, *, search_terms: str):
@@ -189,6 +165,7 @@ class Fun(commands.Cog):
     @commands.command()
     async def emojify(self, ctx, *, text: str):
         """Turns your text into emojis!"""
+        lang = await ctx.get_lang(self)
         try:
             await ctx.message.delete()
         except discord.Forbidden:
@@ -214,51 +191,25 @@ class Fun(commands.Cog):
                 }
                 to_send += f":{numbers[char]}: "
             else:
-                return await ctx.send(
-                    "Characters must be either a letter or number. Anything else is unsupported."
-                )
+                return await ctx.send(lang["unsupported"])
         if len(to_send) > 2000:
-            return await ctx.send("Emoji is too large to fit in a message!")
+            return await ctx.send(lang["toomany"])
         await ctx.send(to_send)
 
     @commands.command()
     @commands.guild_only()
     async def roast(self, ctx, *, user: discord.Member = None):
         """Roast someone! If you suck at roasting them yourself."""
-
-        msg = f"Hey, {user.mention}! " if user is not None else ""
-        roasts = [
-            "I'd give you a nasty look but you've already got one.",
-            "If you're going to be two-faced, at least make one of them pretty.",
-            "The only way you'll ever get laid is if you crawl up a chicken's ass and wait.",
-            "It looks like your face caught fire and someone tried to put it out with a hammer.",
-            "I'd like to see things from your point of view, but I can't seem to get my head that far up your ass.",
-            "Scientists say the universe is made up of neutrons, protons and electrons. They forgot to mention morons.",
-            "Why is it acceptable for you to be an idiot but not for me to point it out?",
-            "Just because you have one doesn't mean you need to act like one.",
-            "Someday you'll go far... and I hope you stay there.",
-            "Which sexual position produces the ugliest children? Ask your mother.",
-            "No, those pants don't make you look fatter - how could they?",
-            "Save your breath - you'll need it to blow up your date.",
-            "If you really want to know about mistakes, you should ask your parents.",
-            "Whatever kind of look you were going for, you missed.",
-            "Hey, you have something on your chin... no, the 3rd one down.",
-            "I don't know what makes you so stupid, but it really works.",
-            "You are proof that evolution can go in reverse.",
-            "Brains aren't everything. In your case they're nothing.",
-            "I thought of you today. It reminded me to take the garbage out.",
-            "You're so ugly when you look in the mirror, your reflection looks away.",
-            "Quick - check your face! I just found your nose in my business.",
-            "It's better to let someone think you're stupid than open your mouth and prove it.",
-            "You're such a beautiful, intelligent, wonderful person. Oh I'm sorry, I thought we were having a lying competition.",
-            "I'd slap you but I don't want to make your face look any better.",
-            "You have the right to remain silent because whatever you say will probably be stupid anyway.",
-        ]
-        if str(user.id) == str(ctx.bot.user.id):
-            return await ctx.send(
-                f"Uh?!! Nice try! I am not going to roast myself. Instead I am going to roast you now.\n\n {ctx.author.mention} {choice(roasts)}"
-            )
-        await ctx.send(f"{msg} {choice(roasts)}")
+        lang = await ctx.get_lang(self)
+        msg = f"{user.mention},\n\n" if user is not None else ""
+        roasts = lang["roasts"]
+        if user != None:
+            if user.id == ctx.bot.user.id:
+                user = ctx.message.author
+                msg = lang["roastyou"] + f"\n\n{user.mention}\n\n"
+        else:
+            msg = ""
+        await ctx.send(f"{msg}{choice(roasts)}")
 
     @commands.command(aliases=["sc"])
     @commands.guild_only()
@@ -312,10 +263,8 @@ class Fun(commands.Cog):
                 text_list[i] = text_list[i].lower()
             else:
                 text_list[i] = text_list[i].upper()
-        message = "".join(
-            text_list
-        )  # convert list back to string(message) to print it as a word
-        await ctx.send(message)
+        message = "".join(text_list)  # convert list back to string(message) to print it as a word
+        await ctx.send(embed=discord.Embed(description=message, color=discord.Color.lighter_grey()).set_author(name=f"{ctx.message.author.name}#{ctx.message.author.discriminator}", icon_url=ctx.message.author.avatar_url))
         await ctx.message.delete()
 
 

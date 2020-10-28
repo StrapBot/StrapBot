@@ -10,10 +10,10 @@ class HelpCommand(commands.HelpCommand):
         prefix = self.clean_prefix
         cogs = [bot.get_cog("Test"), bot.get_cog("Fun"), bot.get_cog("Music")]
         random.shuffle(cogs)
-        embed = discord.Embed(
-            description=f"This is a list of commands in this bot.\n\n**{prefix}help** - Shows this message.",
-            color=discord.Color.lighter_grey()
-        ).set_footer(text="Made by Ergastolator#0001 and Vincy.exe#1447").set_author(name="StrapBot", icon_url=bot.user.avatar_url)
+        lang = await ctx.get_lang(self.cog)
+        embed = discord.Embed.from_dict(lang["embed"])
+        embed.color = discord.Color.lighter_grey()
+        embed.description = embed.description.format(prefix=prefix)
         for cog in cogs:
             commands = []
             for command in await self.filter_commands(
@@ -125,7 +125,7 @@ class HelpCommand(commands.HelpCommand):
             embed.title = "Could not find command or category."
         await self.get_destination().send(embed=embed)
 
-class HelpCog(commands.Cog):
+class Help(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self._original_help_command = bot.help_command
@@ -142,4 +142,4 @@ class HelpCog(commands.Cog):
             self.bot.help_command = self._original_help_command
 
 def setup(bot):
-    bot.add_cog(HelpCog(bot))
+    bot.add_cog(Help(bot))

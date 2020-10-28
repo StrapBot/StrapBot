@@ -1,11 +1,12 @@
 {
-    "cogs": [{
+    "cogs": {
         "Fun": {
             "name": "Divertimento",
             "description": "Qualche comando divertente",
             "commands": {
                 "8ball": {
                     "description": "Chiedi una domanda alla 8ball.",
+                    "question": "Quella non sembra una domanda.",
                     "answers": [
                         "Come la vedo io, sì.",
                         "È certo.",
@@ -35,8 +36,7 @@
                     "nochoose": "Non ci sono abbastanza opzioni da scegliere."
                 },
                 "roll": {
-                    "description": "Sceglie un numero a caso tra 1 e 6",
-                    "one": "Non dovrebbe essere più alto di 1? ;P"
+                    "description": "Sceglie un numero a caso tra 1 e 6"
                 },
                 "flip": {
                     "description": "Lancia una moneta.",
@@ -107,7 +107,7 @@
             "commands": {
                 "summon": {
                     "description": "Entra in un canale vocale.",
-                    "error": "Non sei un un canale vocale, o non hai specificato il canale vocale dove entrare."
+                    "error": "Non sei un un canale vocale, e non hai specificato il canale vocale dove entrare."
                 },
                 "leave": {
                     "description": "Esce dal canale vocale.",
@@ -157,6 +157,45 @@
                     "queued": "Ho inserito {} nella coda."
                 }
             }
+        },
+        "Config": {
+            "name": "Config",
+            "description": "Configura StrapBot!",
+            "commands": {
+                "config user lang": {
+                    "description": "Configura la tua lingua.\n**NOTA:** le uniche lingue valide\nsono solo `en` e `it` per ora.",
+                    "embed": {
+                        "title": "Lingua cambiata!",
+                        "description": "Hai impostato la tua lingua a italiano!"
+                    }
+                },
+                "config server lang": {
+                    "description": "Configura la lingua del server.\n**NOTA:** le uniche lingue valide\nsono solo `en` e `it` per ora.",
+                    "embed": {
+                        "title": "Lingua cambiata!",
+                        "description": "Hai impostato la lingua del server a italiano!"
+                    }
+                }
+            }
+        },
+        "Help": {
+            "name": "Help",
+            "commands": {
+                "help": {
+                    "description": "Mostra questo messaggio.",
+                    "embed": {
+                        "description": "Questa è una lista di comandi in questo bot.\n\n**{prefix}help** - Mostra questo messaggio.\n**{prefix}config** - Configura StrapBot.",
+                        "footer": {
+                            "text": "Fatto da Ergastolator1#5522 e Vincy.exe#1447",
+                            "icon_url": "https://cdn.discordapp.com/avatars/740140581174378527/226deca56aaa9cbe5f27dcbf7dda732d.webp"
+                        },
+                        "author": {
+                            "name": "StrapBot",
+                            "icon_url": "https://cdn.discordapp.com/avatars/740140581174378527/226deca56aaa9cbe5f27dcbf7dda732d.webp"
+                        }
+                    }
+                }
+            }
         }
-    }]
+    }
 }

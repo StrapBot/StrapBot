@@ -157,7 +157,7 @@ class Song:
         self.source = source
         self.requester = source.requester
 
-    def create_embed(self):
+    def create_embed(self, ctx):
         embed = (
             discord.Embed(
                 title="Now playing",
@@ -174,7 +174,7 @@ class Song:
             .set_thumbnail(url=self.source.thumbnail)
         )
 
-        return embed
+        return embed # TODO: translate this
 
 
 class SongQueue(asyncio.Queue):
@@ -312,7 +312,7 @@ class Music(commands.Cog):
     async def cog_command_error(
         self, ctx: commands.Context, error: commands.CommandError
     ):
-        await ctx.send("An error occurred: {}".format(str(error)))
+        await ctx.send("Error(e): {}".format(str(error)))
 
     @commands.command(name="summon", aliases=["join"])
     @commands.has_permissions(manage_guild=True)
@@ -322,10 +322,11 @@ class Music(commands.Cog):
         """Summons the bot to a voice channel.
         If no channel was specified, it joins your channel.
         """
+        lang = await ctx.get_lang(self)
 
         if not channel and not ctx.author.voice:
             raise VoiceError(
-                "You are neither connected to a voice channel nor specified a channel to join."
+                lang["error"]
             )
 
         destination = channel or ctx.author.voice.channel
@@ -339,9 +340,10 @@ class Music(commands.Cog):
     @commands.has_permissions(manage_guild=True)
     async def _leave(self, ctx: commands.Context):
         """Clears the queue and leaves the voice channel."""
+        lang = await ctx.get_lang(self)
 
         if not ctx.voice_state.voice:
-            return await ctx.send("Not connected to any voice channel.")
+            return await ctx.send(lang["error"])
 
         await ctx.voice_state.stop()
         del self.voice_states[ctx.guild.id]
@@ -350,7 +352,7 @@ class Music(commands.Cog):
     async def _now(self, ctx: commands.Context):
         """Displays the currently playing song."""
 
-        await ctx.send(embed=ctx.voice_state.current.create_embed())
+        await ctx.send(embed=ctx.voice_state.current.create_embed(ctx))
 
     @commands.command(name="pause")
     @commands.has_permissions(manage_guild=True)
@@ -383,9 +385,11 @@ class Music(commands.Cog):
 
     @commands.command(name="skip")
     async def _skip(self, ctx: commands.Context):
+        """Skips to the next song."""
+        lang = await ctx.get_lang(self)
 
         if not ctx.voice_state.is_playing:
-            return await ctx.send("Not playing any music right now...")
+            return await ctx.send(lang["error"])
 
         voter = ctx.message.author
         if voter == ctx.voice_state.current.requester:
@@ -401,20 +405,21 @@ class Music(commands.Cog):
                 ctx.voice_state.skip()
             else:
                 await ctx.send(
-                    "Skip vote added, currently at **{}/1**".format(total_votes)
+                    lang["vote"]["success"].format(total_votes)
                 )
 
         else:
-            await ctx.send("You have already voted to skip this song.")
+            await ctx.send(lang["vote"]["error"])
 
     @commands.command(name="queue")
     async def _queue(self, ctx: commands.Context, *, page: int = 1):
         """Shows the player's queue.
         You can optionally specify the page to show. Each page contains 10 elements.
         """
+        lang = await ctx.get_lang(self)
 
         if len(ctx.voice_state.songs) == 0:
-            return await ctx.send("Empty queue.")
+            return await ctx.send(lang["error"])
 
         items_per_page = 10
         pages = math.ceil(len(ctx.voice_state.songs) / items_per_page)
@@ -429,16 +434,17 @@ class Music(commands.Cog):
             )
 
         embed = discord.Embed(
-            description="**{} tracks:**\n\n{}".format(len(ctx.voice_state.songs), queue)
-        ).set_footer(text="Viewing page {}/{}".format(page, pages))
+            description=lang["tracks"].format(len(ctx.voice_state.songs), queue)
+        ).set_footer(text=lang["pages"].format(page, pages))
         await ctx.send(embed=embed)
 
     @commands.command(name="shuffle")
     async def _shuffle(self, ctx: commands.Context):
         """Shuffles the queue."""
+        lang = await ctx.get_lang(self)
 
         if len(ctx.voice_state.songs) == 0:
-            return await ctx.send("Empty queue.")
+            return await ctx.send(lang["error"])
 
         ctx.voice_state.songs.shuffle()
         await ctx.message.add_reaction("✅")
@@ -446,9 +452,10 @@ class Music(commands.Cog):
     @commands.command(name="remove")
     async def _remove(self, ctx: commands.Context, index: int):
         """Removes a song from the queue at a given index."""
+        lang = await ctx.get_lang(self)
 
         if len(ctx.voice_state.songs) == 0:
-            return await ctx.send("Empty queue.")
+            return await ctx.send(lang["error"])
 
         ctx.voice_state.songs.remove(index - 1)
         await ctx.message.add_reaction("✅")
@@ -458,9 +465,10 @@ class Music(commands.Cog):
         """Loops the currently playing song.
         Invoke this command again to unloop the song.
         """
+        lang = await ctx.get_lang(self)
 
         if not ctx.voice_state.is_playing:
-            return await ctx.send("Nothing being played at the moment.")
+            return await ctx.send(lang["error"])
 
         # Inverse boolean value to loop and unloop.
         ctx.voice_state.loop = not ctx.voice_state.loop
@@ -474,6 +482,7 @@ class Music(commands.Cog):
         This command automatically searches from various sites if no URL is provided.
         A list of these sites can be found here: https://rg3.github.io/youtube-dl/supportedsites.html
         """
+        lang = await ctx.get_lang(self)
 
         if not ctx.voice_state.voice:
             await ctx.invoke(self._summon)
@@ -483,13 +492,13 @@ class Music(commands.Cog):
                 source = await YTDLSource.create_source(ctx, search, loop=self.bot.loop)
             except YTDLError as e:
                 await ctx.send(
-                    "An error occurred while processing this request: {}".format(str(e))
+                    lang["error"].format(str(e))
                 )
             else:
                 song = Song(source)
 
                 await ctx.voice_state.songs.put(song)
-                await ctx.send("Enqueued {}".format(str(source)))
+                await ctx.send(lang["queued"].format(str(source)))
 
     @_summon.before_invoke
     @_play.before_invoke

@@ -1,0 +1,160 @@
+{
+    "cogs": {
+        "Fun": {
+            "name": "testù",
+            "description": "testù!",
+            "commands": {
+                "8ball": {
+                    "description": "testù",
+                    "question": "tùset",
+                    "answers": [
+                        "testù, testù, testù testù! testù testù testù"
+                    ]
+                },
+                "choose": {
+                    "description": "testù/testà.",
+                    "nochoose": "tEsTù"
+                },
+                "roll": {
+                    "description": "***t   e   s   t   ù***"
+                },
+                "flip": {
+                    "description": "***t   E   s   T   ù***",
+                    "heads": "testà",
+                    "tails": "testù"
+                },
+                "rps": {
+                    "description": "testù, testù, testù",
+                    "invalid": "tesù",
+                    "win": "testù",
+                    "lose": "testà",
+                    "square": "tùset"
+                },
+                "lmgtfy": {
+                    "description": "testù"
+                },
+                "say": {
+                    "description": "testùùùùùùùùùùùùùùùùùùùù"
+                },
+                "reverse": {
+                    "description": "ùtset"
+                },
+                "emojify": {
+                    "description": "<:testugrave:753000040292941895>",
+                    "unsupported": "<:testugrave:753000040292941895>, <:testugrave:753000040292941895>, <:testugrave:753000040292941895> <:testugrave:753000040292941895>! <:testugrave:753000040292941895> <:testugrave:753000040292941895> <:testugrave:753000040292941895>",
+                    "toomany": "<:testugrave:753000040292941895>ùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùù"
+                },
+                "roast": {
+                    "description": "Insulta qualcuno! Se fai schifo a farlo da solo...",
+                    "roasts": [
+                        "resterai sempre testù testù testù testù testù testù testù testù testù testù testù testù testù testù testà testì testù e Creeper"
+                    ],
+                    "roastyou": "TESTÙÙÙÙÙÙÙÙÙÙÙÙÙÙÙÙÙÙÙÙÙÙÙÙÙÙÙ"
+                },
+                "smallcaps": {
+                    "description": "ᴛᴇꜱᴛù"
+                },
+                "cringe": {
+                    "description": "tEsTù"
+                }
+            }
+        },
+        "Music": {
+            "name": "teeeeeeeeeeeeeeeeeeeestùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùù",
+            "description": "testù testù testù testù testù testù!",
+            "error": "tesù: {}",
+            "commands": {
+                "summon": {
+                    "description": "testà -> testù",
+                    "error": "testù != testà"
+                },
+                "leave": {
+                    "description": "Esce dal canale vocale.",
+                    "error": "Non sei in un canale vocale."
+                },
+                "now": {
+                    "description": "tùset"
+                },
+                "pause": {
+                    "description": "te-"
+                },
+                "resume": {
+                    "description": "-stù"
+                },
+                "stop": {
+                    "description": "tes-..............."
+                },
+                "skip": {
+                    "description": "tes->tù",
+                    "error": "Purtroppo la situazione è sempre testù testù testà",
+                    "vote": {
+                        "success": "**{}** testù!",
+                        "error": "testù."
+                    }
+                },
+                "queue": {
+                    "description": "testù, testà, testè, testì, test+",
+                    "error": "tesù",
+                    "pages": "testù {}/{}.",
+                    "tracks": "**{} testùs:**\n\n{}"
+                },
+                "shuffle": {
+                    "description": "testù<->testà",
+                    "error": "Coda vuota"
+                },
+                "remove": {
+                    "description": "te-...............",
+                    "error": "tesù"
+                },
+                "loop": {
+                    "description": "testù, testù, testù, testù, testù, testù, testù, ...",
+                    "error": "testù"
+                },
+                "play": {
+                    "description": "tù, tù, tùset! tù, tù, tùset! tù, tù, tùset! tù, tù, tùset! ",
+                    "error": "TESTÙ: {}",
+                    "queued": "{} testùed."
+                }
+            }
+        },
+        "Config": {
+            "name": "Config",
+            "description": "testù!",
+            "commands": {
+                "config user lang": {
+                    "description": "testù->testà.\n**TESTÙ:** testà.",
+                    "embed": {
+                        "title": "testù, testù, testù testù!",
+                        "description": "testù testù testù"
+                    }
+                },
+                "config server lang": {
+                    "description": "testà->test+.\n**TESTÙ:** testò.",
+                    "embed": {
+                        "title": "testù, testù, testù testù!",
+                        "description": "testù testù testù"
+                    }
+                }
+            }
+        },
+        "Help": {
+            "name": "Help",
+            "commands": {
+                "help": {
+                    "description": "testù",
+                    "embed": {
+                        "description": "testù, testù, testù testù! testù testù testù\n\n**{prefix}help** - testù\n**{prefix}config** - testù!",
+                        "footer": {
+                            "text": "Ergastolator1#5522, Vincy.exe#1447 = testùers",
+                            "icon_url": "https://cdn.discordapp.com/avatars/740140581174378527/226deca56aaa9cbe5f27dcbf7dda732d.webp"
+                        },
+                        "author": {
+                            "name": "StrapBot",
+                            "icon_url": "https://cdn.discordapp.com/avatars/740140581174378527/226deca56aaa9cbe5f27dcbf7dda732d.webp"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
