@@ -1,8 +1,11 @@
+__version__ = "2.0"
+
 import os
 from os.path import isfile, join
 import discord
 import asyncio
 import traceback
+from pkg_resources import parse_version
 from aiohttp import ClientSession
 from discord.ext import commands
 from dotenv import load_dotenv as import_dotenv
@@ -47,6 +50,10 @@ class StrapBot(commands.Bot):
 
     async def get_context(self, message, *, cls=Context):
         return await super().get_context(message, cls=cls)
+    
+    @property
+    def version(self):
+        return parse_version(__version__)
 
     @property
     def session(self) -> ClientSession:

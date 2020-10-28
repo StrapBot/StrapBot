@@ -3,6 +3,10 @@ A bot which replaces ErgastolatorBot v2.0 and VincyBot07, and it's built better 
 
 ## Changelog
 
+### v2.0: StrapBot in Italian!
++ Added multi-language support.
++ Revamped help command. Now it is completely automatic!
+
 ### v1.1: Second release
 + Added MongoDB support.
 + Help command is no longer buggy on mobile phones.
