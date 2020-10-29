@@ -12,11 +12,13 @@ from dotenv import load_dotenv as import_dotenv
 from core.languages import Languages
 from core.mongodb import *
 from core.context import Context
+
 import_dotenv()
 
 intents = discord.Intents.default()
 intents.guilds = True
 intents.members = True
+
 
 class StrapBot(commands.Bot):
     def __init__(self):
@@ -50,7 +52,7 @@ class StrapBot(commands.Bot):
 
     async def get_context(self, message, *, cls=Context):
         return await super().get_context(message, cls=cls)
-    
+
     @property
     def version(self):
         return parse_version(__version__)

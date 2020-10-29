@@ -56,6 +56,7 @@ class RPSParser:
 
 class Fun(commands.Cog):
     """Some Fun commands"""
+
     def __init__(self, bot):
         super().__init__()
         self.bot = bot
@@ -263,8 +264,17 @@ class Fun(commands.Cog):
                 text_list[i] = text_list[i].lower()
             else:
                 text_list[i] = text_list[i].upper()
-        message = "".join(text_list)  # convert list back to string(message) to print it as a word
-        await ctx.send(embed=discord.Embed(description=message, color=discord.Color.lighter_grey()).set_author(name=f"{ctx.message.author.name}#{ctx.message.author.discriminator}", icon_url=ctx.message.author.avatar_url))
+        message = "".join(
+            text_list
+        )  # convert list back to string(message) to print it as a word
+        await ctx.send(
+            embed=discord.Embed(
+                description=message, color=discord.Color.lighter_grey()
+            ).set_author(
+                name=f"{ctx.message.author.name}#{ctx.message.author.discriminator}",
+                icon_url=ctx.message.author.avatar_url,
+            )
+        )
         await ctx.message.delete()
 
 

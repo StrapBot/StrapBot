@@ -6,7 +6,7 @@ from discord.ext import commands
 class Vincy(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.path = "core/vincyguild.json" # TODO: switch to MongoDB
+        self.path = "core/vincyguild.json"  # TODO: switch to MongoDB
         self.guild = json.load(open(self.path))
         self.agree = self.guild["agree"]
 
@@ -14,7 +14,11 @@ class Vincy(commands.Cog):
         if ctx.guild.id == self.guild["id"]:
             return True
         else:
-            await ctx.send("This command works ONLY in Vincy's server." if self.bot.lang.get_user(ctx.message.author.id) is not "it" else "Questo comando funziona SOLO nel server di Vincy")
+            await ctx.send(
+                "This command works ONLY in Vincy's server."
+                if self.bot.lang.get_user(ctx.message.author.id) is not "it"
+                else "Questo comando funziona SOLO nel server di Vincy"
+            )
             return False
 
     @commands.command()

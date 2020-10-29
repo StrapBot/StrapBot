@@ -3,6 +3,7 @@ import random
 from discord.ext import commands
 from difflib import get_close_matches
 
+
 class HelpCommand(commands.HelpCommand):
     async def send_bot_help(self, mapping):
         ctx = self.context
@@ -29,11 +30,11 @@ class HelpCommand(commands.HelpCommand):
                     )
                 )
 
-            embed.add_field(name=cog.qualified_name, value="".join(commands), inline=True)
+            embed.add_field(
+                name=cog.qualified_name, value="".join(commands), inline=True
+            )
 
         await self.get_destination().send(embed=embed)
-
-
 
     async def _get_help_embed(self, topic):
         if not await self.filter_commands([topic]):
@@ -41,8 +42,10 @@ class HelpCommand(commands.HelpCommand):
 
         embed = discord.Embed(
             title=f"**{self.get_command_signature(topic)}**",
-            description=topic.help.format(prefix=self.clean_prefix) if topic.help else "No message.",
-            color=discord.Color.lighter_grey()
+            description=topic.help.format(prefix=self.clean_prefix)
+            if topic.help
+            else "No message.",
+            color=discord.Color.lighter_grey(),
         )
         return embed
 
@@ -63,12 +66,16 @@ class HelpCommand(commands.HelpCommand):
             )
 
         await self.get_destination().send(
-            embed=discord.Embed(description=cog.description, color=discord.Color.lighter_grey()).set_author(
+            embed=discord.Embed(
+                description=cog.description, color=discord.Color.lighter_grey()
+            )
+            .set_author(
                 name=f"{cog.qualified_name} - Help",
-                icon_url=self.context.bot.user.avatar_url
-            ).add_field(
+                icon_url=self.context.bot.user.avatar_url,
+            )
+            .add_field(
                 name="Commands",
-                value="".join(commands) if len(commands) != 0 else "No commands."
+                value="".join(commands) if len(commands) != 0 else "No commands.",
             )
         )
 
@@ -102,10 +109,7 @@ class HelpCommand(commands.HelpCommand):
         print(error)
 
         embed = discord.Embed(color=discord.Color.red())
-        embed.set_author(
-            name="StrapBot",
-            icon_url=self.context.bot.user.avatar_url
-        )
+        embed.set_author(name="StrapBot", icon_url=self.context.bot.user.avatar_url)
         embed.set_footer(
             text=f'Command/category "{command}" not found.',
         )
@@ -125,6 +129,7 @@ class HelpCommand(commands.HelpCommand):
             embed.title = "Could not find command or category."
         await self.get_destination().send(embed=embed)
 
+
 class Help(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -133,13 +138,14 @@ class Help(commands.Cog):
             command_attrs={
                 "name": "help",
                 "aliases": ["man", "h"],
-                "help": "Shows this message."
+                "help": "Shows this message.",
             }
         )
         bot.help_command.cog = self
 
         def cog_unload(self):
             self.bot.help_command = self._original_help_command
+
 
 def setup(bot):
     bot.add_cog(Help(bot))

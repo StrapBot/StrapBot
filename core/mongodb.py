@@ -81,7 +81,7 @@ class MongoDBClient(ApiClient):
                 "Your MondoDB connection string might be copied wrong, try copying it again. "
                 "Otherwise check the following line:"
             )
-            logger.critical(e)
+            logger.critical(str(e))
             sys.exit(1)
 
         super().__init__(bot, db)

@@ -5,11 +5,6 @@ A bot which replaces ErgastolatorBot v2.0 and VincyBot07, and it's built better 
 
 You can invite StrapBot by [clicking here](https://bit.ly/StrapBot).
 
-## What is the testù.json file?
-It is a language file. You can use it by copying the file in the `core/languages` older.
-
-There is another way though, but I'm not going to explain it... you must discover it yourself!👀
-
 ## Changelog
 
 ### v2.0: StrapBot in Italian!

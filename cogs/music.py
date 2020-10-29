@@ -174,7 +174,7 @@ class Song:
             .set_thumbnail(url=self.source.thumbnail)
         )
 
-        return embed # TODO: translate this
+        return embed  # TODO: translate this
 
 
 class SongQueue(asyncio.Queue):
@@ -325,9 +325,7 @@ class Music(commands.Cog):
         lang = await ctx.get_lang(self)
 
         if not channel and not ctx.author.voice:
-            raise VoiceError(
-                lang["error"]
-            )
+            raise VoiceError(lang["error"])
 
         destination = channel or ctx.author.voice.channel
         if ctx.voice_state.voice:
@@ -404,9 +402,7 @@ class Music(commands.Cog):
                 await ctx.message.add_reaction("⏭")
                 ctx.voice_state.skip()
             else:
-                await ctx.send(
-                    lang["vote"]["success"].format(total_votes)
-                )
+                await ctx.send(lang["vote"]["success"].format(total_votes))
 
         else:
             await ctx.send(lang["vote"]["error"])
@@ -491,9 +487,7 @@ class Music(commands.Cog):
             try:
                 source = await YTDLSource.create_source(ctx, search, loop=self.bot.loop)
             except YTDLError as e:
-                await ctx.send(
-                    lang["error"].format(str(e))
-                )
+                await ctx.send(lang["error"].format(str(e)))
             else:
                 song = Song(source)
 

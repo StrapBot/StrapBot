@@ -2,8 +2,10 @@ import os
 import discord
 from discord.ext import commands
 
+
 class Config(commands.Cog):
     """Configure StrapBot!"""
+
     def __init__(self, bot):
         self.bot = bot
         self.db = bot.lang.db

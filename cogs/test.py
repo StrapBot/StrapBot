@@ -82,4 +82,4 @@ class Test(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(Test(bot)) # TODO: translate this
+    bot.add_cog(Test(bot))  # TODO: translate this

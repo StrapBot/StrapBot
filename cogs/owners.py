@@ -2,6 +2,7 @@ import json
 import discord
 from discord.ext import commands
 
+
 class OwnerOnly(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -22,7 +23,7 @@ class OwnerOnly(commands.Cog):
         return await ctx.send_help(ctx.command)
 
     @set.command()
-    async def guild(self, ctx, guild: int=None, language: str="en"):
+    async def guild(self, ctx, guild: int = None, language: str = "en"):
         """o k"""
         if language == None:
             language = self.bot.lang.default
@@ -32,7 +33,9 @@ class OwnerOnly(commands.Cog):
             await ctx.send(e)
             raise
         else:
-            await ctx.send(f"```json\n{json.dumps(await self.bot.lang.get_guild(guild), indent=4)}\n```")
+            await ctx.send(
+                f"```json\n{json.dumps(await self.bot.lang.get_guild(guild), indent=4)}\n```"
+            )
 
     @get.command()
     async def guilds(self, ctx):
@@ -47,7 +50,7 @@ class OwnerOnly(commands.Cog):
         await ctx.send(f"```json\n{json.dumps(members, indent=4)}\n```")
 
     @set.command()
-    async def member(self, ctx, member: int=None, language: str="en"):
+    async def member(self, ctx, member: int = None, language: str = "en"):
         """oK"""
         if language == None:
             language = self.bot.lang.default
@@ -57,7 +60,10 @@ class OwnerOnly(commands.Cog):
             await ctx.send(e)
             raise
         else:
-            await ctx.send(f"```json\n{json.dumps(await self.bot.lang.get_user(member), indent=4)}\n```")
+            await ctx.send(
+                f"```json\n{json.dumps(await self.bot.lang.get_user(member), indent=4)}\n```"
+            )
 
 
-def setup(bot): bot.add_cog(OwnerOnly(bot))
+def setup(bot):
+    bot.add_cog(OwnerOnly(bot))

@@ -17,7 +17,7 @@ class Languages:
     async def get_members(self):
         return await self.db.find_one({"_id": "members"})
 
-    async def get_guild(self, guild: int=None):
+    async def get_guild(self, guild: int = None):
         if guild == None:
             raise RuntimeError("You must give a guild ID.")
 
@@ -30,10 +30,13 @@ class Languages:
             ret = ret[str(guild.id)]
         except KeyError:
             return
-        else: return ret
+        else:
+            return ret
 
-    async def set_guild(self, guild: int=None, member: int=None, *, lang: str=default_language):
-        if lang != "en" and lang != "it" and lang != "../../testù":
+    async def set_guild(
+        self, guild: int = None, member: int = None, *, lang: str = default_language
+    ):
+        if lang != "en" and lang != "it" and not "testù" in lang:
             if lang == None:
                 raise RuntimeError("You must specify a language.")
             raise TypeError("Unknown language.")
@@ -49,12 +52,16 @@ class Languages:
         guild = self.bot.get_guild(guild)
         if guild == None:
             raise TypeError("Invalid guild ID.")
-        
+
         await self.unset_user(member.id)
 
-        return await self.db.find_one_and_update({"_id": "guilds"}, {"$set": {str(guild.id): {"language": lang}}}, upsert=True)
+        return await self.db.find_one_and_update(
+            {"_id": "guilds"},
+            {"$set": {str(guild.id): {"language": lang}}},
+            upsert=True,
+        )
 
-    async def get_user(self, member: int=None):
+    async def get_user(self, member: int = None):
         if member == None:
             raise RuntimeError("You must give a user ID.")
 
@@ -64,8 +71,8 @@ class Languages:
 
         return await self.db.find_one({"_id": "members"})
 
-    async def set_user(self, member: int=None, *, lang: str=default_language):
-        if lang != "en" and lang != "it" and lang != "../../testù":
+    async def set_user(self, member: int = None, *, lang: str = default_language):
+        if lang != "en" and lang != "it" and not "testù" in lang:
             raise TypeError("Unknown language.")
 
         if member == None:
@@ -75,9 +82,13 @@ class Languages:
         if member == None:
             raise TypeError("Invalid user ID")
 
-        return await self.db.find_one_and_update({"_id": "members"}, {"$set": {str(member.id): {"language": lang}}}, upsert=True)
+        return await self.db.find_one_and_update(
+            {"_id": "members"},
+            {"$set": {str(member.id): {"language": lang}}},
+            upsert=True,
+        )
 
-    async def unset_user(self, member: int=None):
+    async def unset_user(self, member: int = None):
         if member == None:
             raise RuntimeError("You must give a user ID.")
 
@@ -85,14 +96,9 @@ class Languages:
         if member == None:
             raise TypeError("Invalid user ID")
 
-        return await self.db.find_one_and_update({"_id": "members"}, {"$unset": {str(member.id): {}}}, upsert=True)
-
-        
-
-
-
-
-
+        return await self.db.find_one_and_update(
+            {"_id": "members"}, {"$unset": {str(member.id): {}}}, upsert=True
+        )
 
     async def fetch_user_lang(self, ctx):
         return await ctx.get_lang()
