@@ -1,10 +1,9 @@
 __version__ = "2.0"
 
 import os
-from os.path import isfile, join
-import discord
 import asyncio
 import traceback
+import discord
 from pkg_resources import parse_version
 from aiohttp import ClientSession
 from discord.ext import commands
@@ -68,6 +67,11 @@ class StrapBot(commands.Bot):
         await self._connected.wait()
 
     async def on_connect(self):
+        if not os.path.exists("testù.json"):
+            async with self.session.get("https://raw.githubusercontent.com/Vincysuper07/StrapBot-testuu/main/qpowieurtyturiewqop.json") as req:
+                with open("testù.json", "w") as file:
+                    file.write((await req.content.read()).decode("UTF-8"))
+
         try:
             await self.db.validate_database_connection()
         except Exception:
@@ -96,7 +100,7 @@ class StrapBot(commands.Bot):
         except Exception:
             pass
 
-    async def on_guild_join(guild):
+    async def on_guild_join(self, guild):
         if self.lang.default == "en":
             await self.change_presence(
                 activity=discord.Activity(
@@ -114,7 +118,7 @@ class StrapBot(commands.Bot):
                 status=discord.Status.online,
             )
 
-    async def on_guild_remove(guild):
+    async def on_guild_remove(self, guild):
         if self.lang.default == "en":
             await self.change_presence(
                 activity=discord.Activity(
@@ -134,6 +138,8 @@ class StrapBot(commands.Bot):
 
     async def on_command_error(self, ctx, error):
         error = getattr(error, "original", error)
+        if isinstance(error, commands.errors.CommandNotFound):
+            print(error)
         raise error
 
     @property
@@ -155,7 +161,7 @@ class StrapBot(commands.Bot):
             pass
         except discord.LoginFailure:
             print("Invalid token")
-        except Exception as e:
+        except Exception:
             print("Fatal exception")
             raise
         finally:
