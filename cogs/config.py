@@ -10,6 +10,11 @@ class Config(commands.Cog):
         self.bot = bot
         self.db = bot.lang.db
 
+    async def cog_command_error(self, ctx, error):
+        if isinstance(error, commands.MissingPermissions):
+            if ctx.command.qualified_name == "config server":
+                return await ctx.send_help("config server")
+
     @commands.group(invoke_without_command=True, aliases=["settings", "cfg"])
     async def config(self, ctx):
         """Configure StrapBot with your favorite settings."""
@@ -21,6 +26,7 @@ class Config(commands.Cog):
         return await ctx.send_help(ctx.command)
 
     @config.group(invoke_without_command=True, aliases=["guild", "s", "g"])
+    @commands.has_guild_permissions(manage_guild=True)
     async def server(self, ctx):
         """
         Configure StrapBot for the entire server.
@@ -50,6 +56,7 @@ class Config(commands.Cog):
         return await ctx.send(embed=embed)
 
     @server.command(name="lang", aliases=["language", "l"], usage="<language>")
+    @commands.has_guild_permissions(manage_guild=True)
     async def lang_(self, ctx, lang="default"):
         """
         Change the server's language.
