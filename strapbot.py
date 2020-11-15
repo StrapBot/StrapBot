@@ -138,6 +138,14 @@ class StrapBot(commands.Bot):
 
     async def on_command_error(self, ctx, error):
         error = getattr(error, "original", error)
+        if isinstance(error, commands.MissingPermissions):
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description=str(error),
+                    color=discord.Color.red()
+                ).set_footer(text="You can try this on another server, though.")
+            )
         if isinstance(error, commands.errors.CommandNotFound):
             print(error)
         raise error

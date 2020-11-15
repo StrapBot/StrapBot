@@ -10,11 +10,6 @@ class Config(commands.Cog):
         self.bot = bot
         self.db = bot.lang.db
 
-    async def cog_command_error(self, ctx, error):
-        if isinstance(error, commands.MissingPermissions):
-            if ctx.command.qualified_name == "config server":
-                return await ctx.send_help("config server")
-
     @commands.group(invoke_without_command=True, aliases=["settings", "cfg"])
     async def config(self, ctx):
         """Configure StrapBot with your favorite settings."""
