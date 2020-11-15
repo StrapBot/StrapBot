@@ -261,20 +261,17 @@ class Fun(commands.Cog):
         text_list = list(message)  # convert string to list to be able to edit it
         for i in range(0, len(message)):
             if i % 2 == 0:
-                text_list[i] = text_list[i].lower()
-            else:
                 text_list[i] = text_list[i].upper()
-        message = "".join(
-            text_list
-        )  # convert list back to string(message) to print it as a word
-        await ctx.send(
-            embed=discord.Embed(
-                description=message, color=discord.Color.lighter_grey()
-            ).set_author(
-                name=f"{ctx.message.author.name}#{ctx.message.author.discriminator}",
-                icon_url=ctx.message.author.avatar_url,
-            )
+            else:
+                text_list[i] = text_list[i].lower()
+        message = "".join(text_list)  # convert list back to string(message) to print it as a word
+        webhook = await ctx.channel.create_webhook()
+        await webhook.send(
+            message,
+            username=ctx.author.display_name,
+            avatar_url=ctx.author.avatar_url
         )
+        await webhook.delete()
         await ctx.message.delete()
 
 
