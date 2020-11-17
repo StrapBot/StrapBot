@@ -76,6 +76,7 @@ class StrapBot(commands.Bot):
         except Exception:
             print("Shutting down due to a DB connection problem.")
             return await self.close()
+        print("Connected to Discord API." if self.lang.default == "en" else "Connesso all'API di Discord.")
         await self.db.setup_indexes()
         self._connected.set()
 
@@ -94,10 +95,6 @@ class StrapBot(commands.Bot):
                 name=f"{len(self.guilds)} server! | Usa {self.command_prefix}help per i comandi.",
             )
         await self.change_presence(activity=self.activity)
-        try:
-            await self.session.get("https://strapbot.xyz")
-        except Exception:
-            pass
 
     async def on_guild_join(self, guild):
         if self.lang.default == "en":
@@ -172,7 +169,7 @@ class StrapBot(commands.Bot):
             print("Fatal exception")
             raise
         finally:
-            self.loop.run_until_complete(self.logout())
+            self.loop.run_until_complete(self.close())
             for task in asyncio.all_tasks(self.loop):
                 task.cancel()
             try:
@@ -184,6 +181,11 @@ class StrapBot(commands.Bot):
             finally:
                 self.loop.run_until_complete(self.session.close())
                 print("Shutting down...")
+    
+    async def close(self, *args, **kwargs):
+        if os.path.exists("testù.json"):
+            os.remove("testù.json")
+        await super().close()
 
     async def on_message(self, message):
         ctx = await self.get_context(message)

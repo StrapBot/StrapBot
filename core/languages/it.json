@@ -6,6 +6,7 @@
             "commands": {
                 "8ball": {
                     "description": "Chiedi una domanda alla 8ball.",
+                    "examples": ["Sono grasso?"],
                     "question": "Quella non sembra una domanda.",
                     "answers": [
                         "Come la vedo io, sì.",
@@ -33,10 +34,12 @@
                 },
                 "choose": {
                     "description": "Scegli tra più opzioni.",
+                    "examples": ["Vai a scuola, Fai le videoleziomi"],
                     "nochoose": "Non ci sono abbastanza opzioni da scegliere."
                 },
                 "roll": {
-                    "description": "Sceglie un numero a caso tra 1 e 6"
+                    "description": "Sceglie un numero a caso tra 1 e 6",
+                    "examples": ["", "25"]
                 },
                 "flip": {
                     "description": "Lancia una moneta.",
@@ -51,21 +54,26 @@
                     "square": "Siamo pari"
                 },
                 "lmgtfy": {
-                    "description": "Crea un link Lmgtfy."
+                    "description": "Crea un link Lmgtfy.",
+                    "examples": ["Come fare un bot Discord"]
                 },
                 "say": {
-                    "description": "Fai dire qualcosa al bot."
+                    "description": "Fai dire qualcosa al bot.",
+                    "examples": ["Hello, I am StrapBot!"]
                 },
                 "reverse": {
-                    "description": "!otset out li itrevnI"
+                    "description": "!otset out li itrevnI",
+                    "examples": ["Inverte il tuo testo!"]
                 },
                 "emojify": {
                     "description": "Converte il tuo testo in emoji!",
+                    "examples": ["ciao a tutti"],
                     "unsupported": "I caratteri possono essere solo lettere o numeri. Altri simboli non sono supportati.",
                     "toomany": "L'emoji è troppo grande per entrare in un messaggio!"
                 },
                 "roast": {
                     "description": "Insulta qualcuno! Se fai schifo a farlo da solo...",
+                    "examples": ["@BecoMaster01"],
                     "roasts": [
                         "Ti darei uno sguardo cattivo ma ne hai già uno.",
                         "Se avessi due facce, almeno rendine una carina.",
@@ -93,10 +101,12 @@
                     "roastyou": "Uh?!! Bel tentativo! Non insulterò me stesso. Invece adesso insulto te."
                 },
                 "smallcaps": {
-                    "description": "ᴛʀᴀꜱꜰᴏʀᴍᴀ ɪʟ ᴛᴜᴏ ᴛᴇꜱᴛᴏ ɪɴ ᴄᴀʀᴀᴛᴛᴇʀɪ ᴍɪɴᴜꜱᴄᴏʟɪ!!"
+                    "description": "ᴛʀᴀꜱꜰᴏʀᴍᴀ ɪʟ ᴛᴜᴏ ᴛᴇꜱᴛᴏ ɪɴ ᴄᴀʀᴀᴛᴛᴇʀɪ ᴍɪɴᴜꜱᴄᴏʟɪ!!",
+                    "examples": ["trasforma il tuo testo in caratteri minuscoli!!"]
                 },
                 "cringe": {
-                    "description": "rEnDe iL TuO TeStO CrInGe!!"
+                    "description": "rEnDe iL TuO TeStO CrInGe!!",
+                    "examples": ["rende il tuo testo cringe!!"]
                 }
             }
         },
@@ -145,6 +155,7 @@
                 },
                 "remove": {
                     "description": "Rimuove una canzone dalla coda.",
+                    "examples": ["4"],
                     "error": "Coda vuota."
                 },
                 "loop": {
@@ -153,6 +164,7 @@
                 },
                 "play": {
                     "description": "Riproduce una canzone.",
+                    "examples": ["https://www.youtube.com/watch?v=dQw4w9WgXcQ"],
                     "error": "C'è stato un errore mentre cercavo di riprodurre questa canzone: {}",
                     "queued": "Ho inserito {} nella coda."
                 }
@@ -162,6 +174,10 @@
             "name": "Config",
             "description": "Configura StrapBot!",
             "commands": {
+                "config": {
+                    "description": "Configura StrapBot!",
+                    "examples": ["server lang it", "user lang en"]
+                },
                 "config user lang": {
                     "description": "Configura la tua lingua.\n**NOTA:** le uniche lingue valide\nsono solo `en` e `it` per ora.",
                     "embed": {
@@ -178,11 +194,12 @@
                 }
             }
         },
-        "Help": {
-            "name": "Help",
+        "Utilities": {
+            "name": "Utilità",
             "commands": {
                 "help": {
                     "description": "Mostra questo messaggio.",
+                    "example": "Esempi",
                     "embed": {
                         "description": "Questa è una lista di comandi in questo bot.\n\n**{prefix}help** - Mostra questo messaggio.\n**{prefix}config** - Configura StrapBot.",
                         "footer": {
@@ -194,7 +211,11 @@
                             "icon_url": "https://cdn.discordapp.com/avatars/740140581174378527/226deca56aaa9cbe5f27dcbf7dda732d.webp"
                         }
                     }
-                }
+                },
+                "invite": {},
+                "testù": {},
+                "servers": {},
+                "ping": {}
             }
         }
     }

@@ -1,4 +1,5 @@
 import discord
+import json
 import random
 from discord.ext import commands
 from difflib import get_close_matches
@@ -8,30 +9,38 @@ class HelpCommand(commands.HelpCommand):
     async def send_bot_help(self, mapping):
         ctx = self.context
         bot = ctx.bot
-        prefix = self.clean_prefix
-        cogs = [bot.get_cog("Test"), bot.get_cog("Fun"), bot.get_cog("Music")]
-        random.shuffle(cogs)
         lang = await ctx.get_lang(self.cog)
+        prefix = self.clean_prefix
+        cogs = [bot.get_cog("Utilities"), bot.get_cog("Fun"), bot.get_cog("Music")]
+        random.shuffle(cogs)
         embed = discord.Embed.from_dict(lang["embed"])
         embed.color = discord.Color.lighter_grey()
         embed.description = embed.description.format(prefix=prefix)
         for cog in cogs:
+            lang_ = await ctx.get_lang(cog, cog=True)
             commands = []
             for command in await self.filter_commands(
                 cog.get_commands(),
                 sort=True,
             ):
+                cmd = lang_["commands"][command.qualified_name]
                 commands.append(
                     f"**{prefix + command.qualified_name}** "
                     + (
-                        f"- {command.short_doc}\n"
-                        if command.short_doc != ""
-                        else "- No description.\n"
+                        f"- {cmd['description']}\n"
+                        if "description" in cmd
+                        else (
+                            f"- {command.short_doc}\n"
+                            if command.short_doc
+                            else "- No description.\n"
+                        )
                     )
                 )
 
+            cog_name = lang_["name"] if "name" in lang else cog.qualified_name
+
             embed.add_field(
-                name=cog.qualified_name, value="".join(commands), inline=True
+                name=cog_name, value="".join(commands), inline=True
             )
 
         await self.get_destination().send(embed=embed)
@@ -40,13 +49,42 @@ class HelpCommand(commands.HelpCommand):
         if not await self.filter_commands([topic]):
             return
 
+
+        db = self.context.bot.db.db["LangConfig"]
+        members = await db.find_one({"_id": "members"})
+        guilds = await db.find_one({"_id": "gui/ds"})
+        if str(self.context.author.id) in members:
+            member = members[str(self.context.author.id)]
+            ret = json.load(open(f"core/languages/{member['language']}.json"))
+        elif str(self.context.guild.id) in guilds:
+            guild = guilds[str(self.context.guild.id)]
+            ret = json.load(open(f"core/languages/{guild['language']}.json"))
+        else:
+            ret = json.load(open(f"core/languages/{self.bot.lang.default}.json"))
+
+
+        lang = ret["cogs"][topic.cog.__class__.__name__]["commands"][topic.qualified_name]
+        ulang = await self.context.get_lang(self.cog)
+
         embed = discord.Embed(
             title=f"**{self.get_command_signature(topic)}**",
-            description=topic.help.format(prefix=self.clean_prefix)
-            if topic.help
-            else "No message.",
+            description=lang["description"]
+            if "description" in lang
+            else (
+                topic.help.format(prefix=self.clean_prefix)
+                if topic.help
+                else "No message."
+            ),
             color=discord.Color.lighter_grey(),
         )
+        if "examples" in lang:
+            examples = []
+            for example in lang["examples"]:
+                examples.append(f"**{self.clean_prefix}{topic.qualified_name}{' ' + example if example else ''}**")
+            embed.add_field(
+                name=ulang["example"],
+                value="\n".join(examples)
+            )
         return embed
 
     async def send_cog_help(self, cog):
@@ -76,7 +114,7 @@ class HelpCommand(commands.HelpCommand):
             .add_field(
                 name="Commands",
                 value="".join(commands) if len(commands) != 0 else "No commands.",
-            )
+             )
         )
 
     async def send_command_help(self, command):
@@ -128,24 +166,3 @@ class HelpCommand(commands.HelpCommand):
         else:
             embed.title = "Could not find command or category."
         await self.get_destination().send(embed=embed)
-
-
-class Help(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
-        self._original_help_command = bot.help_command
-        bot.help_command = HelpCommand(
-            command_attrs={
-                "name": "help",
-                "aliases": ["man", "h"],
-                "help": "Shows this message.",
-            }
-        )
-        bot.help_command.cog = self
-
-        def cog_unload(self):
-            self.bot.help_command = self._original_help_command
-
-
-def setup(bot):
-    bot.add_cog(Help(bot))

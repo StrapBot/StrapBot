@@ -135,7 +135,8 @@ class Fun(commands.Cog):
         if question.endswith("?") and question != "?":
             answers = (await ctx.get_lang(self))["answers"]
             await ctx.send(
-                (
+                f"{ctx.author.mention}, "
+                +(
                     choice(answers)
                     if question != "testù?"
                     else "testù, testù, testù testù! testù testù testù"

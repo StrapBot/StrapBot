@@ -1,17 +1,28 @@
 import discord
 from discord.ext import commands
+from core.help import HelpCommand
 
-
-class Test(commands.Cog):
+class Utilities(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-    
+        self._original_help_command = bot.help_command
+        bot.help_command = HelpCommand(
+            command_attrs={
+                "name": "help",
+                "aliases": ["man", "h"],
+            }
+        )
+        bot.help_command.cog = self
+
+        def cog_unload(self):
+            self.bot.help_command = self._original_help_command
+
     @commands.Cog.listener()
     async def on_ready(self):
         self.ergastolator = discord.utils.get(self.bot.get_all_members(), id=602819090012176384)
         self.vincy = discord.utils.get(self.bot.get_all_members(), id=726381259332386867)
         self.footer = f"Made by {str(self.ergastolator)} and {str(self.vincy)}"
-        
+
 
     @commands.command(name="testù", pass_context=True)
     async def testu(self, ctx):
@@ -89,4 +100,4 @@ class Test(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(Test(bot))  # TODO: translate this
+    bot.add_cog(Utilities(bot))  # TODO: translate this

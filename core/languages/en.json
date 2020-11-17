@@ -7,6 +7,7 @@
                 "8ball": {
                     "description": "Ask 8ball a question.",
                     "question": "That doesn't look like a question.",
+                    "examples": ["Am I fat?"],
                     "answers": [
                         "As I see it, yes",
                         "It is certain",
@@ -27,15 +28,18 @@
                         "My reply is no",
                         "My sources say no",
                         "Outlook not so good",
-                        "Very doubtful"
+                        "Very doubtful",
+                        "testù, testù, testù testù! testù testù testù"
                     ]
                 },
                 "choose": {
-                    "description": "Choose between multiple options.",
+                    "description": "Choose between multiple options.\nYou have to split every choice with a comma.",
+                    "examples": ["Go to school, Do onlime school"],
                     "nochoose": "Not enough options to pick from."
                 },
                 "roll": {
-                    "description": "Roll a random number"
+                    "description": "Roll a random number",
+                    "examples": ["", "25"]
                 },
                 "flip": {
                     "description": "Flip a coin.",
@@ -50,21 +54,26 @@
                     "square": "We're square"
                 },
                 "lmgtfy": {
-                    "description": "Creates a Lmgtfy link."
+                    "description": "Creates a Lmgtfy link.",
+                    "examples": ["How to make a Discord bot"]
                 },
                 "say": {
-                    "description": "Make the bot say something."
+                    "description": "Make the bot say something.",
+                    "examples": ["Hello, I am StrapBot!"]
                 },
                 "reverse": {
-                    "description": "!txeT ruoY esreveR"
+                    "description": "!txeT ruoY esreveR",
+                    "examples": ["Reverse Your Text!"]
                 },
                 "emojify": {
                     "description": "Turns your text into emojis!",
+                    "examples": ["hello everyone"],
                     "unsupported": "Characters must be either a letter or number. Anything else is unsupported",
                     "toomany": "Emoji is too big to fit in a message!"
                 },
                 "roast": {
                     "description": "Roast someone! If you suck at roasting them yourself.",
+                    "examples": ["@BecoMaster01"],
                     "roasts": [
                         "I'd give you a nasty look but you've already got one.",
                         "If you're going to be two-faced, at least make one of them pretty.",
@@ -95,10 +104,12 @@
                     "roastyou": "Uh?!! Nice try! I am not going to roast myself. Instead I am going to roast you now."
                 },
                 "smallcaps": {
-                    "description": "ᴄᴏɴᴠᴇʀᴛ ʏᴏᴜʀ ᴛᴇxᴛ ᴛᴏ ꜱᴍᴀʟʟ ᴄᴀᴘꜱ!!"
+                    "description": "ᴄᴏɴᴠᴇʀᴛ ʏᴏᴜʀ ᴛᴇxᴛ ᴛᴏ ꜱᴍᴀʟʟ ᴄᴀᴘꜱ!!",
+                    "examples": ["convert your text to small caps!!"]
                 },
                 "cringe": {
-                    "description": "mAkE ThE TeXt cRiNgY!!"
+                    "description": "mAkE ThE TeXt cRiNgY!!",
+                    "examples": ["make the text cringy!!"]
                 }
             }
         },
@@ -147,6 +158,7 @@
                 },
                 "remove": {
                     "description": "Removes a song from the queue.",
+                    "examples": ["4"],
                     "error": "Empty queue."
                 },
                 "loop": {
@@ -155,6 +167,7 @@
                 },
                 "play": {
                     "description": "Plays a song.",
+                    "examples": ["https://www.youtube.com/watch?v=dQw4w9WgXcQ"],
                     "error": "An error occurred while processing this request: {}",
                     "queued": "Enqueued {}"
                 }
@@ -164,6 +177,10 @@
             "name": "Config",
             "description": "Configure StrapBot!",
             "commands": {
+                "config": {
+                    "description": "Configure StrapBot!",
+                    "examples": ["server lang it", "user lang en"]
+                },
                 "config user lang": {
                     "description": "Configure your language.\n**NOTA:** the only valid languages\nare `en` and `it` for now.",
                     "embed": {
@@ -180,11 +197,12 @@
                 }
             }
         },
-        "Help": {
-            "name": "Help",
+        "Utilities": {
+            "name": "Utilities",
             "commands": {
                 "help": {
                     "description": "Shows this message.",
+                    "example": "Examples",
                     "embed": {
                         "description": "This is a list of commands in this bot.\n\n**{prefix}help** - Shows this message.\n**{prefix}config** - Configure StrapBot.",
                         "footer": {
@@ -196,7 +214,11 @@
                             "icon_url": "https://cdn.discordapp.com/avatars/740140581174378527/226deca56aaa9cbe5f27dcbf7dda732d.webp"
                         }
                     }
-                }
+                },
+                "invite": {},
+                "testù": {},
+                "servers": {},
+                "ping": {}
             }
         }
     }
