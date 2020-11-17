@@ -186,6 +186,30 @@ class StrapBot(commands.Bot):
                 self.loop.run_until_complete(self.session.close())
                 print("Shutting down...")
 
+    async def on_message(self, message):
+        ctx = await self.get_context(message)
+        messages = [
+            "testù",
+            "testà",
+            "test+",
+            "testì",
+            "testè",
+            "testò",
+            "testàèìòù",
+            "testàèìòù+",
+            "yestü",
+            "restū",
+            "gestû",
+            "ASDFGHJKLÒÀÙ"
+        ]
+        for index, msg in enumerate(messages):
+            messages[index] = msg.lower()
+
+        if not message.author.bot:
+            if message.content.lower() in messages:
+                await ctx.send(message.content)
+
+        await self.process_commands(message)
 
 bot = StrapBot()
 

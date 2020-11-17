@@ -62,15 +62,16 @@ class Fun(commands.Cog):
         self.bot = bot
 
     @commands.command()
-    async def choose(self, ctx, *choices):
+    async def choose(self, ctx, *, choices):
         """Choose between multiple options.
-        To denote options which include whitespace, you should use
-        double quotes.
+        You need to split every choice with a comma.
+        Example:
+        `choose Go to school, Do onlime school`
         """
-        lang = await ctx.get_lang(self)
+        choices = choices.split(",")
         choices = [escape(c, mass_mentions=True) for c in choices]
         if len(choices) < 2:
-            await ctx.send(_(lang["nochoose"]))
+            await ctx.send_help(ctx.command)
         else:
             await ctx.send(choice(choices))
 
@@ -258,14 +259,21 @@ class Fun(commands.Cog):
     @commands.command()
     async def cringe(self, ctx, *, message):
         """mAkE ThE TeXt cRiNgY!!"""
+        qpowi = randint(0, 1)
         text_list = list(message)  # convert string to list to be able to edit it
         for i in range(0, len(message)):
-            if i % 2 == 0:
-                text_list[i] = text_list[i].upper()
+            if qpowi == 0:
+                if i % 2 == 0:
+                    text_list[i] = text_list[i].lower()
+                else:
+                    text_list[i] = text_list[i].upper()
             else:
-                text_list[i] = text_list[i].lower()
+                if i % 2 == 0:
+                    text_list[i] = text_list[i].upper()
+                else:
+                    text_list[i] = text_list[i].lower()
         message = "".join(text_list)  # convert list back to string(message) to print it as a word
-        webhook = await ctx.channel.create_webhook()
+        webhook = await ctx.channel.create_webhook(name="StrapBot webhook")
         await webhook.send(
             message,
             username=ctx.author.display_name,
