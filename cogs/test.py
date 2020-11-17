@@ -5,6 +5,9 @@ from discord.ext import commands
 class Test(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.ergastolator = discord.utils.get(bot.get_all_members(), id=602819090012176384)
+        self.vincy = discord.utils.get(bot.get_all_members(), id=726381259332386867)
+        self.footer = f"Made by {str(self.ergastolator)} and {str(self.vincy)}"
 
     @commands.command(name="testù", pass_context=True)
     async def testu(self, ctx):
@@ -13,7 +16,7 @@ class Test(commands.Cog):
             embed=discord.Embed(
                 title="testù", description=f"testù", color=discord.Color.lighter_grey()
             )
-            .set_footer(text="Made by Ergastolator#0001 and Vincy.exe#1447")
+            .set_footer(text=self.footer)
             .set_thumbnail(
                 url="https://cdn.discordapp.com/avatars/740140581174378527/226deca56aaa9cbe5f27dcbf7dda732d.png?size=256"
             )
@@ -32,7 +35,7 @@ class Test(commands.Cog):
                 description=f"Total latency: {round(self.bot.latency*1000)} ms",
                 color=discord.Color.lighter_grey(),
             )
-            .set_footer(text="Made by Ergastolator#0001 and Vincy.exe#1447")
+            .set_footer(text=self.footer)
             .set_thumbnail(
                 url="https://cdn.discordapp.com/avatars/740140581174378527/226deca56aaa9cbe5f27dcbf7dda732d.png?size=256"
             )
@@ -51,7 +54,7 @@ class Test(commands.Cog):
                 description=f"I'm in {len(self.bot.guilds)} servers!",
                 color=discord.Color.lighter_grey(),
             )
-            .set_footer(text="Made by Ergastolator#0001 and Vincy.exe#1447")
+            .set_footer(text=self.footer)
             .set_thumbnail(
                 url="https://cdn.discordapp.com/avatars/740140581174378527/226deca56aaa9cbe5f27dcbf7dda732d.png?size=256"
             )
@@ -70,7 +73,7 @@ class Test(commands.Cog):
                 description=f"If you want to invite me, [click here](https://strapbot.xyz/invite)!",
                 color=discord.Color.lighter_grey(),
             )
-            .set_footer(text="Made by Ergastolator#0001 and Vincy.exe#1447")
+            .set_footer(text=self.footer)
             .set_thumbnail(
                 url="https://cdn.discordapp.com/avatars/740140581174378527/226deca56aaa9cbe5f27dcbf7dda732d.png?size=256"
             )
