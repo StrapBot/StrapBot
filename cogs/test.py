@@ -13,7 +13,7 @@ class Test(commands.Cog):
             embed=discord.Embed(
                 title="testù", description=f"testù", color=discord.Color.lighter_grey()
             )
-            .set_footer(text="Made by Ergastolator#0001 and Vincy.exe#1447")
+            .set_footer(text="Made by Ergastolator1#5522 and Vincy.exe#1447")
             .set_thumbnail(
                 url="https://cdn.discordapp.com/avatars/740140581174378527/226deca56aaa9cbe5f27dcbf7dda732d.png?size=256"
             )
@@ -32,7 +32,7 @@ class Test(commands.Cog):
                 description=f"Total latency: {round(self.bot.latency*1000)} ms",
                 color=discord.Color.lighter_grey(),
             )
-            .set_footer(text="Made by Ergastolator#0001 and Vincy.exe#1447")
+            .set_footer(text="Made by Ergastolator1#5522 and Vincy.exe#1447")
             .set_thumbnail(
                 url="https://cdn.discordapp.com/avatars/740140581174378527/226deca56aaa9cbe5f27dcbf7dda732d.png?size=256"
             )
@@ -51,7 +51,7 @@ class Test(commands.Cog):
                 description=f"I'm in {len(self.bot.guilds)} servers!",
                 color=discord.Color.lighter_grey(),
             )
-            .set_footer(text="Made by Ergastolator#0001 and Vincy.exe#1447")
+            .set_footer(text="Made by Ergastolator1#5522 and Vincy.exe#1447")
             .set_thumbnail(
                 url="https://cdn.discordapp.com/avatars/740140581174378527/226deca56aaa9cbe5f27dcbf7dda732d.png?size=256"
             )
@@ -70,7 +70,7 @@ class Test(commands.Cog):
                 description=f"If you want to invite me, [click here](https://strapbot.xyz/invite)!",
                 color=discord.Color.lighter_grey(),
             )
-            .set_footer(text="Made by Ergastolator#0001 and Vincy.exe#1447")
+            .set_footer(text="Made by Ergastolator1#5522 and Vincy.exe#1447")
             .set_thumbnail(
                 url="https://cdn.discordapp.com/avatars/740140581174378527/226deca56aaa9cbe5f27dcbf7dda732d.png?size=256"
             )
