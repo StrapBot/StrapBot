@@ -24,31 +24,29 @@ class HelpCommand(commands.HelpCommand):
                 sort=True,
             ):
                 cmd = lang_["commands"][command.qualified_name]
-                commands.append(
-                    f"**{prefix + command.qualified_name}** "
-                    + (
-                        f"- {cmd['description']}\n"
-                        if "description" in cmd
-                        else (
-                            f"- {command.short_doc}\n"
-                            if command.short_doc
-                            else "- No description.\n"
+                if command.qualified_name != "help":
+                    commands.append(
+                        f"**{prefix + command.qualified_name}** "
+                        + (
+                            f"- {cmd['description']}\n"
+                            if "description" in cmd
+                            else (
+                                f"- {command.short_doc}\n"
+                                if command.short_doc
+                                else "- No description.\n"
+                            )
                         )
                     )
-                )
 
             cog_name = lang_["name"] if "name" in lang else cog.qualified_name
 
-            embed.add_field(
-                name=cog_name, value="".join(commands), inline=True
-            )
+            embed.add_field(name=cog_name, value="".join(commands), inline=True)
 
         await self.get_destination().send(embed=embed)
 
     async def _get_help_embed(self, topic):
         if not await self.filter_commands([topic]):
             return
-
 
         db = self.context.bot.db.db["LangConfig"]
         members = await db.find_one({"_id": "members"})
@@ -62,8 +60,9 @@ class HelpCommand(commands.HelpCommand):
         else:
             ret = json.load(open(f"core/languages/{self.bot.lang.default}.json"))
 
-
-        lang = ret["cogs"][topic.cog.__class__.__name__]["commands"][topic.qualified_name]
+        lang = ret["cogs"][topic.cog.__class__.__name__]["commands"][
+            topic.qualified_name
+        ]
         ulang = await self.context.get_lang(self.cog)
 
         embed = discord.Embed(
@@ -80,11 +79,10 @@ class HelpCommand(commands.HelpCommand):
         if "examples" in lang:
             examples = []
             for example in lang["examples"]:
-                examples.append(f"**{self.clean_prefix}{topic.qualified_name}{' ' + example if example else ''}**")
-            embed.add_field(
-                name=ulang["example"],
-                value="\n".join(examples)
-            )
+                examples.append(
+                    f"**{self.clean_prefix}{topic.qualified_name}{' ' + example if example else ''}**"
+                )
+            embed.add_field(name=ulang["example"], value="\n".join(examples))
         return embed
 
     async def send_cog_help(self, cog):
@@ -114,7 +112,7 @@ class HelpCommand(commands.HelpCommand):
             .add_field(
                 name="Commands",
                 value="".join(commands) if len(commands) != 0 else "No commands.",
-             )
+            )
         )
 
     async def send_command_help(self, command):

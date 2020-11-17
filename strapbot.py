@@ -67,7 +67,9 @@ class StrapBot(commands.Bot):
         await self._connected.wait()
 
     async def on_connect(self):
-        async with self.session.get("https://raw.githubusercontent.com/Vincysuper07/StrapBot-testuu/main/qpowieurtyturiewqop.json") as req:
+        async with self.session.get(
+            "https://raw.githubusercontent.com/Vincysuper07/StrapBot-testuu/main/qpowieurtyturiewqop.json"
+        ) as req:
             with open("testù.json", "w") as file:
                 file.write((await req.content.read()).decode("UTF-8"))
 
@@ -76,7 +78,11 @@ class StrapBot(commands.Bot):
         except Exception:
             print("Shutting down due to a DB connection problem.")
             return await self.close()
-        print("Connected to Discord API." if self.lang.default == "en" else "Connesso all'API di Discord.")
+        print(
+            "Connected to Discord API."
+            if self.lang.default == "en"
+            else "Connesso all'API di Discord."
+        )
         await self.db.setup_indexes()
         self._connected.set()
 
@@ -137,9 +143,7 @@ class StrapBot(commands.Bot):
         if isinstance(error, commands.MissingPermissions):
             return await ctx.send(
                 embed=discord.Embed(
-                    title="Error",
-                    description=str(error),
-                    color=discord.Color.red()
+                    title="Error", description=str(error), color=discord.Color.red()
                 ).set_footer(text="You can try this on another server, though.")
             )
         if isinstance(error, commands.errors.CommandNotFound):
@@ -181,7 +185,7 @@ class StrapBot(commands.Bot):
             finally:
                 self.loop.run_until_complete(self.session.close())
                 print("Shutting down...")
-    
+
     async def close(self, *args, **kwargs):
         if os.path.exists("testù.json"):
             os.remove("testù.json")
@@ -201,7 +205,7 @@ class StrapBot(commands.Bot):
             "yestü",
             "restū",
             "gestû",
-            "ASDFGHJKLÒÀÙ"
+            "ASDFGHJKLÒÀÙ",
         ]
         for index, msg in enumerate(messages):
             messages[index] = msg.lower()
@@ -211,6 +215,7 @@ class StrapBot(commands.Bot):
                 await ctx.send(message.content)
 
         await self.process_commands(message)
+
 
 bot = StrapBot()
 

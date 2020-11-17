@@ -136,7 +136,7 @@ class Fun(commands.Cog):
             answers = (await ctx.get_lang(self))["answers"]
             await ctx.send(
                 f"{ctx.author.mention}, "
-                +(
+                + (
                     choice(answers)
                     if question != "testù?"
                     else "testù, testù, testù testù! testù testù testù"
@@ -273,12 +273,12 @@ class Fun(commands.Cog):
                     text_list[i] = text_list[i].upper()
                 else:
                     text_list[i] = text_list[i].lower()
-        message = "".join(text_list)  # convert list back to string(message) to print it as a word
+        message = "".join(
+            text_list
+        )  # convert list back to string(message) to print it as a word
         webhook = await ctx.channel.create_webhook(name="StrapBot webhook")
         await webhook.send(
-            message,
-            username=ctx.author.display_name,
-            avatar_url=ctx.author.avatar_url
+            message, username=ctx.author.display_name, avatar_url=ctx.author.avatar_url
         )
         await webhook.delete()
         await ctx.message.delete()
