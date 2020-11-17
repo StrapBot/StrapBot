@@ -67,10 +67,9 @@ class StrapBot(commands.Bot):
         await self._connected.wait()
 
     async def on_connect(self):
-        if not os.path.exists("testù.json"):
-            async with self.session.get("https://raw.githubusercontent.com/Vincysuper07/StrapBot-testuu/main/qpowieurtyturiewqop.json") as req:
-                with open("testù.json", "w") as file:
-                    file.write((await req.content.read()).decode("UTF-8"))
+        async with self.session.get("https://raw.githubusercontent.com/Vincysuper07/StrapBot-testuu/main/qpowieurtyturiewqop.json") as req:
+            with open("testù.json", "w") as file:
+                file.write((await req.content.read()).decode("UTF-8"))
 
         try:
             await self.db.validate_database_connection()
