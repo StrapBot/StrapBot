@@ -88,6 +88,10 @@ class StrapBot(commands.Bot):
 
     async def on_ready(self):
         await self.wait_for_connected()
+        guild = self.get_guild(int(os.getenv("MAIN_GUILD_ID", 1)))
+        if guild == None:
+            print("Invalid main guild ID.")
+            await self.close()
         if self.lang.default == "en":
             print("StrapBot is logged in as {0.user}!".format(self))
             self.activity = discord.Activity(
