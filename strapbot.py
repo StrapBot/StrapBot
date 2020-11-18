@@ -91,7 +91,7 @@ class StrapBot(commands.Bot):
         guild = self.get_guild(int(os.getenv("MAIN_GUILD_ID", 1)))
         if guild == None:
             print("Invalid main guild ID.")
-            await self.close()
+            return await self.close()
         if self.lang.default == "en":
             print("StrapBot is logged in as {0.user}!".format(self))
             self.activity = discord.Activity(
@@ -142,6 +142,7 @@ class StrapBot(commands.Bot):
                 status=discord.Status.online,
             )
 
+
     async def on_command_error(self, ctx, error):
         error = getattr(error, "original", error)
         if isinstance(error, commands.MissingPermissions):
@@ -150,9 +151,20 @@ class StrapBot(commands.Bot):
                     title="Error", description=str(error), color=discord.Color.red()
                 ).set_footer(text="You can try this on another server, though.")
             )
-        if isinstance(error, commands.errors.CommandNotFound):
+        if isinstance(error, commands.CommandNotFound):
             print(error)
+            return
+        if isinstance(error, commands.MissingRequiredArgument):
+            return await ctx.send(
+                embed=discord.Embed(
+                    title=f"Error: {ctx.prefix}{ctx.command} {ctx.command.signature}",
+                    description=str(error),
+                    color=discord.Color.red()
+                )
+            )
+
         raise error
+
 
     @property
     def db(self) -> ApiClient:

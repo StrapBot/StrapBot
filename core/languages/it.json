@@ -201,7 +201,7 @@
                     "description": "Mostra questo messaggio.",
                     "example": "Esempi",
                     "embed": {
-                        "description": "Questa è una lista di comandi in questo bot.\n\n**{prefix}help** - Mostra questo messaggio.\n**{prefix}config** - Configura StrapBot.",
+                        "description": "Questa è una lista di comandi in questo bot.\n\n**{prefix}help** - Mostra questo messaggio.\n**{prefix}config** - Configura StrapBot.\n**{prefix}report** - Segnala un bug agli sviluppatori.",
                         "footer": {
                             "text": "Fatto da Ergastolator1#5522 e Vincy.exe#1447",
                             "icon_url": "https://cdn.discordapp.com/avatars/740140581174378527/226deca56aaa9cbe5f27dcbf7dda732d.webp"
@@ -216,6 +216,20 @@
                 "testù": {},
                 "servers": {},
                 "ping": {}
+            }
+        },
+        "Moderation": {
+            "name": "Moderazione",
+            "commands": {
+                "setlog": {},
+                "muterole": {},
+                "warn": {},
+                "kick": {},
+                "ban": {},
+                "mute": {},
+                "unmute": {},
+                "nuke": {},
+                "purge": {}
             }
         }
     }

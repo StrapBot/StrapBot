@@ -11,11 +11,23 @@ class HelpCommand(commands.HelpCommand):
         bot = ctx.bot
         lang = await ctx.get_lang(self.cog)
         prefix = self.clean_prefix
-        cogs = [bot.get_cog("Utilities"), bot.get_cog("Fun"), bot.get_cog("Music")]
+        ergastolator = discord.utils.get(
+            bot.get_all_members(), id=602819090012176384
+        )
+        vincy = discord.utils.get(
+            bot.get_all_members(), id=726381259332386867
+        )
+        cogs = [
+            bot.get_cog("Fun"),
+            bot.get_cog("Moderation"),
+            bot.get_cog("Music")
+        ]
         random.shuffle(cogs)
+        cogs.append(bot.get_cog("Utilities"))
         embed = discord.Embed.from_dict(lang["embed"])
         embed.color = discord.Color.lighter_grey()
         embed.description = embed.description.format(prefix=prefix)
+        embed.footer.text = embed.footer.text.format(vincy=vincy, ergastolator=ergastolator)
         for cog in cogs:
             lang_ = await ctx.get_lang(cog, cog=True)
             commands = []
@@ -46,11 +58,13 @@ class HelpCommand(commands.HelpCommand):
 
     async def _get_help_embed(self, topic):
         if not await self.filter_commands([topic]):
+            print("qpowieurtyturiewqop")
             return
 
+        print("a")
         db = self.context.bot.db.db["LangConfig"]
         members = await db.find_one({"_id": "members"})
-        guilds = await db.find_one({"_id": "gui/ds"})
+        guilds = await db.find_one({"_id": "guilds"})
         if str(self.context.author.id) in members:
             member = members[str(self.context.author.id)]
             ret = json.load(open(f"core/languages/{member['language']}.json"))
@@ -59,6 +73,8 @@ class HelpCommand(commands.HelpCommand):
             ret = json.load(open(f"core/languages/{guild['language']}.json"))
         else:
             ret = json.load(open(f"core/languages/{self.bot.lang.default}.json"))
+        
+        print("b")
 
         lang = ret["cogs"][topic.cog.__class__.__name__]["commands"][
             topic.qualified_name
