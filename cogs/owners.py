@@ -7,6 +7,7 @@ from textwrap import indent
 from contextlib import redirect_stdout
 from discord.ext import commands
 
+
 def cleanup_code(content: str) -> str:
     """
     Automatically removes code blocks from the code.
@@ -25,6 +26,7 @@ def cleanup_code(content: str) -> str:
 
     # remove `foo`
     return content.strip("` \n")
+
 
 class OwnerOnly(commands.Cog):
     def __init__(self, bot):
@@ -86,7 +88,7 @@ class OwnerOnly(commands.Cog):
             await ctx.send(
                 f"```json\n{json.dumps(await self.bot.lang.get_user(member), indent=4)}\n```"
             )
-        
+
     @commands.command(hidden=True, name="eval", aliases=["exec"])
     async def eval_(self, ctx, *, body: str):
         """Avvia un codice Python."""

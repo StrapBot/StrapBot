@@ -142,7 +142,6 @@ class StrapBot(commands.Bot):
                 status=discord.Status.online,
             )
 
-
     async def on_command_error(self, ctx, error):
         error = getattr(error, "original", error)
         if isinstance(error, commands.MissingPermissions):
@@ -159,12 +158,11 @@ class StrapBot(commands.Bot):
                 embed=discord.Embed(
                     title=f"Error: {ctx.prefix}{ctx.command} {ctx.command.signature}",
                     description=str(error),
-                    color=discord.Color.red()
+                    color=discord.Color.red(),
                 )
             )
 
         raise error
-
 
     @property
     def db(self) -> ApiClient:
