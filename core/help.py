@@ -19,8 +19,9 @@ class HelpCommand(commands.HelpCommand):
         embed = discord.Embed.from_dict(lang["embed"])
         embed.color = discord.Color.lighter_grey()
         embed.description = embed.description.format(prefix=prefix)
-        embed.footer.text = embed.footer.text.format(
-            vincy=vincy, ergastolator=ergastolator
+        embed.set_footer(
+            text=embed.footer.text.format(vincy=vincy, ergastolator=ergastolator),
+            icon_url=embed.footer.icon_url,
         )
         for cog in cogs:
             lang_ = await ctx.get_lang(cog, cog=True)
@@ -90,7 +91,7 @@ class HelpCommand(commands.HelpCommand):
             examples = []
             for example in lang["examples"]:
                 examples.append(
-                    f"**{self.clean_prefix}{topic.qualified_name}{' ' + example if example else ''}**"
+                    f"`{self.clean_prefix}{topic.qualified_name}{' ' + example if example else ''}`"
                 )
             embed.add_field(name=ulang["example"], value="\n".join(examples))
         return embed

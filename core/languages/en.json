@@ -204,7 +204,7 @@
                     "description": "Shows this message.",
                     "example": "Examples",
                     "embed": {
-                        "description": "This is a list of commands in this bot.\n\n**{prefix}help** - Shows this message.\n**{prefix}config** - Configure StrapBot.\n**{prefix}**report - Report a bug to StrapBot developers.",
+                        "description": "This is a list of commands in this bot.\n\n**{prefix}help** - Shows this message.\n**{prefix}config** - Configure StrapBot.\n**{prefix}report** - Report a bug to StrapBot developers.",
                         "footer": {
                             "text": "Made by {ergastolator} and {vincy}",
                             "icon_url": "https://cdn.discordapp.com/avatars/740140581174378527/226deca56aaa9cbe5f27dcbf7dda732d.webp"

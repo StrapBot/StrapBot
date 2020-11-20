@@ -82,7 +82,10 @@ class MongoDBClient(ApiClient):
                 "Otherwise check the following line:"
             )
             logger.critical(str(e))
-            sys.exit(1)
+            bot.loop.create_task(bot.close())
+
+            raise
+            # sys.exit(1)
 
         super().__init__(bot, db)
 

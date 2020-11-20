@@ -10,6 +10,7 @@ from discord.ext import commands
 from dotenv import load_dotenv as import_dotenv
 from core.languages import Languages
 from core.mongodb import *
+from core.loops import Loops
 from core.context import Context
 
 import_dotenv()
@@ -21,13 +22,15 @@ intents.members = True
 
 class StrapBot(commands.Bot):
     def __init__(self):
-        super().__init__(command_prefix="sb.", intents=intents)
+        super().__init__(command_prefix=self.prefix, intents=intents)
         self._lang = None
         self._db = None
         self.token = os.getenv("TOKEN")
         self._session = None
         self._connected = asyncio.Event()
         self.wait_until_connected = self.wait_for_connected
+        self._loops = Loops(self)
+        self._loops.run_all()
 
         # load cogs
         self.exts = []
@@ -39,18 +42,25 @@ class StrapBot(commands.Bot):
             try:
                 self.load_extension(f"cogs.{extension}")
             except (discord.ClientException, ModuleNotFoundError):
-                if extension == ".DS_Store":
-                    pass
-                elif extension == ".gitignore":
-                    pass
-                else:
+                if (
+                    extension != ".DS_Store"
+                    and extension != ".gitignore"
+                    and extension != "__pycache__"
+                ):
                     print(f"Failed to load extension {extension}.")
+                    raise
             except Exception:
                 print(f"Could not load cog {extension}")
                 raise
 
     async def get_context(self, message, *, cls=Context):
         return await super().get_context(message, cls=cls)
+
+    def prefix(self, bot, message):
+        if self.user.id == 779286377514139669:
+            return "sb,"
+        else:
+            return "sb."
 
     @property
     def version(self):
@@ -94,53 +104,9 @@ class StrapBot(commands.Bot):
             return await self.close()
         if self.lang.default == "en":
             print("StrapBot is logged in as {0.user}!".format(self))
-            self.activity = discord.Activity(
-                type=discord.ActivityType.watching,
-                name=f"{len(self.guilds)} servers! | Use {self.command_prefix}help for help.",
-            )
         elif self.lang.default == "it":
             print("StrapBot loggato come {0.user}!".format(self))
-            self.activity = discord.Activity(
-                type=discord.ActivityType.watching,
-                name=f"{len(self.guilds)} server! | Usa {self.command_prefix}help per i comandi.",
-            )
         await self.change_presence(activity=self.activity)
-
-    async def on_guild_join(self, guild):
-        if self.lang.default == "en":
-            await self.change_presence(
-                activity=discord.Activity(
-                    type=discord.ActivityType.watching,
-                    name=f"{len(self.guilds)} servers! | Use {self.command_prefix}help for help.",
-                ),
-                status=discord.Status.online,
-            )
-        elif self.lang.default == "it":
-            await self.change_presence(
-                activity=discord.Activity(
-                    type=discord.ActivityType.watching,
-                    name=f"{len(self.guilds)} server! | Usa {self.command_prefix}help per i comandi.",
-                ),
-                status=discord.Status.online,
-            )
-
-    async def on_guild_remove(self, guild):
-        if self.lang.default == "en":
-            await self.change_presence(
-                activity=discord.Activity(
-                    type=discord.ActivityType.watching,
-                    name=f"{len(self.guilds)} servers! | Use {self.command_prefix}help for help.",
-                ),
-                status=discord.Status.online,
-            )
-        elif self.lang.default == "it":
-            await self.change_presence(
-                activity=discord.Activity(
-                    type=discord.ActivityType.watching,
-                    name=f"{len(self.guilds)} server! | Usa {self.command_prefix}help per i comandi.",
-                ),
-                status=discord.Status.online,
-            )
 
     async def on_command_error(self, ctx, error):
         error = getattr(error, "original", error)
@@ -201,6 +167,7 @@ class StrapBot(commands.Bot):
                 print("Shutting down...")
 
     async def close(self, *args, **kwargs):
+        self._loops.stop_all()
         if os.path.exists("testù.json"):
             os.remove("testù.json")
         await super().close()
