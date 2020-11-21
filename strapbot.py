@@ -127,6 +127,19 @@ class StrapBot(commands.Bot):
                     color=discord.Color.red(),
                 )
             )
+        
+        if isinstance(error, commands.NotOwner):
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description=(
+                        "This command is either private, limited "
+                        "to owners or unavailable.\nYou can't run "
+                        "this command right now."
+                    ),
+                    color=discord.Color.red()
+                )
+            )
 
         raise error
 
