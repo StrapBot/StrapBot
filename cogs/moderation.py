@@ -5,9 +5,7 @@ from discord.ext import commands
 
 class Moderation(commands.Cog):
     """
-    Commands to moderate your server.*
-    NOTE: You will need the moderator permission
-    level in order to run any of these commands.*_ _
+    Commands to moderate your server.
     """
 
     def __init__(self, bot):
@@ -179,13 +177,15 @@ class Moderation(commands.Cog):
         )
 
         try:
-            await member.send(msg)
+            mesage = await member.send(msg)
         except discord.errors.Forbidden:
-            pass
+            mesage = None
 
         try:
             await member.kick(reason=reason)
         except discord.errors.Forbidden:
+            if mesage != None:
+                await mesage.delete()
             return await ctx.send(
                 embed=discord.Embed(
                     title="Error",
@@ -235,13 +235,15 @@ class Moderation(commands.Cog):
         )
 
         try:
-            await member.send(msg)
+            mesage = await member.send(msg)
         except discord.errors.Forbidden:
-            pass
+            mesage = None
 
         try:
             await member.ban(reason=reason, delete_message_days=0)
         except discord.errors.Forbidden:
+            if mesage != None:
+                await mesage.delete()
             return await ctx.send(
                 embed=discord.Embed(
                     title="Error",
@@ -311,13 +313,15 @@ class Moderation(commands.Cog):
         )
 
         try:
-            await member.send(msg)
+            mesage = await member.send(msg)
         except discord.errors.Forbidden:
-            pass
+            mesage = None
 
         try:
             await member.add_roles(role, reason=reason)
         except discord.errors.Forbidden:
+            if mesage != None:
+                await mesage.delete()
             return await ctx.send(
                 embed=discord.Embed(
                     title="Error",
