@@ -199,10 +199,12 @@ class Fun(commands.Cog):
             return await ctx.send(lang["toomany"])
         await ctx.send(to_send)
 
-    @commands.command()
-    @commands.guild_only()
+    @commands.command(hidden=True)
+    @commands.is_owner()
     async def roast(self, ctx, *, user: discord.Member = None):
-        """Roast someone! If you suck at roasting them yourself."""
+        """
+        Roast someone! If you suck at roasting them yourself.
+        """
         lang = await ctx.get_lang(self)
         msg = f"{user.mention},\n\n" if user is not None else ""
         roasts = lang["roasts"]

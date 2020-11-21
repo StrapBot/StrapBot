@@ -59,6 +59,7 @@ class Loops:
     async def presence_loop(self):
         """A loop that changes presence every 30 seconds"""
         await self.bot.wait_until_ready()
+
         members = []
         for member in self.bot.get_all_members():
             if not member.bot:
