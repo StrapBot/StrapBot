@@ -34,8 +34,8 @@ class OwnerOnly(commands.Cog):
         self.db = bot.db.get_cog_partition(self)
         self.lang_db = bot.lang.db
 
-    def cog_check(self, ctx):
-        return commands.is_owner()
+    async def cog_check(self, ctx):
+        return await self.bot.is_owner(ctx.author)
 
     @commands.group(invoke_without_command=True)
     async def get(self, ctx):

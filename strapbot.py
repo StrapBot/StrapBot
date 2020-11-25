@@ -128,7 +128,7 @@ class StrapBot(commands.Bot):
                 )
             )
         
-        if isinstance(error, commands.NotOwner):
+        if isinstance(error, commands.NotOwner) or isinstance(error, commands.CheckFailure):
             return await ctx.send(
                 embed=discord.Embed(
                     title="Error",
