@@ -16,6 +16,7 @@ class BugReport(commands.Cog):
         though, you can put an image link in the message.
         """
         msg = None
+        message = None
         if bug == None:
             msg = await ctx.send(
                 embed=discord.Embed(
@@ -75,10 +76,13 @@ class BugReport(commands.Cog):
             ).set_footer(text=f"Guild ID: {ctx.guild.id}"),
         )
 
+        if message != None:
+            await message.delete()
+
         await ctx.send(
             embed=discord.Embed(
                 title="Reported!",
-                description="Your bug has been reported!",
+                description="The bug has been reported!",
                 color=discord.Color.lighter_grey(),
             )
         )

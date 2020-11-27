@@ -1,5 +1,6 @@
 import asyncio
 import discord
+import random
 from discord.ext import commands
 
 
@@ -10,6 +11,7 @@ class Moderation(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.ee = {}
         self.db = bot.db.get_cog_partition(self)
 
     @commands.Cog.listener()
@@ -507,6 +509,23 @@ class Moderation(commands.Cog):
     async def purge(self, ctx, amount: int = 1):
         """Purge the specified amount of messages."""
         max = 2000
+        if amount <= 0:
+            if not str(ctx.author.id) in self.ee:
+                self.ee[str(ctx.author.id)] = 0
+            else:
+                self.ee[str(ctx.author.id)] += 1
+            
+            if self.ee[str(ctx.author.id)] == 4:
+                self.ee[str(ctx.author.id)] = 0
+                return await ctx.send(random.choice(["lol no", "bruh"]))
+
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description=f"You can only purge at least 1 message.",
+                    color=discord.Color.red(),
+                )
+            )
         if amount > max:
             return await ctx.send(
                 embed=discord.Embed(
