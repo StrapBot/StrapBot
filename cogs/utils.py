@@ -50,7 +50,7 @@ class Utilities(commands.Cog):
         """Shows ping."""
         return await ctx.send(
             embed=discord.Embed(
-                title="Ping!",
+                title="Pong!",
                 description=f"Total latency: {round(self.bot.latency*1000)} ms",
                 color=discord.Color.lighter_grey(),
             )
@@ -89,7 +89,10 @@ class Utilities(commands.Cog):
         return await ctx.send(
             embed=discord.Embed(
                 title="Invite me!",
-                description=f"If you want to invite me, [click here](https://strapbot.xyz/invite)!",
+                description=(
+                    "[Click here](https://strapbot.xyz/invite) to invite me to your server!\n"
+                    "Also join our [support server](https://discord.gg/G4de45Bywg)!"
+                ),
                 color=discord.Color.lighter_grey(),
             )
             .set_footer(text=self.footer)
