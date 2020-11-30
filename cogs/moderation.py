@@ -123,7 +123,7 @@ class Moderation(commands.Cog):
             ):
                 reason = reason + "."
 
-        case = await self.get_case()
+        case = await self.get_case(ctx)
 
         msg = f"You have been warned in {ctx.guild.name}" + (
             f" for: {reason}" if reason else "."
@@ -196,7 +196,7 @@ class Moderation(commands.Cog):
                 ).set_footer(text="Please fix the permissions.")
             )
 
-        case = await self.get_case()
+        case = await self.get_case(ctx)
 
         await self.log(
             guild=ctx.guild,
@@ -254,7 +254,7 @@ class Moderation(commands.Cog):
                 ).set_footer(text="Please fix the permissions.")
             )
 
-        case = await self.get_case()
+        case = await self.get_case(ctx)
 
         await self.log(
             guild=ctx.guild,
@@ -332,7 +332,7 @@ class Moderation(commands.Cog):
                 ).set_footer(text="Please fix the permissions.")
             )
 
-        case = await self.get_case()
+        case = await self.get_case(ctx)
 
         await self.log(
             guild=ctx.guild,
@@ -399,7 +399,7 @@ class Moderation(commands.Cog):
                 ).set_footer(text="Please fix the permissions.")
             )
 
-        case = await self.get_case()
+        case = await self.get_case(ctx)
 
         await self.log(
             guild=ctx.guild,
@@ -465,7 +465,7 @@ class Moderation(commands.Cog):
                 )
                 ensured = False
         if ensured:
-            case = await self.get_case()
+            case = await self.get_case(ctx)
 
             channel_position = channel.position
 
@@ -547,7 +547,7 @@ class Moderation(commands.Cog):
                 ).set_footer(text="Please fix the permissions.")
             )
 
-        case = await self.get_case()
+        case = await self.get_case(ctx)
         messages = "messages" if amount > 1 else "message"
         have = "have" if amount > 1 else "has"
 
@@ -580,7 +580,7 @@ class Moderation(commands.Cog):
             num = 0
         num += 1
         await self.db.find_one_and_update(
-            {"_id": "cases"}, {"$set": {"amount": num}}, upsert=True
+            {"_id": "cases"}, {"$set": {str(ctx.guild.id): num}}, upsert=True
         )
         suffix = ["th", "st", "nd", "rd", "th"][min(num % 10, 4)]
         if 11 <= (num % 100) <= 13:
