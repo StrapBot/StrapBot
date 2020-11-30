@@ -568,7 +568,7 @@ class Moderation(commands.Cog):
             ).set_footer(text=f"This is the {case} case.")
         )
 
-    async def get_case(self):
+    async def get_case(self, ctx):
         """Gives the case number."""
         num = await self.db.find_one({"_id": "cases"})
         if num == None:
