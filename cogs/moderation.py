@@ -514,7 +514,7 @@ class Moderation(commands.Cog):
                 self.ee[str(ctx.author.id)] = 0
             else:
                 self.ee[str(ctx.author.id)] += 1
-            
+
             if self.ee[str(ctx.author.id)] == 4:
                 self.ee[str(ctx.author.id)] = 0
                 return await ctx.send(random.choice(["lol no", "bruh"]))
@@ -601,4 +601,4 @@ class Moderation(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(Moderation(bot))
+    bot.add_cog(Moderation(bot))  # TODO: translate this

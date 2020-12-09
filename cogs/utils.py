@@ -48,10 +48,11 @@ class Utilities(commands.Cog):
     @commands.command(pass_context=True)
     async def ping(self, ctx):
         """Shows ping."""
+        lang = await ctx.get_lang(self)
         return await ctx.send(
             embed=discord.Embed(
                 title="Pong!",
-                description=f"Total latency: {round(self.bot.latency*1000)} ms",
+                description=f"{lang['latency']}: {round(self.bot.latency*1000)} ms",
                 color=discord.Color.lighter_grey(),
             )
             .set_footer(text=self.footer)
@@ -64,13 +65,14 @@ class Utilities(commands.Cog):
             )
         )
 
-    @commands.command(pass_context=True)
+    @commands.command(pass_context=True, aliases=["guilds"])
     async def servers(self, ctx):
         """Returns the total number of servers I'm in."""
+        lang = await ctx.get_lang(self)
         return await ctx.send(
             embed=discord.Embed(
-                title="Total servers",
-                description=f"I'm in {len(self.bot.guilds)} servers!",
+                title=lang["title"],
+                description=lang["description_"].format(len(self.bot.guilds)),
                 color=discord.Color.lighter_grey(),
             )
             .set_footer(text=self.footer)
@@ -86,13 +88,11 @@ class Utilities(commands.Cog):
     @commands.command(pass_context=True)
     async def invite(self, ctx):
         """Invite me on your servers!"""
+        lang = await ctx.get_lang(self)
         return await ctx.send(
             embed=discord.Embed(
-                title="Invite me!",
-                description=(
-                    "[Click here](https://strapbot.xyz/invite) to invite me to your server!\n"
-                    "Also join our [support server](https://discord.gg/G4de45Bywg)!"
-                ),
+                title=lang["title"],
+                description=lang["description_"],
                 color=discord.Color.lighter_grey(),
             )
             .set_footer(text=self.footer)
@@ -107,4 +107,4 @@ class Utilities(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(Utilities(bot))  # TODO: translate this
+    bot.add_cog(Utilities(bot))

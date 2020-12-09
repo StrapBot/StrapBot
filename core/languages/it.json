@@ -107,6 +107,13 @@
                 "cringe": {
                     "description": "rEnDe iL TuO TeStO CrInGe!!",
                     "examples": ["rende il tuo testo cringe!!"]
+                },
+                "inspirobot": {
+                    "description": "Invia una citazione di InspiroBot.",
+                    "messages": {
+                        "single": "Le citazioni vengono generate automaticamente da un intelligenza artificiale,\npertanto, potrebbero non sempre essere family-friendly.\nL'immagine è stata messa in uno spoiler.",
+                        "multi": "Le citazioni vengono generate automaticamente da un intelligenza artificiale,\npertanto, potrebbero non sempre essere family-friendly.\nLe immagini sono state messe negli spoiler."
+                    }
                 }
             }
         },
@@ -212,10 +219,21 @@
                         }
                     }
                 },
-                "invite": {},
+                "invite": {
+                    "description": "Invitami al tuo server!",
+                    "title": "Invitami!",
+                    "description_": "[Clicca qui](https://strapbot.xyz/invite) per invitarmi al tuo server!\nEntra anche nel nostro [server di supporto](https://discord.gg/G4de45Bywg)!"
+                },
                 "testù": {},
-                "servers": {},
-                "ping": {}
+                "servers": {
+                    "description": "Mostra il numero di server dove ci sono io.",
+                    "title": "Server in totale",
+                    "description_": "Sono in {} server!"
+                },
+                "ping": {
+                    "description": "Mostra la latenza del bot.",
+                    "latency": "Latenza in totale"
+                }
             }
         },
         "Moderation": {

@@ -127,8 +127,10 @@ class StrapBot(commands.Bot):
                     color=discord.Color.red(),
                 )
             )
-        
-        if isinstance(error, commands.NotOwner) or isinstance(error, commands.CheckFailure):
+
+        if isinstance(error, commands.NotOwner) or isinstance(
+            error, commands.CheckFailure
+        ):
             return await ctx.send(
                 embed=discord.Embed(
                     title="Error",
@@ -137,7 +139,7 @@ class StrapBot(commands.Bot):
                         "to owners or unavailable.\nYou can't run "
                         "this command right now."
                     ),
-                    color=discord.Color.red()
+                    color=discord.Color.red(),
                 )
             )
 
