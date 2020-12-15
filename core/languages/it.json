@@ -173,7 +173,26 @@
                     "description": "Riproduce una canzone.",
                     "examples": ["https://www.youtube.com/watch?v=dQw4w9WgXcQ"],
                     "error": "C'è stato un errore mentre cercavo di riprodurre questa canzone: {}",
-                    "queued": "Ho inserito {} nella coda."
+                    "queued": "Ho inserito {} nella coda.",
+                    "playing": "Inizio a riprodurre {} adesso!"
+                },
+                "search": {
+                    "description": "Cerca un video su YouTube.",
+                    "examples": ["Never Gonna Give You Up"],
+                    "error": "C'è stato un errore mentre processavo la richiesta: {}",
+                    "queued": "Ho inserito {} nella coda.",
+                    "sel_invalid": "Selezione non valida.",
+                    "timeout": "Tempo scaduto!",
+                    "results": "Risultati di ricerca per",
+                    "choose": "\n**Scrivi un numero per scegliere, oppure `cancel` per uscire**"
+                },
+                "volume": {
+                    "description": "Cambia il volume della riproduzione.",
+                    "examples": ["57"],
+                    "nothing": "Niente è in riproduzione al momento.",
+                    "info": "Al momento il volume è impostato a {}%.",
+                    "error": "Il volume deve essere da 0 a 100.",
+                    "done": "Il volume della riproduzione è stato impostato a {}%"
                 }
             }
         },

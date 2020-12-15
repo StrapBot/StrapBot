@@ -131,6 +131,93 @@ class YTDLSource(discord.PCMVolumeTransformer):
             ctx, discord.FFmpegPCMAudio(info["url"], **cls.FFMPEG_OPTIONS), data=info
         )
 
+    @classmethod
+    async def search_source(
+        cls, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None
+    ):
+        bot = ctx.bot
+        channel = ctx.channel
+        loop = loop or asyncio.get_event_loop()
+        lang = await ctx.get_lang(self)
+
+        cls.search_query = "%s%s:%s" % ("ytsearch", 10, "".join(search))
+
+        partial = functools.partial(
+            cls.ytdl.extract_info, cls.search_query, download=False, process=False
+        )
+        info = await loop.run_in_executor(None, partial)
+
+        cls.search = {}
+        cls.search["title"] = f"{lang['results']}:\n**{search}**"
+        cls.search["type"] = "rich"
+        cls.search["color"] = 7506394
+        cls.search["author"] = {
+            "name": f"{ctx.author.name}",
+            "url": f"{ctx.author.avatar_url}",
+            "icon_url": f"{ctx.author.avatar_url}",
+        }
+
+        lst = []
+        entries = []
+
+        for e in info["entries"]:
+            entries.append(e)
+
+        for i, e in enumerate(entries):
+            # lst.append(f'`{info["entries"].index(e) + 1}.` {e.get("title")} **[{YTDLSource.parse_duration(int(e.get("duration")))}]**\n')
+            VId = e.get("id")
+            VUrl = "https://www.youtube.com/watch?v=%s" % (VId)
+            lst.append(
+                f'`{i + 1}.` [{e.get("title")}]({VUrl})\n'
+            )
+
+        lst.append(lang["choose"])
+        cls.search["description"] = "\n".join(lst)
+
+        em = discord.Embed.from_dict(cls.search)
+        emb = await ctx.send(embed=em, delete_after=45.0)
+
+        def check(msg):
+            return (
+                msg.content.isdigit() == True
+                and msg.channel == channel
+                or msg.content.lower() == "cancel"
+            )
+
+        try:
+            m = await bot.wait_for("message", check=check, timeout=45.0)
+
+        except asyncio.TimeoutError:
+            rtrn = "timeout"
+
+        else:
+            if m.content.isdigit() == True:
+                sel = int(m.content)
+                if 0 < sel <= 10:
+                    
+                    for e in entries:
+                        if e == entries[sel - 1]:
+                            VId = e["id"]
+                            VUrl = "https://www.youtube.com/watch?v=%s" % (VId)
+                            partial = functools.partial(
+                                cls.ytdl.extract_info, VUrl, download=False
+                            )
+                            data = await loop.run_in_executor(None, partial)
+                    rtrn = cls(
+                        ctx,
+                        discord.FFmpegPCMAudio(data["url"], **cls.FFMPEG_OPTIONS),
+                        data=data,
+                    )
+                else:
+                    rtrn = "sel_invalid"
+            elif m.content.lower() == "cancel":
+                rtrn = "cancel"
+                await emb.delete()
+            else:
+                rtrn = "sel_invalid"
+
+        return rtrn
+
     @staticmethod
     def parse_duration(duration: int):
         minutes, seconds = divmod(duration, 60)
@@ -261,7 +348,7 @@ class VoiceState:
                 self.current.source.volume = self._volume
                 self.voice.play(self.current.source, after=self.play_next_song)
                 await self.current.source.channel.send(
-                    embed=self.current.create_embed()
+                    embed=self.current.create_embed(self._ctx)
                 )
 
             # If the song is looped
@@ -320,11 +407,6 @@ class Music(commands.Cog):
 
     async def cog_before_invoke(self, ctx: commands.Context):
         ctx.voice_state = self.get_voice_state(ctx)
-
-    async def cog_command_error(
-        self, ctx: commands.Context, error: commands.CommandError
-    ):
-        await ctx.send("Error(e): {}".format(str(error)))
 
     @commands.command(name="summon", aliases=["join"])
     @commands.has_permissions(manage_guild=True)
@@ -419,6 +501,35 @@ class Music(commands.Cog):
         else:
             await ctx.send(lang["vote"]["error"])
 
+    @commands.command(name="volume")
+    async def _volume(self, ctx: commands.Context, *, volume: int=None):
+        """Imposta il volume della riproduzione."""
+
+        lang = await ctx.get_lang(self)
+
+        if not ctx.voice_state.is_playing:
+            return await ctx.send(lang["nothing"])
+        
+        if volume == None:
+            return await ctx.send(lang["info"].format(round(ctx.voice_state.current.source.volume * 100)))
+
+        if volume < 1 or volume > 100:
+            return await ctx.send(lang["error"])
+
+        ctx.voice_state.current.source.volume = volume / 100
+        await self.db.find_one_and_update(
+            {"_id": "volumes"},
+            {
+                "$set": {
+                    str(ctx.author.id): volume / 100
+                }
+            },
+            upsert=True
+        )
+        await ctx.send(
+            lang["done"].format(volume)
+        )
+
     @commands.command(name="queue")
     async def _queue(self, ctx: commands.Context, *, page: int = 1):
         """Shows the player's queue.
@@ -480,7 +591,7 @@ class Music(commands.Cog):
 
         # Inverse boolean value to loop and unloop.
         ctx.voice_state.loop = not ctx.voice_state.loop
-        await ctx.message.add_reaction("✅")
+        await ctx.message.add_reaction("🔂" if ctx.voice_state.loop else "⏹️")
 
     @commands.command(name="play")
     async def _play(self, ctx: commands.Context, *, search: str):
@@ -491,6 +602,9 @@ class Music(commands.Cog):
         A list of these sites can be found here: https://rg3.github.io/youtube-dl/supportedsites.html
         """
         lang = await ctx.get_lang(self)
+        msg = lang["queued"] if ctx.voice_state.is_playing else lang["playing"]
+
+        volume = (await self.db.find_one({"_id": "volumes"}) or {}).get(str(ctx.author.id), 0.5)
 
         if not ctx.voice_state.voice:
             await ctx.invoke(self._summon)
@@ -504,7 +618,34 @@ class Music(commands.Cog):
                 song = Song(source)
 
                 await ctx.voice_state.songs.put(song)
-                await ctx.send(lang["queued"].format(str(source)))
+                await ctx.send(msg.format(str(source)))
+                ctx.voice_state.current.source.volume = volume
+
+    @commands.command(name="search")
+    async def _search(self, ctx: commands.Context, *, search: str):
+        """Searchs for a YouTube video."""
+        lang = await ctx.get_lang(self)
+        async with ctx.typing():
+            try:
+                source = await YTDLSource.search_source(ctx, search, loop=self.bot.loop)
+            except YTDLError as e:
+                await ctx.send(
+                    lang["error"].format(
+                        str(e)
+                    )
+                )
+            else:
+                if source == "sel_invalid" or source == "timeout":
+                    await ctx.send(lang[source])
+                elif source == "cancel":
+                    await ctx.message.add_reaction("✅")
+                else:
+                    if not ctx.voice_state.voice:
+                        await ctx.invoke(self._summon)
+
+                    song = Song(source)
+                    await ctx.voice_state.songs.put(song)
+                    await ctx.send("Inserito {} nella coda.".format(str(source)))
 
     @_summon.before_invoke
     @_play.before_invoke

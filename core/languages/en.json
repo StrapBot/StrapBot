@@ -176,7 +176,26 @@
                     "description": "Plays a song.",
                     "examples": ["https://www.youtube.com/watch?v=dQw4w9WgXcQ"],
                     "error": "An error occurred while processing this request: {}",
-                    "queued": "Enqueued {}"
+                    "queued": "Enqueued {}",
+                    "playing": "Started playing {} now!"
+                },
+                "search": {
+                    "description": "Searchs for a YouTube video.",
+                    "examples": ["Never Gonna Give You Up"],
+                    "error": "An error occurred while processing this request: {}",
+                    "queued": "Enqueued {}",
+                    "sel_invalid": "Invalid selection.",
+                    "timeout": "Time's up!",
+                    "results": "Search results for",
+                    "choose": "\n**Type a number to choose it, or `cancel` to exit**"
+                },
+                "volume": {
+                    "description": "Changes the player's volume.",
+                    "examples": ["57"],
+                    "nothing": "Nothing is being played at the moment.",
+                    "info": "At the moment volume is set to {}%.",
+                    "error": "Volume must be between 1 and 100.",
+                    "done": "The player's volume has been set to {}%"
                 }
             }
         },

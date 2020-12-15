@@ -110,15 +110,16 @@ class StrapBot(commands.Bot):
 
     async def on_command_error(self, ctx, error):
         error = getattr(error, "original", error)
+        if isinstance(error, commands.CommandNotFound):
+            print(error)
+            return
         if isinstance(error, commands.MissingPermissions):
             return await ctx.send(
                 embed=discord.Embed(
                     title="Error", description=str(error), color=discord.Color.red()
                 ).set_footer(text="You can try this on another server, though.")
             )
-        if isinstance(error, commands.CommandNotFound):
-            print(error)
-            return
+
         if isinstance(error, commands.MissingRequiredArgument):
             return await ctx.send(
                 embed=discord.Embed(
@@ -139,6 +140,15 @@ class StrapBot(commands.Bot):
                         "to owners or unavailable.\nYou can't run "
                         "this command right now."
                     ),
+                    color=discord.Color.red(),
+                )
+            )
+        
+        if ctx.command.cog.__class__.__name__.lower() == "music":
+            return await ctx.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description=str(error),
                     color=discord.Color.red(),
                 )
             )
