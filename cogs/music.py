@@ -522,7 +522,7 @@ class Music(commands.Cog):
             {"_id": "volumes"},
             {
                 "$set": {
-                    str(ctx.author.id): volume / 100
+                    str(ctx.guild.id): volume / 100
                 }
             },
             upsert=True
@@ -605,7 +605,7 @@ class Music(commands.Cog):
         lang = await ctx.get_lang(self)
         msg = lang["queued"] if ctx.voice_state.is_playing else lang["playing"]
 
-        volume = (await self.db.find_one({"_id": "volumes"}) or {}).get(str(ctx.author.id), 0.5)
+        volume = (await self.db.find_one({"_id": "volumes"}) or {}).get(str(ctx.guild.id), 0.5)
 
         if not ctx.voice_state.voice:
             await ctx.invoke(self._summon)
