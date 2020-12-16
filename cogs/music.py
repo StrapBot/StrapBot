@@ -383,7 +383,7 @@ class VoiceState:
 class Music(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.db = bot.mdb.get_cog_partition(self)
+        self.db = bot.db.get_cog_partition(self)
         self.voice_states = {}
 
     def get_voice_state(self, ctx: commands.Context):
