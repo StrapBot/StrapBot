@@ -16,7 +16,7 @@ class Vincy(commands.Cog):
         else:
             await ctx.send(
                 "This command works ONLY in Vincy's server."
-                if self.bot.lang.get_user(ctx.message.author.id) is not "it"
+                if self.bot.lang.get_user(ctx.message.author.id) != "it"
                 else "Questo comando funziona SOLO nel server di Vincy"
             )
             return False
