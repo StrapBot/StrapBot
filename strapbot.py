@@ -143,7 +143,7 @@ class StrapBot(commands.Bot):
                     color=discord.Color.red(),
                 )
             )
-        
+
         if ctx.command.cog.__class__.__name__.lower() == "music":
             return await ctx.send(
                 embed=discord.Embed(

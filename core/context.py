@@ -1,3 +1,4 @@
+import box
 import json
 import discord
 from discord.ext import commands
@@ -11,13 +12,14 @@ class Context(commands.Context):
         members = await db.find_one({"_id": "members"})
         guilds = await db.find_one({"_id": "guilds"})
         if str(self.author.id) in members:
-            member = members[str(self.author.id)]
-            ret = json.load(open(f"core/languages/{member['language']}.json"))
+            current = members[str(self.author.id)]
         elif str(self.guild.id) in guilds:
-            guild = guilds[str(self.guild.id)]
-            ret = json.load(open(f"core/languages/{guild['language']}.json"))
+            current = guilds[str(self.guild.id)]
         else:
-            ret = json.load(open(f"core/languages/{self.bot.lang.default}.json"))
+            current = self.bot.lang.default
+
+        current = current["language"]
+        ret = json.load(open(f"core/languages/{current}.json"))
 
         if cogs:
             ret = ret["cogs"]
@@ -33,4 +35,6 @@ class Context(commands.Context):
                 raise RuntimeError("No class specified.")
             ret = ret["cogs"][cls]["commands"][self.command.qualified_name]
 
+        ret["current"] = current
+        ret = box.Box(ret)
         return ret

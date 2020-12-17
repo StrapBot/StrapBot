@@ -54,7 +54,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         source: discord.FFmpegPCMAudio,
         *,
         data: dict,
-        volume: float = 0.5
+        volume: float = 0.5,
     ):
         super().__init__(source, volume)
 
@@ -167,9 +167,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
             # lst.append(f'`{info["entries"].index(e) + 1}.` {e.get("title")} **[{YTDLSource.parse_duration(int(e.get("duration")))}]**\n')
             VId = e.get("id")
             VUrl = "https://www.youtube.com/watch?v=%s" % (VId)
-            lst.append(
-                f'`{i + 1}.` [{e.get("title")}]({VUrl})\n'
-            )
+            lst.append(f'`{i + 1}.` [{e.get("title")}]({VUrl})\n')
 
         lst.append(lang["choose"])
         cls.search["description"] = "\n".join(lst)
@@ -194,7 +192,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
             if m.content.isdigit() == True:
                 sel = int(m.content)
                 if 0 < sel <= 10:
-                    
+
                     for e in entries:
                         if e == entries[sel - 1]:
                             VId = e["id"]
@@ -503,33 +501,27 @@ class Music(commands.Cog):
             await ctx.send(lang["vote"]["error"])
 
     @commands.command(name="volume")
-    async def _volume(self, ctx: commands.Context, *, volume: int=None):
+    async def _volume(self, ctx: commands.Context, *, volume: int = None):
         """Imposta il volume della riproduzione."""
 
         lang = await ctx.get_lang(self)
 
         if not ctx.voice_state.is_playing:
             return await ctx.send(lang["nothing"])
-        
+
         if volume == None:
-            return await ctx.send(lang["info"].format(round(ctx.voice_state.current.source.volume * 100)))
+            return await ctx.send(
+                lang["info"].format(round(ctx.voice_state.current.source.volume * 100))
+            )
 
         if volume < 1 or volume > 100:
             return await ctx.send(lang["error"])
 
         ctx.voice_state.current.source.volume = volume / 100
         await self.db.find_one_and_update(
-            {"_id": "volumes"},
-            {
-                "$set": {
-                    str(ctx.guild.id): volume / 100
-                }
-            },
-            upsert=True
+            {"_id": "volumes"}, {"$set": {str(ctx.guild.id): volume / 100}}, upsert=True
         )
-        await ctx.send(
-            lang["done"].format(volume)
-        )
+        await ctx.send(lang["done"].format(volume))
 
     @commands.command(name="queue")
     async def _queue(self, ctx: commands.Context, *, page: int = 1):
@@ -605,7 +597,9 @@ class Music(commands.Cog):
         lang = await ctx.get_lang(self)
         msg = lang["queued"] if ctx.voice_state.is_playing else lang["playing"]
 
-        volume = (await self.db.find_one({"_id": "volumes"}) or {}).get(str(ctx.guild.id), 0.5)
+        volume = (await self.db.find_one({"_id": "volumes"}) or {}).get(
+            str(ctx.guild.id), 0.5
+        )
 
         if not ctx.voice_state.voice:
             await ctx.invoke(self._summon)
@@ -630,11 +624,7 @@ class Music(commands.Cog):
             try:
                 source = await YTDLSource.search_source(ctx, search, loop=self.bot.loop)
             except YTDLError as e:
-                await ctx.send(
-                    lang["error"].format(
-                        str(e)
-                    )
-                )
+                await ctx.send(lang["error"].format(str(e)))
             else:
                 if source == "sel_invalid" or source == "timeout":
                     await ctx.send(lang[source])

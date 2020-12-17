@@ -53,10 +53,8 @@ class HelpCommand(commands.HelpCommand):
 
     async def _get_help_embed(self, topic):
         if not await self.filter_commands([topic]):
-            print("qpowieurtyturiewqop")
             return
 
-        print("a")
         db = self.context.bot.db.db["LangConfig"]
         members = await db.find_one({"_id": "members"})
         guilds = await db.find_one({"_id": "guilds"})
@@ -68,8 +66,6 @@ class HelpCommand(commands.HelpCommand):
             ret = json.load(open(f"core/languages/{guild['language']}.json"))
         else:
             ret = json.load(open(f"core/languages/{self.bot.lang.default}.json"))
-
-        print("b")
 
         lang = ret["cogs"][topic.cog.__class__.__name__]["commands"][
             topic.qualified_name

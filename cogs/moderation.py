@@ -33,47 +33,37 @@ class Moderation(commands.Cog):
     @commands.has_permissions(manage_channels=True)
     async def setlog(self, ctx, channel: discord.TextChannel = None):
         """Sets up a log channel."""
+        lang = await ctx.get_lang(self)
         if channel == None:
             return await ctx.send_help(ctx.command)
 
         try:
             await channel.send(
                 embed=discord.Embed(
-                    description=(
-                        "This channel has been set up to log actions.\n"
-                        "This means that I will send bans/warns/kicks here.\n"
-                        "**NOTE:** Actions logs (message delete/edit, channel/role "
-                        "creation/deletion etc) is not supported for now."
-                    ),
+                    description=lang.test,
                     color=discord.Color.lighter_grey(),
                 )
             )
         except discord.errors.Forbidden:
-            await ctx.send(
-                embed=discord.Embed(
-                    title="Error",
-                    description="I don't have enough permissions to write in that channel.",
-                    color=discord.Color.red(),
-                ).set_footer(text="Please fix the permissions.")
-            )
+            embed = discord.Embed.from_dict(lang.embeds.error)
+            embed.color = discord.Color.red()
+            await ctx.send(embed=embed)
         else:
             await self.db.find_one_and_update(
                 {"_id": "logging"},
                 {"$set": {str(ctx.guild.id): channel.id}},
                 upsert=True,
             )
-            await ctx.send(
-                embed=discord.Embed(
-                    title="Success",
-                    description=f"{channel.mention} has been set up as log channel.",
-                    color=discord.Color.lighter_grey(),
-                )
-            )
+            embed = discord.Embed.from_dict(lang.embeds.success)
+            embed.description = embed.description.format(channel.mention)
+            embed.color = discord.Color.lighter_grey()
+            await ctx.send(embed=embed)
 
     @commands.command(usage="<role>")
     @commands.has_permissions(manage_roles=True)
     async def muterole(self, ctx, role: discord.Role = None):
         """Sets up the muted role."""
+        lang = await ctx.get_lang(self)
         if role is None:
             if (await self.db.find_one({"_id": "muterole"})) is not None:
                 if (
@@ -84,14 +74,12 @@ class Moderation(commands.Cog):
                 ):
                     return await ctx.send(
                         embed=discord.Embed(
-                            title="Error",
-                            description="Muted role is already set up.",
+                            title="Error" + ("e" if lang.current == "it" else ""),
+                            description=lang.error,
                             color=discord.Color.red(),
-                        ).set_footer(
-                            text="If you want to change role, just mention it."
-                        )
+                        ).set_footer(text=lang.error_footer)
                     )
-            role = await ctx.guild.create_role(name="Muted")
+            role = await ctx.guild.create_role(name=lang.name)
 
         await self.db.find_one_and_update(
             {"_id": "muterole"}, {"$set": {str(ctx.guild.id): role.id}}, upsert=True
@@ -99,8 +87,8 @@ class Moderation(commands.Cog):
 
         await ctx.send(
             embed=discord.Embed(
-                title="Success",
-                description=f"The muted role has been set to {role.mention}.",
+                title=lang.success,
+                description=lang.done.format(role.mention),
                 color=discord.Color.lighter_grey(),
             )
         )
@@ -111,6 +99,7 @@ class Moderation(commands.Cog):
         """
         Warns the specified member.
         """
+        lang = await ctx.get_lang(self)
         if member == None:
             return await ctx.send_help(ctx.command)
 
@@ -124,19 +113,19 @@ class Moderation(commands.Cog):
                 reason = reason + "."
 
         case = await self.get_case(ctx)
+        case = lang.case.format(case)
 
-        msg = f"You have been warned in {ctx.guild.name}" + (
-            f" for: {reason}" if reason else "."
-        )
+        msg = (lang.msg_ if reason else lang.msg).format(g=ctx.guild.name, r=reason)
+        fp = "per" if lang.current == "it" else "for"
 
         await self.log(
             guild=ctx.guild,
             embed=discord.Embed(
-                title="Warn",
-                description=f"{member} has been warned by {ctx.author.mention}"
-                + (f" for: {reason}" if reason else "."),
+                title=lang.warn.uppercase(),
+                description=f"{member} {lang.log} {ctx.author.mention}"
+                + (f" {fp}: {reason}" if reason else "."),
                 color=discord.Color.lighter_grey(),
-            ).set_footer(text=f"This is the {case} case."),
+            ).set_footer(text=case),
         )
 
         try:
@@ -144,24 +133,25 @@ class Moderation(commands.Cog):
         except discord.errors.Forbidden:
             return await ctx.send(
                 embed=discord.Embed(
-                    title="Logged",
-                    description=f"Warning has been logged for {member}. I couldn't warn them, they disabled DMs.",
+                    title="Logg" + ("ato" if lang.current == "it" else "ed"),
+                    description=lang.logged.format(str(member)),
                     color=discord.Color.lighter_grey(),
-                ).set_footer(text=f"This is the {case} case.")
+                ).set_footer(text=case)
             )
 
         await ctx.send(
             embed=discord.Embed(
-                title="Success",
-                description=f"{member} has been warned.",
+                title=lang.success,
+                description=lang.done.format(str(member)),
                 color=discord.Color.lighter_grey(),
-            ).set_footer(text=f"This is the {case} case.")
+            ).set_footer(text=case)
         )
 
     @commands.command(usage="<member> [reason]")
     @commands.has_permissions(kick_members=True)
     async def kick(self, ctx, member: discord.Member = None, *, reason=None):
         """Kicks the specified member."""
+        lang = await ctx.get_lang(self)
         if member == None:
             return await ctx.send_help(ctx.command)
 
@@ -174,9 +164,8 @@ class Moderation(commands.Cog):
             ):
                 reason = reason + "."
 
-        msg = f"You have been kicked from {ctx.guild.name}" + (
-            f" for: {reason}" if reason else "."
-        )
+        msg = (lang.msg_ if reason else lang.msg).format(g=ctx.guild.name, r=reason)
+        fp = "per" if lang.current == "it" else "for"
 
         try:
             mesage = await member.send(msg)
@@ -190,36 +179,38 @@ class Moderation(commands.Cog):
                 await mesage.delete()
             return await ctx.send(
                 embed=discord.Embed(
-                    title="Error",
-                    description="I don't have enough permissions to kick them.",
+                    title="Error" + ("e" if lang.current == "it" else ""),
+                    description=lang.error,
                     color=discord.Color.red(),
-                ).set_footer(text="Please fix the permissions.")
+                ).set_footer(text=lang.fix)
             )
 
         case = await self.get_case(ctx)
+        case = lang.case.format(case)
 
         await self.log(
             guild=ctx.guild,
             embed=discord.Embed(
                 title="Kick",
-                description=f"{member} has been kicked by {ctx.author.mention}"
-                + (f" for: {reason}" if reason else "."),
+                description=f"{member} {log} {ctx.author.mention}"
+                + (f" {fp}: {reason}" if reason else "."),
                 color=discord.Color.lighter_grey(),
-            ).set_footer(text=f"This is the {case} case."),
+            ).set_footer(text=case),
         )
 
         await ctx.send(
             embed=discord.Embed(
-                title="Success",
-                description=f"{member} has been kicked.",
+                title=lang.success,
+                description=lang.done.format(str(member)),
                 color=discord.Color.lighter_grey(),
-            ).set_footer(text=f"This is the {case} case.")
+            ).set_footer(text=case)
         )
 
     @commands.command(usage="<member> [reason]")
     @commands.has_permissions(ban_members=True)
     async def ban(self, ctx, member: discord.Member = None, *, reason=None):
         """Bans the specified member."""
+        lang = await ctx.get_lang(self)
         if member == None:
             return await ctx.send_help(ctx.command)
 
@@ -232,9 +223,8 @@ class Moderation(commands.Cog):
             ):
                 reason = reason + "."
 
-        msg = f"You have been banned from {ctx.guild.name}" + (
-            f" for: {reason}" if reason else "."
-        )
+        msg = (lang.msg_ if reason else lang.msg).format(g=ctx.guild.name, r=reason)
+        fp = "per" if lang.current == "it" else "for"
 
         try:
             mesage = await member.send(msg)
@@ -248,36 +238,38 @@ class Moderation(commands.Cog):
                 await mesage.delete()
             return await ctx.send(
                 embed=discord.Embed(
-                    title="Error",
-                    description="I don't have enough permissions to ban them.",
+                    title="Error" + ("e" if lang.current == "it" else ""),
+                    description=lang.error,
                     color=discord.Color.red(),
-                ).set_footer(text="Please fix the permissions.")
+                ).set_footer(text=lang.fix)
             )
 
         case = await self.get_case(ctx)
+        case = lang.case.format(case)
 
         await self.log(
             guild=ctx.guild,
             embed=discord.Embed(
                 title="Ban",
-                description=f"{member} has been banned by {ctx.author.mention}"
-                + (f" for: {reason}" if reason else "."),
+                description=f"{member} {log} {ctx.author.mention}"
+                + (f" {fp}: {reason}" if reason else "."),
                 color=discord.Color.lighter_grey(),
-            ).set_footer(text=f"This is the {case} case."),
+            ).set_footer(text=case),
         )
 
         await ctx.send(
             embed=discord.Embed(
-                title="Success",
+                title=lang.success,
                 description=f"{member} has been banned.",
                 color=discord.Color.lighter_grey(),
-            ).set_footer(text=f"This is the {case} case.")
+            ).set_footer(text=case)
         )
 
     @commands.command(usage="<member> [reason]")
     @commands.has_permissions(manage_roles=True)
     async def mute(self, ctx, member: discord.Member = None, *, reason=None):
         """Mutes the specified member."""
+        await ctx.get_lang(self)
         if member == None:
             return await ctx.send_help(ctx.command)
         role = await self.db.find_one({"_id": "muterole"})
@@ -310,9 +302,8 @@ class Moderation(commands.Cog):
                 )
             )
 
-        msg = f"You have been muted from {ctx.guild.name}" + (
-            f" for: {reason}" if reason else "."
-        )
+        msg = (lang.msg_ if reason else lang.msg).format(g=ctx.guild.name, r=reason)
+        fp = "per" if lang.current == "it" else "for"
 
         try:
             mesage = await member.send(msg)
@@ -329,10 +320,11 @@ class Moderation(commands.Cog):
                     title="Error",
                     description="I don't have enough permissions to mute them.",
                     color=discord.Color.red(),
-                ).set_footer(text="Please fix the permissions.")
+                ).set_footer(text=lang.fix)
             )
 
         case = await self.get_case(ctx)
+        case = lang.case.format(case)
 
         await self.log(
             guild=ctx.guild,
@@ -341,7 +333,7 @@ class Moderation(commands.Cog):
                 description=f"{member} has been muted by {ctx.author.mention}"
                 + (f" for: {reason}" if reason else "."),
                 color=discord.Color.lighter_grey(),
-            ).set_footer(text=f"This is the {case} case."),
+            ).set_footer(text=case),
         )
 
         await ctx.send(
@@ -349,13 +341,14 @@ class Moderation(commands.Cog):
                 title="Success",
                 description=f"{member} has been muted.",
                 color=discord.Color.lighter_grey(),
-            ).set_footer(text=f"This is the {case} case.")
+            ).set_footer(text=case)
         )
 
     @commands.command(usage="<member> [reason]")
     @commands.has_permissions(manage_roles=True)
     async def unmute(self, ctx, member: discord.Member = None, *, reason=None):
         """Unmutes the specified member."""
+        lang = await ctx.get_lang(self)
         if member == None:
             return await ctx.send_help(ctx.command)
         role = await self.db.find_one({"_id": "muterole"})
@@ -396,10 +389,11 @@ class Moderation(commands.Cog):
                     title="Error",
                     description="I don't have enough permissions to unmute them.",
                     color=discord.Color.red(),
-                ).set_footer(text="Please fix the permissions.")
+                ).set_footer(text=lang.fix)
             )
 
         case = await self.get_case(ctx)
+        case = lang.case.format(case)
 
         await self.log(
             guild=ctx.guild,
@@ -408,7 +402,7 @@ class Moderation(commands.Cog):
                 description=f"{member} has been unmuted by {ctx.author.mention}"
                 + (f" for: {reason}" if reason else "."),
                 color=discord.Color.lighter_grey(),
-            ).set_footer(text=f"This is the {case} case."),
+            ).set_footer(text=case),
         )
 
         await ctx.send(
@@ -416,7 +410,7 @@ class Moderation(commands.Cog):
                 title="Success",
                 description=f"{member} has been unmuted.",
                 color=discord.Color.lighter_grey(),
-            ).set_footer(text=f"This is the {case} case.")
+            ).set_footer(text=case)
         )
 
     @commands.command()
@@ -426,6 +420,7 @@ class Moderation(commands.Cog):
         Nukes (deletes EVERY message in) a channel.
         You can mention a channel to nuke that one instead.
         """
+        lang = await ctx.get_lang(self)
         if channel == None:
             channel = ctx.channel
         tot = "this" if channel.id == ctx.channel.id else "that"
@@ -466,6 +461,7 @@ class Moderation(commands.Cog):
                 ensured = False
         if ensured:
             case = await self.get_case(ctx)
+            case = lang.case.format(case)
 
             channel_position = channel.position
 
@@ -480,7 +476,7 @@ class Moderation(commands.Cog):
                         title="Error",
                         description=f"I don't have enough permissions to nuke {tot} channel.",
                         color=discord.Color.red(),
-                    ).set_footer(text="Please fix the permissions.")
+                    ).set_footer(text=lang.fix)
                 )
 
             await new_channel.send(
@@ -492,7 +488,7 @@ class Moderation(commands.Cog):
                 .set_image(
                     url="https://cdn.discordapp.com/attachments/600843048724987925/600843407228928011/tenor.gif"
                 )
-                .set_footer(text=f"This is the {case} case.")
+                .set_footer(text=case)
             )
 
             await self.log(
@@ -501,13 +497,14 @@ class Moderation(commands.Cog):
                     title="Nuke",
                     description=f"{ctx.author.mention} nuked {new_channel.mention}.",
                     color=discord.Color.lighter_grey(),
-                ).set_footer(text=f"This is the {case} case."),
+                ).set_footer(text=case),
             )
 
     @commands.command(usage="<amount>", aliases=["clear"])
     @commands.has_permissions(manage_messages=True)
     async def purge(self, ctx, amount: int = 1):
         """Purge the specified amount of messages."""
+        lang = await ctx.get_lang(self)
         max = 2000
         if amount <= 0:
             if not str(ctx.author.id) in self.ee:
@@ -544,10 +541,11 @@ class Moderation(commands.Cog):
                     title="Error",
                     description="I don't have enough permissions to purge messages.",
                     color=discord.Color.red(),
-                ).set_footer(text="Please fix the permissions.")
+                ).set_footer(text=lang.fix)
             )
 
         case = await self.get_case(ctx)
+        case = lang.case.format(case)
         messages = "messages" if amount > 1 else "message"
         have = "have" if amount > 1 else "has"
 
@@ -557,7 +555,7 @@ class Moderation(commands.Cog):
                 title="Purge",
                 description=f"{amount} {messages} {have} been purged by {ctx.author.mention}.",
                 color=discord.Color.lighter_grey(),
-            ).set_footer(text=f"This is the {case} case."),
+            ).set_footer(text=case),
         )
 
         await ctx.send(
@@ -565,7 +563,7 @@ class Moderation(commands.Cog):
                 title="Success",
                 description=f"Purged {amount} {messages}.",
                 color=discord.Color.lighter_grey(),
-            ).set_footer(text=f"This is the {case} case.")
+            ).set_footer(text=case)
         )
 
     async def get_case(self, ctx):
