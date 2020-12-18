@@ -63,8 +63,9 @@ class StrapBot(commands.Bot):
         else:
             pxs.append("sb.")
         
-        if isinstance(message.channel, discord.DMChannel):
-            pxs.append("")
+        if message != None:
+            if isinstance(message.channel, discord.DMChannel):
+                pxs.append("")
         
         return commands.when_mentioned_or(*pxs)(bot, message)
 

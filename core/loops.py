@@ -80,7 +80,7 @@ class Loops:
         name = activity["name"].format(
             guilds=len(self.bot.guilds),
             members=len(members),
-            prefix=self.bot.command_prefix(None, None),
+            prefix=self.bot.command_prefix(None, None)[-1],
             ergastolator=ergastolator,
             vincy=vincy,
         )
