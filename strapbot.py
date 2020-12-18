@@ -55,10 +55,17 @@ class StrapBot(commands.Bot):
         return await super().get_context(message, cls=cls)
 
     def prefix(self, bot, message):
+        pxs = []
         if self.user.id == 779286377514139669:
-            return "sb,"
+            pxs.append("sb,")
         else:
-            return "sb."
+            pxs.append("sb.")
+        
+        if message != None:
+            if isinstance(message.channel, discord.DMChannel):
+                pxs.append("")
+        
+        return commands.when_mentioned_or(*pxs)(bot, message)
 
     @property
     def version(self):
