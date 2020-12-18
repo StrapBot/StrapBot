@@ -64,6 +64,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
     }
 
     ytdl = youtube_dl.YoutubeDL(YTDL_OPTIONS)
+    ytdl.cache.remove()
 
     def __init__(
         self,
@@ -358,6 +359,7 @@ class VoiceState:
                 except asyncio.TimeoutError:
                     self.bot.loop.create_task(self.stop())
                     self.exists = False
+
                     return
 
                 self.current.source.volume = self._volume
