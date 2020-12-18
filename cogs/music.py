@@ -15,6 +15,23 @@ from async_timeout import timeout
 # Silence useless bug reports messages
 youtube_dl.utils.bug_reports_message = lambda: ""
 
+def is_one_in_vc():
+    async def check(ctx):
+        users = 0
+        if ctx.voice_client:
+            for u in ctx.voice_client.channel.members:
+                if not u.bot:
+                    users += 1
+        
+        if users == 1:
+            return True
+        if ctx.channel.permissions_for(ctx.author).manage_guild:
+            return True
+        else:
+            raise commands.MissingPermissions(["Manage Server"])
+    
+    return commands.check(check)
+
 
 class VoiceError(Exception):
     pass
@@ -408,7 +425,6 @@ class Music(commands.Cog):
         ctx.voice_state = self.get_voice_state(ctx)
 
     @commands.command(name="summon", aliases=["join"])
-    @commands.has_permissions(manage_guild=True)
     async def _summon(
         self, ctx: commands.Context, *, channel: discord.VoiceChannel = None
     ):
@@ -428,7 +444,7 @@ class Music(commands.Cog):
         ctx.voice_state.voice = await destination.connect()
 
     @commands.command(name="leave", aliases=["disconnect"])
-    @commands.has_permissions(manage_guild=True)
+    @is_one_in_vc()
     async def _leave(self, ctx: commands.Context):
         """Clears the queue and leaves the voice channel."""
         lang = await ctx.get_lang(self)
@@ -439,14 +455,14 @@ class Music(commands.Cog):
         await ctx.voice_state.stop()
         del self.voice_states[ctx.guild.id]
 
-    @commands.command(name="now", aliases=["current", "playing"])
+    @commands.command(name="now", aliases=["current", "playing", "np"])
     async def _now(self, ctx: commands.Context):
         """Displays the currently playing song."""
 
         await ctx.send(embed=ctx.voice_state.current.create_embed(ctx))
 
     @commands.command(name="pause")
-    @commands.has_permissions(manage_guild=True)
+    @is_one_in_vc()
     async def _pause(self, ctx: commands.Context):
         """Pauses the currently playing song."""
 
@@ -455,7 +471,7 @@ class Music(commands.Cog):
             await ctx.message.add_reaction("⏯")
 
     @commands.command(name="resume")
-    @commands.has_permissions(manage_guild=True)
+    @is_one_in_vc()
     async def _resume(self, ctx: commands.Context):
         """Resumes a currently paused song."""
 
@@ -464,7 +480,7 @@ class Music(commands.Cog):
             await ctx.message.add_reaction("⏯")
 
     @commands.command(name="stop")
-    @commands.has_permissions(manage_guild=True)
+    @is_one_in_vc()
     async def _stop(self, ctx: commands.Context):
         """Stops playing song and clears the queue."""
 
@@ -594,6 +610,10 @@ class Music(commands.Cog):
         This command automatically searches from various sites if no URL is provided.
         A list of these sites can be found here: https://rg3.github.io/youtube-dl/supportedsites.html
         """
+    
+        if ctx.voice_state.is_playing and ctx.voice_state.voice.is_paused():
+            return await ctx.invoke(self._resume)
+
         lang = await ctx.get_lang(self)
         msg = lang["queued"] if ctx.voice_state.is_playing else lang["playing"]
 
