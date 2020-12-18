@@ -260,7 +260,7 @@ class Moderation(commands.Cog):
         await ctx.send(
             embed=discord.Embed(
                 title=lang.success,
-                description=f"{member} has been banned.",
+                description=lang.done.format(str(member)),
                 color=discord.Color.lighter_grey(),
             ).set_footer(text=case)
         )

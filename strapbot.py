@@ -15,9 +15,7 @@ from core.context import Context
 
 import_dotenv()
 
-intents = discord.Intents.default()
-intents.guilds = True
-intents.members = True
+intents = discord.Intents.all()
 
 
 class StrapBot(commands.Bot):
