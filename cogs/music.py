@@ -306,6 +306,17 @@ class Song:
                 name="Uploader",
                 value="**[{0.source.uploader}]({0.source.uploader_url})**".format(self),
             )
+        
+        if self.source.likes:
+            embed.add_field(name="Likes", value=str(self.source.likes))
+        if self.source.dislikes:
+            embed.add_field(
+                name="Dislikes", value=str(self.source.dislikes)
+            )
+        if self.source.views:
+            embed.add_field(
+                name="Views", value=str(self.source.views)
+            )
 
         if self.source.thumbnail:
             embed.set_thumbnail(url=self.source.thumbnail)
