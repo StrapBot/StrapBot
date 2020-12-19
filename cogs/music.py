@@ -80,6 +80,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         self.requester = ctx.author
         self.channel = ctx.channel
         self.data = data
+        self.ctx = ctx
 
         self.uploader = data.get("uploader")
         self.uploader_url = data.get("uploader_url")
@@ -90,9 +91,11 @@ class YTDLSource(discord.PCMVolumeTransformer):
         self.title = data.get("title")
         self.thumbnail = data.get("thumbnail")
         self.description = data.get("description")
-        self.duration = data.get("duration")
-        if self.duration != None:
-            self.duration = self.parse_duration(int(self.duration))
+        self.raw_duration = data.get("duration")
+        if self.raw_duration != None:
+            self.duration = self.parse_duration(int(self.raw_duration))
+        else:
+            self.duration = self.raw_duration
 
         self.tags = data.get("tags")
         self.url = data.get("webpage_url")
@@ -162,7 +165,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         bot = ctx.bot
         channel = ctx.channel
         loop = loop or asyncio.get_event_loop()
-        lang = await ctx.get_lang(self)
+        lang = await ctx.get_lang(ctx.command.cog)
 
         cls.search_query = "%s%s:%s" % ("ytsearch", 10, "".join(search))
 
@@ -260,17 +263,20 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
 
 class Song:
-    __slots__ = ("source", "requester")
+    __slots__ = ("source", "requester", "is_first")
 
-    def __init__(self, source: YTDLSource):
+    def __init__(self, source: YTDLSource, first: bool=False):
         self.source = source
         self.requester = source.requester
+        self.is_first = first
 
-    def create_embed(self, ctx):
+    def create_embed(self, ctx, nowcmd=False):
         embed = discord.Embed(
-            title="Now playing",
             description="**[{0.source.title}]({0.source.url})**".format(self),
             color=discord.Color.lighter_grey(),
+        ).set_author(
+            name=("Started" if self.is_first else "Now") + " playing",
+            icon_url=self.source.ctx.bot.user.avatar_url
         )
         if self.source.duration:
             embed.add_field(name="Duration", value=self.source.duration)
@@ -467,7 +473,7 @@ class Music(commands.Cog):
     async def _now(self, ctx: commands.Context):
         """Displays the currently playing song."""
 
-        await ctx.send(embed=ctx.voice_state.current.create_embed(ctx))
+        await ctx.send(embed=ctx.voice_state.current.create_embed(ctx, nowcmd=True))
 
     @commands.command(name="pause")
     @is_one_in_vc()
@@ -623,7 +629,8 @@ class Music(commands.Cog):
             return await ctx.invoke(self._resume)
 
         lang = await ctx.get_lang(self)
-        msg = lang["queued"] if ctx.voice_state.is_playing else lang["playing"]
+        first = not ctx.voice_state.is_playing
+        msg = lang["queued"] if not first else lang["playing"]
 
         volume = (await self.db.find_one({"_id": "volumes"}) or {}).get(
             str(ctx.guild.id), 0.5
@@ -638,7 +645,7 @@ class Music(commands.Cog):
             except YTDLError as e:
                 await ctx.send(lang["error"].format(str(e)))
             else:
-                song = Song(source)
+                song = Song(source, first=first)
 
                 await ctx.voice_state.songs.put(song)
                 await ctx.send(msg.format(str(source)))
