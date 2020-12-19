@@ -279,12 +279,12 @@ class Song:
         self.requester = source.requester
         self.is_first = first
 
-    def create_embed(self, ctx, nowcmd=False):
+    def create_embed(self, ctx, queued=False, nowcmd=False):
         embed = discord.Embed(
             description="**[{0.source.title}]({0.source.url})**".format(self),
             color=discord.Color.lighter_grey(),
         ).set_author(
-            name=("Started" if self.is_first and not nowcmd else "Now") + " playing",
+            name=("Started" if self.is_first and not nowcmd else "Now") + " playing" if not queued else "Enqueued",
             icon_url=self.source.ctx.bot.user.avatar_url
         )
         if self.source.duration:
@@ -724,6 +724,8 @@ class Music(commands.Cog):
                 await ctx.voice_state.songs.put(song)
                 await asyncio.sleep(0.1)
                 ctx.voice_state.current.source.volume = volume
+                if not first:
+                    await ctx.send(embed=ctx.voice_state.current.create_embed(ctx, queued=True))
 
     @commands.command(name="search")
     async def _search(self, ctx: commands.Context, *, search: str):
