@@ -137,7 +137,7 @@ class StrapBot(commands.Bot):
         if isinstance(error, commands.NotOwner) or isinstance(
             error, commands.CheckFailure
         ):
-            return await ctx.send(
+            await ctx.send(
                 embed=discord.Embed(
                     title="Error",
                     description=(
@@ -150,7 +150,7 @@ class StrapBot(commands.Bot):
             )
 
         if ctx.command.cog.__class__.__name__.lower() == "music":
-            return await ctx.send(
+            await ctx.send(
                 embed=discord.Embed(
                     title="Error",
                     description=str(error),

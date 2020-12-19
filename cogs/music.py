@@ -83,12 +83,17 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
         self.uploader = data.get("uploader")
         self.uploader_url = data.get("uploader_url")
-        date = data.get("upload_date")
-        self.upload_date = date[6:8] + "." + date[4:6] + "." + date[0:4]
+        self.upload_date = data.get("upload_date")
+        if self.upload_date != None:
+            self.upload_date = self.upload_date[6:8] + "." + self.upload_date[4:6] + "." + self.upload_date[0:4]
+
         self.title = data.get("title")
         self.thumbnail = data.get("thumbnail")
         self.description = data.get("description")
-        self.duration = self.parse_duration(int(data.get("duration")))
+        self.duration = data.get("duration")
+        if self.duration != None:
+            self.duration = self.parse_duration(int(self.duration))
+
         self.tags = data.get("tags")
         self.url = data.get("webpage_url")
         self.views = data.get("view_count")
@@ -97,7 +102,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         self.stream_url = data.get("url")
 
     def __str__(self):
-        return "**{0.title}** by **{0.uploader}**".format(self)
+        return f"**{self.title}**" + (f" by **{self.uploader}**" if self.uploader != None else "")
 
     @classmethod
     async def create_source(
@@ -124,7 +129,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
             if process_info is None:
                 raise YTDLError(
-                    "Couldn't find anything that matches `{}`".format(search)
+                        "Couldn't find anything that matches `{}`".format(search)
                 )
 
         webpage_url = process_info["webpage_url"]
@@ -251,7 +256,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         if seconds > 0:
             duration.append("{} seconds".format(seconds))
 
-        return ", ".join(duration)
+        return ", ".join(duration) # TODO: translate this
 
 
 class Song:
@@ -262,21 +267,22 @@ class Song:
         self.requester = source.requester
 
     def create_embed(self, ctx):
-        embed = (
-            discord.Embed(
-                title="Now playing",
-                description="```\n{0.source.title}\n```".format(self),
-                color=discord.Color.lighter_grey(),
-            )
-            .add_field(name="Duration", value=self.source.duration)
-            .add_field(name="Requested by", value=self.requester.mention)
-            .add_field(
+        embed = discord.Embed(
+            title="Now playing",
+            description="**[{0.source.title}]({0.source.url})**".format(self),
+            color=discord.Color.lighter_grey(),
+        )
+        if self.source.duration:
+            embed.add_field(name="Duration", value=self.source.duration)
+        embed.add_field(name="Requested by", value=self.requester.mention)
+        if self.source.uploader:
+            embed.add_field(
                 name="Uploader",
                 value="[{0.source.uploader}]({0.source.uploader_url})".format(self),
             )
-            .add_field(name="URL", value="[Click]({0.source.url})".format(self))
-            .set_thumbnail(url=self.source.thumbnail)
-        )
+
+        if self.source.thumbnail:
+            embed.set_thumbnail(url=self.source.thumbnail)
 
         return embed  # TODO: translate this
 
@@ -368,7 +374,6 @@ class VoiceState:
                 await self.current.source.channel.send(
                     embed=self.current.create_embed(self._ctx)
                 )
-
             # If the song is looped
             elif self.loop == True:
                 self.now = discord.FFmpegPCMAudio(
