@@ -210,29 +210,27 @@ class StrapBot(commands.Bot):
             746111972428480582,
             698061313309540372
         ]
-        if not ctx.guild.id in allowed_guilds:
-            return
+        if ctx.guild.id in allowed_guilds:
+            messages = [
+                "testù",
+                "testà",
+                "test+",
+                "testì",
+                "testè",
+                "testò",
+                "testàèìòù",
+                "testàèìòù+",
+                "yestü",
+                "restū",
+                "gestû",
+                "ASDFGHJKLÒÀÙ",
+            ]
+            for index, msg in enumerate(messages):
+                messages[index] = msg.lower()
 
-        messages = [
-            "testù",
-            "testà",
-            "test+",
-            "testì",
-            "testè",
-            "testò",
-            "testàèìòù",
-            "testàèìòù+",
-            "yestü",
-            "restū",
-            "gestû",
-            "ASDFGHJKLÒÀÙ",
-        ]
-        for index, msg in enumerate(messages):
-            messages[index] = msg.lower()
-
-        if not message.author.bot:
-            if message.content.lower() in messages:
-                await ctx.send(message.content)
+            if not message.author.bot:
+                if message.content.lower() in messages:
+                    await ctx.send(message.content)
 
         return await self.process_commands(message)
 
