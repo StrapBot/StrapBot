@@ -12,7 +12,7 @@ class Utilities(commands.Cog):
             command_attrs={
                 "name": "help",
                 "aliases": ["man", "h"],
-            }
+            },
         )
         bot.help_command.cog = self
 

@@ -15,6 +15,7 @@ from async_timeout import timeout
 # Silence useless bug reports messages
 youtube_dl.utils.bug_reports_message = lambda: ""
 
+
 def is_one_in_vc():
     async def check(ctx):
         users = 0
@@ -22,14 +23,14 @@ def is_one_in_vc():
             for u in ctx.voice_client.channel.members:
                 if not u.bot:
                     users += 1
-        
+
         if users == 1:
             return True
         if ctx.channel.permissions_for(ctx.author).manage_guild:
             return True
         else:
             raise commands.MissingPermissions(["Manage Server"])
-    
+
     return commands.check(check)
 
 
@@ -612,7 +613,7 @@ class Music(commands.Cog):
         This command automatically searches from various sites if no URL is provided.
         A list of these sites can be found here: https://rg3.github.io/youtube-dl/supportedsites.html
         """
-    
+
         if ctx.voice_state.is_playing and ctx.voice_state.voice.is_paused():
             return await ctx.invoke(self._resume)
 
