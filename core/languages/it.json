@@ -146,8 +146,10 @@
                     "description": "Salta alla prossima canzone nella coda.",
                     "error": "Non sto riproducendo alcuna canzone al momento...",
                     "vote": {
-                        "success": "Voto per saltare aggiunto. Adesso siamo a **{}**",
-                        "error": "Hai già votato per saltare questa canzone."
+                        "voted": "Votato",
+                        "success": "Il tuo voto per saltare è stato aggiunto!",
+                        "error": "Hai già votato per saltare questa canzone.",
+                        "current": "Voti in totale"
                     }
                 },
                 "queue": {
@@ -192,6 +194,8 @@
                     "nothing": "Niente è in riproduzione al momento.",
                     "info": "Al momento il volume è impostato a {}%.",
                     "error": "Il volume deve essere da 0 a 100.",
+                    "success": "Fatto",
+                    "before": "Prima",
                     "done": "Il volume della riproduzione è stato impostato a {}%"
                 }
             }

@@ -204,6 +204,15 @@ class StrapBot(commands.Bot):
 
     async def on_message(self, message):
         ctx = await self.get_context(message)
+        allowed_guilds = [
+            595318301127868417,
+            746111972428480582,
+            746111972428480582,
+            698061313309540372
+        ]
+        if not ctx.guild.id in allowed_guilds:
+            return
+
         messages = [
             "testù",
             "testà",
@@ -225,7 +234,7 @@ class StrapBot(commands.Bot):
             if message.content.lower() in messages:
                 await ctx.send(message.content)
 
-        await self.process_commands(message)
+        return await self.process_commands(message)
 
 
 bot = StrapBot()

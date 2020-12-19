@@ -9,7 +9,6 @@ import youtube_dl
 import asyncio
 import discord
 from discord.ext import commands
-import nacl
 from async_timeout import timeout
 
 # Silence useless bug reports messages
@@ -39,6 +38,9 @@ class VoiceError(Exception):
 
 
 class YTDLError(Exception):
+    pass
+
+class NotPlayingError(Exception):
     pass
 
 
@@ -88,7 +90,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         if self.upload_date != None:
             self.upload_date = self.upload_date[6:8] + "." + self.upload_date[4:6] + "." + self.upload_date[0:4]
 
-        self.title = data.get("title")
+        self.title = discord.utils.escape_markdown(str(data.get("title")))
         self.thumbnail = data.get("thumbnail")
         self.description = data.get("description")
         self.raw_duration = data.get("duration")
@@ -200,6 +202,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         cls.search["description"] = "\n".join(lst)
 
         em = discord.Embed.from_dict(cls.search)
+        em.color = discord.Color.lighter_grey()
         emb = await ctx.send(embed=em, delete_after=45.0)
 
         def check(msg):
@@ -248,16 +251,22 @@ class YTDLSource(discord.PCMVolumeTransformer):
         minutes, seconds = divmod(duration, 60)
         hours, minutes = divmod(minutes, 60)
         days, hours = divmod(hours, 24)
+        day, hour, minute, second = (
+            "s" if days != 1 else "",
+            "s" if hours != 1 else "",
+            "s" if minutes != 1 else "",
+            "s" if seconds != 1 else "",
+        )
 
         duration = []
         if days > 0:
-            duration.append("{} days".format(days))
+            duration.append(f"{days} day{day}")
         if hours > 0:
-            duration.append("{} hours".format(hours))
+            duration.append(f"{hours} hour{hour}")
         if minutes > 0:
-            duration.append("{} minutes".format(minutes))
+            duration.append(f"{minutes} minute{minute}")
         if seconds > 0:
-            duration.append("{} seconds".format(seconds))
+            duration.append(f"{seconds} second{second}")
 
         return ", ".join(duration) # TODO: translate this
 
@@ -275,16 +284,27 @@ class Song:
             description="**[{0.source.title}]({0.source.url})**".format(self),
             color=discord.Color.lighter_grey(),
         ).set_author(
-            name=("Started" if self.is_first else "Now") + " playing",
+            name=("Started" if self.is_first and not nowcmd else "Now") + " playing",
             icon_url=self.source.ctx.bot.user.avatar_url
         )
         if self.source.duration:
-            embed.add_field(name="Duration", value=self.source.duration)
+            if nowcmd:
+                embed.add_field(
+                    name="Duration",
+                    value=(
+                        f"**```fix\n{ctx.voice_state.text_watched}\n```**"
+                        f"{ctx.voice_state.watched} listened of {self.source.duration}."
+                        f"\n{ctx.voice_state.duration} remaining." if ctx.voice_state.duration != "" else ""
+                    ),
+                    inline=False
+                )
+            else:
+                embed.add_field(name="Duration", value=self.source.duration)
         embed.add_field(name="Requested by", value=self.requester.mention)
         if self.source.uploader:
             embed.add_field(
                 name="Uploader",
-                value="[{0.source.uploader}]({0.source.uploader_url})".format(self),
+                value="**[{0.source.uploader}]({0.source.uploader_url})**".format(self),
             )
 
         if self.source.thumbnail:
@@ -330,6 +350,11 @@ class VoiceState:
         self._loop = False
         self._volume = 0.5
         self.skip_votes = set()
+        self.raw_watched = None
+        self.watched = None
+        self.text_watched = None
+        self.duration = None
+        self.raw_duration = None
 
         self.audio_player = bot.loop.create_task(self.audio_player_task())
 
@@ -387,7 +412,25 @@ class VoiceState:
                 )
                 self.voice.play(self.now, after=self.play_next_song)
 
+            await self.bot.loop.run_in_executor(None, self._update_time_watched)
+
             await self.next.wait()
+
+    def _update_time_watched(self):
+        self.raw_duration = self.current.source.raw_duration
+
+        while round(self.raw_duration) != 0 and self.is_playing:
+            self.raw_duration -= 1
+            self.raw_watched = self.current.source.raw_duration - self.raw_duration
+            val = round(((100 * float(self.raw_watched)/float(self.current.source.raw_duration)) / 50) * 10)
+            symbols = "▬" * 20
+            self.text_watched = "|" + symbols[:val] + "🔘" + symbols[val:] + "|"
+            self.watched = YTDLSource.parse_duration(self.raw_watched)
+            self.duration = YTDLSource.parse_duration(self.raw_duration)
+
+            __import__("time").sleep(1)
+        else:
+            self.watched = None
 
     def play_next_song(self, error=None):
         if error:
@@ -464,7 +507,7 @@ class Music(commands.Cog):
         lang = await ctx.get_lang(self)
 
         if not ctx.voice_state.voice:
-            return await ctx.send(lang["error"])
+            raise NotPlayingError(lang["error"])
 
         await ctx.voice_state.stop()
         del self.voice_states[ctx.guild.id]
@@ -510,7 +553,7 @@ class Music(commands.Cog):
         lang = await ctx.get_lang(self)
 
         if not ctx.voice_state.is_playing:
-            return await ctx.send(lang["error"])
+            raise NotPlayingError(lang["error"])
 
         voter = ctx.message.author
         if voter == ctx.voice_state.current.requester:
@@ -525,14 +568,23 @@ class Music(commands.Cog):
                 await ctx.message.add_reaction("⏭")
                 ctx.voice_state.skip()
             else:
-                await ctx.send(lang["vote"]["success"].format(total_votes))
+                await ctx.send(
+                    embed=discord.Embed(
+                        title=lang.vote.voted,
+                        description=lang.vote.success,
+                        color=discord.Color.lighter_grey()
+                    ).add_field(
+                        name=lang.vote.current,
+                        value=f"**{total_votes}**"
+                    )
+                )
 
         else:
-            await ctx.send(lang["vote"]["error"])
+            raise RuntimeError(lang["vote"]["error"])
 
     @commands.command(name="volume")
     async def _volume(self, ctx: commands.Context, *, volume: int = None):
-        """Imposta il volume della riproduzione."""
+        """Sets the player's volume."""
 
         lang = await ctx.get_lang(self)
 
@@ -545,13 +597,23 @@ class Music(commands.Cog):
             )
 
         if volume < 1 or volume > 100:
-            return await ctx.send(lang["error"])
+            raise ValueError(lang["error"])
 
+        before = round(ctx.voice_state.current.source.volume * 100)
         ctx.voice_state.current.source.volume = volume / 100
         await self.db.find_one_and_update(
             {"_id": "volumes"}, {"$set": {str(ctx.guild.id): volume / 100}}, upsert=True
         )
-        await ctx.send(lang["done"].format(volume))
+        await ctx.send(
+            embed=discord.Embed(
+                title=lang.success,
+                description=lang.done.format(volume),
+                color=discord.Color.lighter_grey()
+            ).add_field(
+                name=lang.before,
+                value=f"{before}%"
+            )
+        )
 
     @commands.command(name="queue")
     async def _queue(self, ctx: commands.Context, *, page: int = 1):
@@ -561,7 +623,7 @@ class Music(commands.Cog):
         lang = await ctx.get_lang(self)
 
         if len(ctx.voice_state.songs) == 0:
-            return await ctx.send(lang["error"])
+            raise VaueError(lang["error"])
 
         items_per_page = 10
         pages = math.ceil(len(ctx.voice_state.songs) / items_per_page)
@@ -576,7 +638,8 @@ class Music(commands.Cog):
             )
 
         embed = discord.Embed(
-            description=lang["tracks"].format(len(ctx.voice_state.songs), queue)
+            description=lang["tracks"].format(len(ctx.voice_state.songs), queue),
+            color=discord.Color.lighter_grey()
         ).set_footer(text=lang["pages"].format(page, pages))
         await ctx.send(embed=embed)
 
@@ -586,7 +649,7 @@ class Music(commands.Cog):
         lang = await ctx.get_lang(self)
 
         if len(ctx.voice_state.songs) == 0:
-            return await ctx.send(lang["error"])
+            raise ValueError(lang["error"])
 
         ctx.voice_state.songs.shuffle()
         await ctx.message.add_reaction("✅")
@@ -597,7 +660,7 @@ class Music(commands.Cog):
         lang = await ctx.get_lang(self)
 
         if len(ctx.voice_state.songs) == 0:
-            return await ctx.send(lang["error"])
+            raise ValueError(lang["error"])
 
         ctx.voice_state.songs.remove(index - 1)
         await ctx.message.add_reaction("✅")
@@ -610,7 +673,7 @@ class Music(commands.Cog):
         lang = await ctx.get_lang(self)
 
         if not ctx.voice_state.is_playing:
-            return await ctx.send(lang["error"])
+            raise NotPlayingError(lang["error"])
 
         # Inverse boolean value to loop and unloop.
         ctx.voice_state.loop = not ctx.voice_state.loop
@@ -643,12 +706,12 @@ class Music(commands.Cog):
             try:
                 source = await YTDLSource.create_source(ctx, search, loop=self.bot.loop)
             except YTDLError as e:
-                await ctx.send(lang["error"].format(str(e)))
+                raise RuntimeError(str(e)) from e
             else:
                 song = Song(source, first=first)
 
                 await ctx.voice_state.songs.put(song)
-                await ctx.send(msg.format(str(source)))
+                await asyncio.sleep(0.1)
                 ctx.voice_state.current.source.volume = volume
 
     @commands.command(name="search")
@@ -659,7 +722,7 @@ class Music(commands.Cog):
             try:
                 source = await YTDLSource.search_source(ctx, search, loop=self.bot.loop)
             except YTDLError as e:
-                await ctx.send(lang["error"].format(str(e)))
+                raise RuntimeError(str(e)) from e
             else:
                 if source == "sel_invalid" or source == "timeout":
                     await ctx.send(lang[source])

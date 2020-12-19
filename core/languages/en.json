@@ -149,8 +149,10 @@
                     "description": "Skips to the next song.",
                     "error": "Not playing any music right now...",
                     "vote": {
-                        "success": "Skip vote added, currently at **{}**",
-                        "error": "You have already voted to skip this song."
+                        "voted": "Voted",
+                        "success": "Your skip vote has been added!",
+                        "error": "You have already voted to skip this song.",
+                        "current": "Currently at"
                     }
                 },
                 "queue": {
@@ -195,6 +197,8 @@
                     "nothing": "Nothing is being played at the moment.",
                     "info": "At the moment volume is set to {}%.",
                     "error": "Volume must be between 1 and 100.",
+                    "success": "Success",
+                    "before": "Before",
                     "done": "The player's volume has been set to {}%"
                 }
             }
