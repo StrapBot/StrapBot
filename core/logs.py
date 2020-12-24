@@ -97,3 +97,14 @@ class StrapLog(logging.Logger):
     def critical(self, message, *args, **kwargs):
         if self.isEnabledFor(logging.CRITICAL):
             self._log(logging.CRITICAL, self._critical_(message), args, **kwargs)
+
+
+def get_logger_instance(name="StrapBot") -> StrapLog:
+    logging.setLoggerClass(StrapLog)
+    logger = logging.getLogger("StrapBot")
+    self = logger
+
+    self.stream.setLevel(self.lvl)
+    self.setLevel(self.lvl)
+    self.addHandler(self.stream)
+    return logger

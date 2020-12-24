@@ -10,6 +10,7 @@ import asyncio
 import discord
 from discord.ext import commands
 from async_timeout import timeout
+from core.logs import get_logger_instance
 
 # Silence useless bug reports messages
 youtube_dl.utils.bug_reports_message = lambda: ""
@@ -47,6 +48,7 @@ class NotPlayingError(Exception):
 
 class YTDLSource(discord.PCMVolumeTransformer):
     YTDL_OPTIONS = {
+        "logger": get_logger_instance()
         "format": "bestaudio/best",
         "extractaudio": True,
         "audioformat": "mp3",
