@@ -47,8 +47,9 @@ class NotPlayingError(Exception):
 
 
 class YTDLSource(discord.PCMVolumeTransformer):
+    logger = get_logger_instance()
     YTDL_OPTIONS = {
-        "logger": get_logger_instance(),
+        "logger": logger,
         "format": "bestaudio/best",
         "extractaudio": True,
         "audioformat": "mp3",
