@@ -44,7 +44,7 @@ class StrapBot(commands.Bot):
         return self._logger
 
     def startup(self):
-        print(self.version)
+        self.logger.info(f"StrapBot v{self.version}")
         self._loops.run_all()
 
         # load cogs
@@ -53,6 +53,7 @@ class StrapBot(commands.Bot):
             if ext.endswith(".py"):
                 self.exts.append(ext.replace(".py", ""))
 
+        self.logger.info("Loading extensions...")
         for extension in self.exts:
             try:
                 self.load_extension(f"cogs.{extension}")
