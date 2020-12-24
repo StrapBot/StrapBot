@@ -67,7 +67,7 @@ class StrapBot(commands.Bot):
                         f"Failed to load extension {extension}.", exc_info=True
                     )
             except Exception:
-                self.logger.error(f"Could not load cog {extension}", exc_info=True)
+                self.logger.error(f"Could not load extension {extension}", exc_info=True)
 
     async def get_context(self, message, *, cls=Context):
         return await super().get_context(message, cls=cls)
