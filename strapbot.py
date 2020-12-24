@@ -1,10 +1,9 @@
-__version__ = "2.0"
-
 import os
 import asyncio
 import traceback
 import discord
 import logging
+import re
 from pkg_resources import parse_version
 from aiohttp import ClientSession
 from discord.ext import commands
@@ -14,6 +13,7 @@ from core.mongodb import *
 from core.loops import Loops
 from core.context import Context
 from core.logs import StrapLog
+from git import Repo
 
 import_dotenv()
 
@@ -31,6 +31,8 @@ class StrapBot(commands.Bot):
         self.wait_until_connected = self.wait_for_connected
         self._logger = None
         self._loops = Loops(self)
+        self.repo = Repo(".")
+        self._version = None
         self.startup()
 
     @property
@@ -42,6 +44,7 @@ class StrapBot(commands.Bot):
         return self._logger
 
     def startup(self):
+        print(self.version)
         self._loops.run_all()
 
         # load cogs
@@ -83,7 +86,18 @@ class StrapBot(commands.Bot):
 
     @property
     def version(self):
-        return parse_version(__version__)
+        if self._version is None:
+            ver = [a for a in sorted([str(a) for a in self.repo.tags], reverse=True)[0].split(".")]
+            vers = []
+            for v in ver:
+                vers.append(re.sub("\D", "", v))
+            
+            self._version = parse_version(
+                ".".join(
+                    vers
+                )
+            )
+        return self._version
 
     @property
     def session(self) -> ClientSession:
