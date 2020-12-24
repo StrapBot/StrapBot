@@ -7,3 +7,4 @@ python-box
 pymongo
 dnspython
 motor
+colorama

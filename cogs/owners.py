@@ -93,7 +93,7 @@ class OwnerOnly(commands.Cog):
     async def eval_(self, ctx, *, body: str):
         """Avvia un codice Python."""
 
-        print(f"Running eval command:\n{body}")
+        self.bot.logger.warning(f"Running eval command:\n{body}")
 
         env = {
             "ctx": ctx,

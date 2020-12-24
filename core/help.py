@@ -149,7 +149,7 @@ class HelpCommand(commands.HelpCommand):
     async def send_error_message(self, error):
         command = self.context.kwargs.get("command")
 
-        print(error)
+        self.context.bot.logger.warning(str(error))
 
         embed = discord.Embed(color=discord.Color.red())
         embed.set_author(name="StrapBot", icon_url=self.context.bot.user.avatar_url)

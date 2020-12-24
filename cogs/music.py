@@ -40,6 +40,7 @@ class VoiceError(Exception):
 class YTDLError(Exception):
     pass
 
+
 class NotPlayingError(Exception):
     pass
 
@@ -88,7 +89,13 @@ class YTDLSource(discord.PCMVolumeTransformer):
         self.uploader_url = data.get("uploader_url")
         self.upload_date = data.get("upload_date")
         if self.upload_date != None:
-            self.upload_date = self.upload_date[6:8] + "." + self.upload_date[4:6] + "." + self.upload_date[0:4]
+            self.upload_date = (
+                self.upload_date[6:8]
+                + "."
+                + self.upload_date[4:6]
+                + "."
+                + self.upload_date[0:4]
+            )
 
         self.title = discord.utils.escape_markdown(str(data.get("title")))
         self.thumbnail = data.get("thumbnail")
@@ -107,7 +114,9 @@ class YTDLSource(discord.PCMVolumeTransformer):
         self.stream_url = data.get("url")
 
     def __str__(self):
-        return f"**{self.title}**" + (f" by **{self.uploader}**" if self.uploader != None else "")
+        return f"**{self.title}**" + (
+            f" by **{self.uploader}**" if self.uploader != None else ""
+        )
 
     @classmethod
     async def create_source(
@@ -134,7 +143,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
             if process_info is None:
                 raise YTDLError(
-                        "Couldn't find anything that matches `{}`".format(search)
+                    "Couldn't find anything that matches `{}`".format(search)
                 )
 
         webpage_url = process_info["webpage_url"]
@@ -268,13 +277,13 @@ class YTDLSource(discord.PCMVolumeTransformer):
         if seconds > 0:
             duration.append(f"{seconds} second{second}")
 
-        return ", ".join(duration) # TODO: translate this
+        return ", ".join(duration)  # TODO: translate this
 
 
 class Song:
     __slots__ = ("source", "requester", "is_first")
 
-    def __init__(self, source: YTDLSource, first: bool=False):
+    def __init__(self, source: YTDLSource, first: bool = False):
         self.source = source
         self.requester = source.requester
         self.is_first = first
@@ -284,8 +293,10 @@ class Song:
             description="**[{0.source.title}]({0.source.url})**".format(self),
             color=discord.Color.lighter_grey(),
         ).set_author(
-            name=("Started" if self.is_first and not nowcmd else "Now") + " playing" if not queued else "Enqueued",
-            icon_url=self.source.ctx.bot.user.avatar_url
+            name=("Started" if self.is_first and not nowcmd else "Now") + " playing"
+            if not queued
+            else "Enqueued",
+            icon_url=self.source.ctx.bot.user.avatar_url,
         )
         if self.source.duration:
             if nowcmd:
@@ -294,9 +305,11 @@ class Song:
                     value=(
                         f"**```fix\n{ctx.voice_state.text_watched}\n```**"
                         f"{ctx.voice_state.watched} listened of {self.source.duration}."
-                        f"\n{ctx.voice_state.duration} remaining." if ctx.voice_state.duration != "" else ""
+                        f"\n{ctx.voice_state.duration} remaining."
+                        if ctx.voice_state.duration != ""
+                        else ""
                     ),
-                    inline=False
+                    inline=False,
                 )
             else:
                 embed.add_field(name="Duration", value=self.source.duration)
@@ -306,17 +319,13 @@ class Song:
                 name="Uploader",
                 value="**[{0.source.uploader}]({0.source.uploader_url})**".format(self),
             )
-        
+
         if self.source.likes:
             embed.add_field(name="Likes", value=str(self.source.likes))
         if self.source.dislikes:
-            embed.add_field(
-                name="Dislikes", value=str(self.source.dislikes)
-            )
+            embed.add_field(name="Dislikes", value=str(self.source.dislikes))
         if self.source.views:
-            embed.add_field(
-                name="Views", value=str(self.source.views)
-            )
+            embed.add_field(name="Views", value=str(self.source.views))
 
         if self.source.thumbnail:
             embed.set_thumbnail(url=self.source.thumbnail)
@@ -433,7 +442,17 @@ class VoiceState:
         while round(self.raw_duration) != 0 and self.is_playing:
             self.raw_duration -= 1
             self.raw_watched = self.current.source.raw_duration - self.raw_duration
-            val = round(((100 * float(self.raw_watched)/float(self.current.source.raw_duration)) / 50) * 10)
+            val = round(
+                (
+                    (
+                        100
+                        * float(self.raw_watched)
+                        / float(self.current.source.raw_duration)
+                    )
+                    / 50
+                )
+                * 10
+            )
             symbols = "▬" * 20
             self.text_watched = "|" + symbols[:val] + "🔘" + symbols[val:] + "|"
             self.watched = YTDLSource.parse_duration(self.raw_watched)
@@ -583,11 +602,8 @@ class Music(commands.Cog):
                     embed=discord.Embed(
                         title=lang.vote.voted,
                         description=lang.vote.success,
-                        color=discord.Color.lighter_grey()
-                    ).add_field(
-                        name=lang.vote.current,
-                        value=f"**{total_votes}**"
-                    )
+                        color=discord.Color.lighter_grey(),
+                    ).add_field(name=lang.vote.current, value=f"**{total_votes}**")
                 )
 
         else:
@@ -619,11 +635,8 @@ class Music(commands.Cog):
             embed=discord.Embed(
                 title=lang.success,
                 description=lang.done.format(volume),
-                color=discord.Color.lighter_grey()
-            ).add_field(
-                name=lang.before,
-                value=f"{before}%"
-            )
+                color=discord.Color.lighter_grey(),
+            ).add_field(name=lang.before, value=f"{before}%")
         )
 
     @commands.command(name="queue")
@@ -650,7 +663,7 @@ class Music(commands.Cog):
 
         embed = discord.Embed(
             description=lang["tracks"].format(len(ctx.voice_state.songs), queue),
-            color=discord.Color.lighter_grey()
+            color=discord.Color.lighter_grey(),
         ).set_footer(text=lang["pages"].format(page, pages))
         await ctx.send(embed=embed)
 
@@ -725,7 +738,9 @@ class Music(commands.Cog):
                 await asyncio.sleep(0.1)
                 ctx.voice_state.current.source.volume = volume
                 if not first:
-                    await ctx.send(embed=ctx.voice_state.current.create_embed(ctx, queued=True))
+                    await ctx.send(
+                        embed=ctx.voice_state.current.create_embed(ctx, queued=True)
+                    )
 
     @commands.command(name="search")
     async def _search(self, ctx: commands.Context, *, search: str):

@@ -4,6 +4,7 @@ import os
 import asyncio
 import traceback
 import discord
+import logging
 from pkg_resources import parse_version
 from aiohttp import ClientSession
 from discord.ext import commands
@@ -12,6 +13,7 @@ from core.languages import Languages
 from core.mongodb import *
 from core.loops import Loops
 from core.context import Context
+from core.logs import StrapLog
 
 import_dotenv()
 
@@ -27,7 +29,19 @@ class StrapBot(commands.Bot):
         self._session = None
         self._connected = asyncio.Event()
         self.wait_until_connected = self.wait_for_connected
+        self._logger = None
         self._loops = Loops(self)
+        self.startup()
+
+    @property
+    def logger(self) -> StrapLog:
+        if self._logger is None:
+            logging.setLoggerClass(StrapLog)
+            self._logger = logging.getLogger("StrapBot")
+            self._logger.configure(self)
+        return self._logger
+
+    def startup(self):
         self._loops.run_all()
 
         # load cogs
@@ -45,11 +59,11 @@ class StrapBot(commands.Bot):
                     and extension != ".gitignore"
                     and extension != "__pycache__"
                 ):
-                    print(f"Failed to load extension {extension}.")
-                    raise
+                    self.logger.error(
+                        f"Failed to load extension {extension}.", exc_info=True
+                    )
             except Exception:
-                print(f"Could not load cog {extension}")
-                raise
+                self.logger.error(f"Could not load cog {extension}", exc_info=True)
 
     async def get_context(self, message, *, cls=Context):
         return await super().get_context(message, cls=cls)
@@ -91,9 +105,11 @@ class StrapBot(commands.Bot):
         try:
             await self.db.validate_database_connection()
         except Exception:
-            print("Shutting down due to a DB connection problem.")
+            self.logger.critical(
+                "Shutting down due to a DB connection problem.", exc_info=True
+            )
             return await self.close()
-        print(
+        self.logger.info(
             "Connected to Discord API."
             if self.lang.default == "en"
             else "Connesso all'API di Discord."
@@ -105,18 +121,18 @@ class StrapBot(commands.Bot):
         await self.wait_for_connected()
         guild = self.get_guild(int(os.getenv("MAIN_GUILD_ID", 1)))
         if guild == None:
-            print("Invalid main guild ID.")
+            self.logger.fatal("Invalid main guild ID.")
             return await self.close()
         if self.lang.default == "en":
-            print("StrapBot is logged in as {0.user}!".format(self))
+            self.logger.info("StrapBot is logged in as {0.user}!".format(self))
         elif self.lang.default == "it":
-            print("StrapBot loggato come {0.user}!".format(self))
+            self.logger.info("StrapBot loggato come {0.user}!".format(self))
         await self.change_presence(activity=self.activity)
 
     async def on_command_error(self, ctx, error):
         error = getattr(error, "original", error)
         if isinstance(error, commands.CommandNotFound):
-            print(error)
+            self.logger.warning(str(error))
             return
         if isinstance(error, commands.MissingPermissions):
             return await ctx.send(
@@ -161,9 +177,9 @@ class StrapBot(commands.Bot):
         raise error
 
     @property
-    def db(self) -> ApiClient:
+    def db(self) -> MongoDB:
         if self._db is None:
-            self._db = MongoDBClient(self)
+            self._db = MongoDB(self)
         return self._db
 
     @property
@@ -178,10 +194,9 @@ class StrapBot(commands.Bot):
         except KeyboardInterrupt:
             pass
         except discord.LoginFailure:
-            print("Invalid token")
+            self.logger.critical("Invalid token")
         except Exception:
-            print("Fatal exception")
-            raise
+            self.logger.critical("exception", exc_info=True)
         finally:
             self.loop.run_until_complete(self.close())
             for task in asyncio.all_tasks(self.loop):
@@ -194,7 +209,8 @@ class StrapBot(commands.Bot):
                 pass
             finally:
                 self.loop.run_until_complete(self.session.close())
-                print("Shutting down...")
+                print()
+                self.logger.warning("Shutting down...")
 
     async def close(self, *args, **kwargs):
         self._loops.stop_all()
@@ -208,29 +224,34 @@ class StrapBot(commands.Bot):
             595318301127868417,
             746111972428480582,
             746111972428480582,
-            698061313309540372
+            698061313309540372,
         ]
-        if ctx.guild.id in allowed_guilds:
-            messages = [
-                "testù",
-                "testà",
-                "test+",
-                "testì",
-                "testè",
-                "testò",
-                "testàèìòù",
-                "testàèìòù+",
-                "yestü",
-                "restū",
-                "gestû",
-                "ASDFGHJKLÒÀÙ",
-            ]
-            for index, msg in enumerate(messages):
-                messages[index] = msg.lower()
+        if (
+            not isinstance(ctx.channel, discord.DMChannel)
+            and not ctx.guild.id in allowed_guilds
+        ):
+            return
 
-            if not message.author.bot:
-                if message.content.lower() in messages:
-                    await ctx.send(message.content)
+        messages = [
+            "testù",
+            "testà",
+            "test+",
+            "testì",
+            "testè",
+            "testò",
+            "testàèìòù",
+            "testàèìòù+",
+            "yestü",
+            "restū",
+            "gestû",
+            "ASDFGHJKLÒÀÙ",
+        ]
+        for index, msg in enumerate(messages):
+            messages[index] = msg.lower()
+
+        if not message.author.bot:
+            if message.content.lower() in messages:
+                await ctx.send(message.content)
 
         return await self.process_commands(message)
 
