@@ -88,16 +88,9 @@ class StrapBot(commands.Bot):
     @property
     def version(self):
         if self._version is None:
-            ver = [a for a in sorted([str(a) for a in self.repo.tags], reverse=True)[0].split(".")]
-            vers = []
-            for v in ver:
-                vers.append(re.sub("\D", "", v))
+            ver = sorted([str(a) for a in self.repo.tags], reverse=True)[0]
             
-            self._version = parse_version(
-                ".".join(
-                    vers
-                )
-            )
+            self._version = parse_version(ver)
         return self._version
 
     @property
