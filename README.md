@@ -16,6 +16,13 @@ A bot which replaces ErgastolatorBot v2.0 and VincyBot07, and it's built better 
 
 ## Changelog
 
+### pre-v2.1
+###### This is a pre-release.
++ Added logging support.
++ Added a sb.report command to report bugs to me and Ergastolator.
++ Added moderation commands, partially supported for languages.
++ Fixed some music commands not working properly.
+
 ### v2.0: StrapBot in Italian!
 + Added multi-language support.
 + Revamped help command. Now it is completely automatic!
