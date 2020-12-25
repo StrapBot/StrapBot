@@ -90,7 +90,8 @@ class StrapBot(commands.Bot):
     @property
     def version(self):
         if self._version is None:
-            ver = sorted([str(a) for a in self.repo.tags], reverse=True)[0]
+            version = self.repo.tags[-1]
+            ver = str(version)
 
             self._version = parse_version(ver)
         return self._version
