@@ -245,7 +245,7 @@ class StrapBot(commands.Bot):
             not isinstance(ctx.channel, discord.DMChannel)
             and not ctx.guild.id in allowed_guilds
         ):
-            return
+            return await self.process_commands(message)
 
         messages = [
             "testù",
