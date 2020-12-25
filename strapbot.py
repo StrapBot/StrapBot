@@ -67,7 +67,9 @@ class StrapBot(commands.Bot):
                         f"Failed to load extension {extension}.", exc_info=True
                     )
             except Exception:
-                self.logger.error(f"Could not load extension {extension}", exc_info=True)
+                self.logger.error(
+                    f"Could not load extension {extension}", exc_info=True
+                )
 
     async def get_context(self, message, *, cls=Context):
         return await super().get_context(message, cls=cls)
@@ -89,7 +91,7 @@ class StrapBot(commands.Bot):
     def version(self):
         if self._version is None:
             ver = sorted([str(a) for a in self.repo.tags], reverse=True)[0]
-            
+
             self._version = parse_version(ver)
         return self._version
 
