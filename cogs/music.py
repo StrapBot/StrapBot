@@ -650,7 +650,7 @@ class Music(commands.Cog):
         lang = await ctx.get_lang(self)
 
         if len(ctx.voice_state.songs) == 0:
-            raise VaueError(lang["error"])
+            raise ValueError(lang["error"])
 
         items_per_page = 10
         pages = math.ceil(len(ctx.voice_state.songs) / items_per_page)
