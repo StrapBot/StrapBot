@@ -242,6 +242,19 @@ class StrapBot(commands.Bot):
 
     async def on_message(self, message):
         ctx = await self.get_context(message)
+
+        if self.user.id == 740140581174378527:
+            if message.channel.id == 792398761866952744:
+                if message.author.id != self.user.id:
+                    await message.publish()
+                if not "<@&792399034174144512>" in message.content and not message.content.endswith("-np"):
+                    await message.channel.send("<@&792399034174144512>")
+            elif message.channel.id == 779035653714214912:
+                if message.author.id != self.user.id:
+                    await message.publish()
+                if not "<@&792399102381260840>" in message.content and not message.content.endswith("-np"):
+                    await message.channel.send("<@&792399102381260840>")
+        
         allowed_guilds = [
             595318301127868417,
             746111972428480582,
@@ -277,6 +290,45 @@ class StrapBot(commands.Bot):
 
         return await self.process_commands(message)
 
+    async def on_raw_reaction_add(self, payload):
+        if self.user.id == 740140581174378527:
+            guild = bot.get_guild(payload.guild_id)
+            member = discord.utils.get(
+                guild.members, id=payload.user_id
+            )
+            if payload.message_id == 792407522005745674:
+                if str(payload.emoji) == "1️⃣":
+                    await member.add_roles(
+                        guild.get_role(
+                            792399102381260840
+                        )
+                    )
+                elif str(payload.emoji) == "2️⃣":
+                    await member.add_roles(
+                        guild.get_role(
+                            792399034174144512
+                        )
+                    )
+
+    async def on_raw_reaction_remove(self, payload):
+        if self.user.id == 740140581174378527:
+            guild = bot.get_guild(payload.guild_id)
+            member = discord.utils.get(
+                guild.members, id=payload.user_id
+            )
+            if payload.message_id == 792407522005745674:
+                if str(payload.emoji) == "1️⃣":
+                    await member.remove_roles(
+                        guild.get_role(
+                            792399102381260840
+                        )
+                    )
+                elif str(payload.emoji) == "2️⃣":
+                    await member.remove_roles(
+                        guild.get_role(
+                            792399034174144512
+                        )
+                    )
 
 bot = StrapBot()
 
