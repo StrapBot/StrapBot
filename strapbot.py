@@ -13,7 +13,6 @@ from core.mongodb import *
 from core.loops import Loops
 from core.context import Context
 from core.logs import StrapLog
-from git import Repo
 
 import_dotenv()
 
@@ -31,7 +30,6 @@ class StrapBot(commands.Bot):
         self.wait_until_connected = self.wait_for_connected
         self._logger = None
         self._loops = Loops(self)
-        self.repo = Repo(".")
         self._version = None
         self.startup()
 
@@ -44,7 +42,17 @@ class StrapBot(commands.Bot):
         return self._logger
 
     def startup(self):
-        self.logger.info(f"StrapBot v{self.version}")
+        ver = str(self.version)
+        if not ver.startswith("v") and not ver.startswith("pre"):
+            ver = f"v{self.version}"
+
+        self.logger.info(f"StrapBot {ver}")
+        if "pre" in ver:
+            self.logger.warning(
+                "This is a pre-release.\nPlease consider "
+                "getting the latest\nstable version to not "
+                "encounter any bugs."
+            )
         self._loops.run_all()
 
         # load cogs
@@ -90,8 +98,11 @@ class StrapBot(commands.Bot):
     @property
     def version(self):
         if self._version is None:
-            version = self.repo.tags[-1]
-            ver = str(version)
+            ver = (
+                __import__("subprocess")
+                .run("git describe --tags --abbrev=0", shell=True, capture_output=True)
+                .stdout.decode("UTF-8").replace("\n", "")
+            )
 
             self._version = parse_version(ver)
         return self._version
