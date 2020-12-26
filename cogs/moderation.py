@@ -119,7 +119,9 @@ class Moderation(commands.Cog):
         guild_case_ = await self.get_guild_case(ctx)
         guild_case = guild_lang.case.format(guild_case_)
 
-        msg = (user_lang.msg_ if reason else user_lang.msg).format(g=ctx.guild.name, r=reason)
+        msg = (user_lang.msg_ if reason else user_lang.msg).format(
+            g=ctx.guild.name, r=reason
+        )
         fp = "per" if guild_lang.current == "it" else "for"
 
         await self.log(
@@ -171,7 +173,9 @@ class Moderation(commands.Cog):
         user_lang = await self.bot.lang.fetch_user_lang(ctx, member.id)
         guild_lang = await self.bot.lang.fetch_guild_lang(ctx)
 
-        msg = (user_lang.msg_ if reason else user_lang.msg).format(g=ctx.guild.name, r=reason)
+        msg = (user_lang.msg_ if reason else user_lang.msg).format(
+            g=ctx.guild.name, r=reason
+        )
         fp = "per" if guild_lang.current == "it" else "for"
 
         try:
@@ -235,7 +239,9 @@ class Moderation(commands.Cog):
         user_lang = await self.bot.lang.fetch_user_lang(ctx, member.id)
         guild_lang = await self.bot.lang.fetch_guild_lang(ctx)
 
-        msg = (user_lang.msg_ if reason else user_lang.msg).format(g=ctx.guild.name, r=reason)
+        msg = (user_lang.msg_ if reason else user_lang.msg).format(
+            g=ctx.guild.name, r=reason
+        )
         fp = "per" if guild_lang.current == "it" else "for"
 
         try:
@@ -316,7 +322,9 @@ class Moderation(commands.Cog):
         user_lang = await self.bot.lang.fetch_user_lang(ctx, member.id)
         guild_lang = await self.bot.lang.fetch_guild_lang(ctx)
 
-        msg = (user_lang.msg_ if reason else user_lang.msg).format(g=ctx.guild.name, r=reason)
+        msg = (user_lang.msg_ if reason else user_lang.msg).format(
+            g=ctx.guild.name, r=reason
+        )
         fp = "per" if guild_lang.current == "it" else "for"
 
         try:
@@ -445,9 +453,7 @@ class Moderation(commands.Cog):
         embed = discord.Embed.from_dict(lang.embeds.confirm)
         embed.description = embed.description.format(tot)
         embed.color = discord.Color.red()
-        message = await ctx.send(
-            embed=embed
-        )
+        message = await ctx.send(embed=embed)
 
         def surecheck(m):
             return m.author == ctx.message.author
@@ -557,7 +563,6 @@ class Moderation(commands.Cog):
                     color=discord.Color.red(),
                 ).set_footer(text=lang.fix)
             )
-
 
         case = await self.get_case(ctx)
         case = lang.case.format(case)

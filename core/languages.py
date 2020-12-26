@@ -110,7 +110,7 @@ class Languages:
             raise TypeError("Invalid user ID")
 
         members = await self.db.find_one({"_id": "members"})
-        guilds  = await self.db.find_one({"_id": "guilds" })
+        guilds = await self.db.find_one({"_id": "guilds"})
         try:
             current = members[str(user)]
         except KeyError:
@@ -123,7 +123,9 @@ class Languages:
         else:
             current = current["language"]
         ret = json.load(open(f"core/languages/{current}.json"))
-        ret = ret["cogs"][ctx.command.cog.__class__.__name__]["commands"][ctx.command.qualified_name]
+        ret = ret["cogs"][ctx.command.cog.__class__.__name__]["commands"][
+            ctx.command.qualified_name
+        ]
 
         ret["current"] = current
         ret = box.Box(ret)
@@ -136,7 +138,7 @@ class Languages:
         if guild == None:
             raise TypeError("Invalid guild ID")
 
-        guilds  = await self.db.find_one({"_id": "guilds"})
+        guilds = await self.db.find_one({"_id": "guilds"})
         try:
             current = guilds[str(guild.id)]
         except KeyError:
@@ -144,7 +146,9 @@ class Languages:
         else:
             current = current["language"]
         ret = json.load(open(f"core/languages/{current}.json"))
-        ret = ret["cogs"][ctx.command.cog.__class__.__name__]["commands"][ctx.command.qualified_name]
+        ret = ret["cogs"][ctx.command.cog.__class__.__name__]["commands"][
+            ctx.command.qualified_name
+        ]
 
         ret["current"] = current
         ret = box.Box(ret)
