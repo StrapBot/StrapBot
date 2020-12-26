@@ -100,6 +100,8 @@ class Moderation(commands.Cog):
         Warns the specified member.
         """
         lang = await ctx.get_lang(self)
+        user_lang = await self.bot.lang.fetch_user_lang(ctx, member.id)
+        guild_lang = await self.bot.lang.fetch_guild_lang(ctx)
         if member == None:
             return await ctx.send_help(ctx.command)
 
@@ -114,18 +116,20 @@ class Moderation(commands.Cog):
 
         case = await self.get_case(ctx)
         case = lang.case.format(case)
+        guild_case_ = await self.get_guild_case(ctx)
+        guild_case = guild_lang.case.format(guild_case_)
 
-        msg = (lang.msg_ if reason else lang.msg).format(g=ctx.guild.name, r=reason)
-        fp = "per" if lang.current == "it" else "for"
+        msg = (user_lang.msg_ if reason else user_lang.msg).format(g=ctx.guild.name, r=reason)
+        fp = "per" if guild_lang.current == "it" else "for"
 
         await self.log(
             guild=ctx.guild,
             embed=discord.Embed(
-                title=lang.warn.uppercase(),
-                description=f"{member} {lang.log} {ctx.author.mention}"
+                title=guild_lang.warn,
+                description=f"{member} {guild_lang.log} {ctx.author.mention}"
                 + (f" {fp}: {reason}" if reason else "."),
                 color=discord.Color.lighter_grey(),
-            ).set_footer(text=case),
+            ).set_footer(text=guild_case),
         )
 
         try:
@@ -164,8 +168,11 @@ class Moderation(commands.Cog):
             ):
                 reason = reason + "."
 
-        msg = (lang.msg_ if reason else lang.msg).format(g=ctx.guild.name, r=reason)
-        fp = "per" if lang.current == "it" else "for"
+        user_lang = await self.bot.lang.fetch_user_lang(ctx, member.id)
+        guild_lang = await self.bot.lang.fetch_guild_lang(ctx)
+
+        msg = (user_lang.msg_ if reason else user_lang.msg).format(g=ctx.guild.name, r=reason)
+        fp = "per" if guild_lang.current == "it" else "for"
 
         try:
             mesage = await member.send(msg)
@@ -187,15 +194,17 @@ class Moderation(commands.Cog):
 
         case = await self.get_case(ctx)
         case = lang.case.format(case)
+        guild_case_ = await self.get_guild_case(ctx)
+        guild_case = guild_lang.case.format(guild_case_)
 
         await self.log(
             guild=ctx.guild,
             embed=discord.Embed(
                 title="Kick",
-                description=f"{member} {log} {ctx.author.mention}"
+                description=f"{member} {guild_lang.log} {ctx.author.mention}"
                 + (f" {fp}: {reason}" if reason else "."),
                 color=discord.Color.lighter_grey(),
-            ).set_footer(text=case),
+            ).set_footer(text=guild_case),
         )
 
         await ctx.send(
@@ -223,8 +232,11 @@ class Moderation(commands.Cog):
             ):
                 reason = reason + "."
 
-        msg = (lang.msg_ if reason else lang.msg).format(g=ctx.guild.name, r=reason)
-        fp = "per" if lang.current == "it" else "for"
+        user_lang = await self.bot.lang.fetch_user_lang(ctx, member.id)
+        guild_lang = await self.bot.lang.fetch_guild_lang(ctx)
+
+        msg = (user_lang.msg_ if reason else user_lang.msg).format(g=ctx.guild.name, r=reason)
+        fp = "per" if guild_lang.current == "it" else "for"
 
         try:
             mesage = await member.send(msg)
@@ -246,15 +258,17 @@ class Moderation(commands.Cog):
 
         case = await self.get_case(ctx)
         case = lang.case.format(case)
+        guild_case_ = await self.get_guild_case(ctx)
+        guild_case = guild_lang.case.format(guild_case_)
 
         await self.log(
             guild=ctx.guild,
             embed=discord.Embed(
                 title="Ban",
-                description=f"{member} {log} {ctx.author.mention}"
+                description=f"{member} {guild_lang.log} {ctx.author.mention}"
                 + (f" {fp}: {reason}" if reason else "."),
                 color=discord.Color.lighter_grey(),
-            ).set_footer(text=case),
+            ).set_footer(text=guild_case),
         )
 
         await ctx.send(
@@ -269,7 +283,7 @@ class Moderation(commands.Cog):
     @commands.has_permissions(manage_roles=True)
     async def mute(self, ctx, member: discord.Member = None, *, reason=None):
         """Mutes the specified member."""
-        await ctx.get_lang(self)
+        lang = await ctx.get_lang(self)
         if member == None:
             return await ctx.send_help(ctx.command)
         role = await self.db.find_one({"_id": "muterole"})
@@ -293,17 +307,17 @@ class Moderation(commands.Cog):
         if no_role:
             return await ctx.send(
                 embed=discord.Embed(
-                    title="Error",
-                    description=(
-                        "You must set up a muted role first.\n"
-                        f"To set one, run `{ctx.prefix}muterole (@role)`."
-                    ),
+                    title="Error" + ("e" if lang.current == "it" else ""),
+                    description=lang.notset.format(ctx.prefix),
                     color=discord.Color.red(),
                 )
             )
 
-        msg = (lang.msg_ if reason else lang.msg).format(g=ctx.guild.name, r=reason)
-        fp = "per" if lang.current == "it" else "for"
+        user_lang = await self.bot.lang.fetch_user_lang(ctx, member.id)
+        guild_lang = await self.bot.lang.fetch_guild_lang(ctx)
+
+        msg = (user_lang.msg_ if reason else user_lang.msg).format(g=ctx.guild.name, r=reason)
+        fp = "per" if guild_lang.current == "it" else "for"
 
         try:
             mesage = await member.send(msg)
@@ -317,29 +331,31 @@ class Moderation(commands.Cog):
                 await mesage.delete()
             return await ctx.send(
                 embed=discord.Embed(
-                    title="Error",
-                    description="I don't have enough permissions to mute them.",
+                    title="Error" + ("e" if lang.current == "it" else ""),
+                    description=lang.error,
                     color=discord.Color.red(),
                 ).set_footer(text=lang.fix)
             )
 
         case = await self.get_case(ctx)
         case = lang.case.format(case)
+        guild_case_ = await self.get_guild_case(ctx)
+        guild_case = guild_lang.case.format(guild_case_)
 
         await self.log(
             guild=ctx.guild,
             embed=discord.Embed(
                 title="Mute",
-                description=f"{member} has been muted by {ctx.author.mention}"
-                + (f" for: {reason}" if reason else "."),
+                description=f"{member} {guild_lang.log} {ctx.author.mention}"
+                + (f" {fp}: {reason}" if reason else "."),
                 color=discord.Color.lighter_grey(),
-            ).set_footer(text=case),
+            ).set_footer(text=guild_case),
         )
 
         await ctx.send(
             embed=discord.Embed(
-                title="Success",
-                description=f"{member} has been muted.",
+                title=lang.success,
+                description=lang.done.format(str(member)),
                 color=discord.Color.lighter_grey(),
             ).set_footer(text=case)
         )
@@ -349,6 +365,7 @@ class Moderation(commands.Cog):
     async def unmute(self, ctx, member: discord.Member = None, *, reason=None):
         """Unmutes the specified member."""
         lang = await ctx.get_lang(self)
+        guild_lang = await self.bot.lang.fetch_guild_lang(ctx)
         if member == None:
             return await ctx.send_help(ctx.command)
         role = await self.db.find_one({"_id": "muterole"})
@@ -372,11 +389,8 @@ class Moderation(commands.Cog):
         if no_role:
             return await ctx.send(
                 embed=discord.Embed(
-                    title="Error",
-                    description=(
-                        "You don't have a muted role set up.\n"
-                        f"You will have to unmute them manually."
-                    ),
+                    title="Error" + ("e" if lang.current == "it" else ""),
+                    description=lang.notset(),
                     color=discord.Color.red(),
                 )
             )
@@ -386,29 +400,32 @@ class Moderation(commands.Cog):
         except discord.errors.Forbidden:
             return await ctx.send(
                 embed=discord.Embed(
-                    title="Error",
-                    description="I don't have enough permissions to unmute them.",
+                    title="Error" + ("e" if lang.current == "it" else ""),
+                    description=lang.error,
                     color=discord.Color.red(),
                 ).set_footer(text=lang.fix)
             )
 
         case = await self.get_case(ctx)
         case = lang.case.format(case)
+        guild_case_ = await self.get_guild_case(ctx)
+        guild_case = guild_lang.case.format(guild_case_)
+        fp = "per" if guild_lang.current == "it" else "for"
 
         await self.log(
             guild=ctx.guild,
             embed=discord.Embed(
                 title="Mute",
-                description=f"{member} has been unmuted by {ctx.author.mention}"
-                + (f" for: {reason}" if reason else "."),
+                description=f"{member} {guild_lang.log} {ctx.author.mention}"
+                + (f" {fp}: {reason}" if reason else "."),
                 color=discord.Color.lighter_grey(),
-            ).set_footer(text=case),
+            ).set_footer(text=guild_case),
         )
 
         await ctx.send(
             embed=discord.Embed(
-                title="Success",
-                description=f"{member} has been unmuted.",
+                title=lang.success,
+                description=lang.done.format(str(member)),
                 color=discord.Color.lighter_grey(),
             ).set_footer(text=case)
         )
@@ -421,20 +438,15 @@ class Moderation(commands.Cog):
         You can mention a channel to nuke that one instead.
         """
         lang = await ctx.get_lang(self)
+        guild_lang = await self.bot.lang.fetch_guild_lang(ctx)
         if channel == None:
             channel = ctx.channel
-        tot = "this" if channel.id == ctx.channel.id else "that"
+        tot = lang.this if channel.id == ctx.channel.id else lang.that
+        embed = discord.Embed.from_dict(lang.embeds.confirm)
+        embed.description = embed.description.format(tot)
+        embed.color = discord.Color.red()
         message = await ctx.send(
-            embed=discord.Embed(
-                title="Are you sure?",
-                description=(
-                    f"This command will delete EVERY SINGLE MESSAGE in {tot} channel!\n"
-                    'If you are sure and responsible about what might happen send "Yes, do as I say!". '
-                    "Otherwise, send anything else to abort.\n"
-                    "**Unexpected bad things might happen if you decide to continue!**"
-                ),
-                color=discord.Color.red(),
-            )
+            embed=embed
         )
 
         def surecheck(m):
@@ -445,23 +457,24 @@ class Moderation(commands.Cog):
         except asyncio.TimeoutError:
             await message.edit(
                 embed=discord.Embed(
-                    title="Aborted.", color=discord.Color.lighter_grey()
+                    title=lang.aborted, color=discord.Color.lighter_grey()
                 )
             )
             ensured = False
         else:
-            if sure.content == "Yes, do as I say!":
+            if sure.content == lang.yes:
                 ensured = True
             else:
                 await message.edit(
                     embed=discord.Embed(
-                        title="Aborted.", color=discord.Color.lighter_grey()
+                        title=lang.aborted, color=discord.Color.lighter_grey()
                     )
                 )
                 ensured = False
         if ensured:
-            case = await self.get_case(ctx)
+            case_ = await self.get_case(ctx)
             case = lang.case.format(case)
+            guild_case = guild_lang.case.format(case)
 
             channel_position = channel.position
 
@@ -473,8 +486,8 @@ class Moderation(commands.Cog):
             except discord.errors.Forbidden:
                 return await ctx.send(
                     embed=discord.Embed(
-                        title="Error",
-                        description=f"I don't have enough permissions to nuke {tot} channel.",
+                        title="Error" + ("e" if lang.current == "it" else ""),
+                        description=lang.error.format(tot),
                         color=discord.Color.red(),
                     ).set_footer(text=lang.fix)
                 )
@@ -482,7 +495,7 @@ class Moderation(commands.Cog):
             await new_channel.send(
                 embed=discord.Embed(
                     title="Nuke",
-                    description="This channel has been nuked!",
+                    description=lang.nuked,
                     color=discord.Color.lighter_grey(),
                 )
                 .set_image(
@@ -495,9 +508,9 @@ class Moderation(commands.Cog):
                 guild=ctx.guild,
                 embed=discord.Embed(
                     title="Nuke",
-                    description=f"{ctx.author.mention} nuked {new_channel.mention}.",
+                    description=f"{ctx.author.mention} {guild_lang.log} {new_channel.mention}.",
                     color=discord.Color.lighter_grey(),
-                ).set_footer(text=case),
+                ).set_footer(text=guild_case),
             )
 
     @commands.command(usage="<amount>", aliases=["clear"])
@@ -505,6 +518,7 @@ class Moderation(commands.Cog):
     async def purge(self, ctx, amount: int = 1):
         """Purge the specified amount of messages."""
         lang = await ctx.get_lang(self)
+        guild_lang = await self.bot.lang.fetch_guild_lang(ctx)
         max = 2000
         if amount <= 0:
             if not str(ctx.author.id) in self.ee:
@@ -518,18 +532,18 @@ class Moderation(commands.Cog):
 
             return await ctx.send(
                 embed=discord.Embed(
-                    title="Error",
-                    description=f"You can only purge at least 1 message.",
+                    title="Error" + ("e" if lang.current == "it" else ""),
+                    description=lang.lt1,
                     color=discord.Color.red(),
                 )
             )
         if amount > max:
             return await ctx.send(
                 embed=discord.Embed(
-                    title="Error",
-                    description=f"You can only purge up to 2000 messages.",
+                    title="Error" + ("e" if lang.current == "it" else ""),
+                    description=lang.ut2,
                     color=discord.Color.red(),
-                ).set_footer(text=f"Use {ctx.prefix}nuke to purge the entire chat.")
+                ).set_footer(text=lang.use_nuke.format(ctx.prefix))
             )
 
         try:
@@ -538,41 +552,46 @@ class Moderation(commands.Cog):
         except discord.errors.Forbidden:
             return await ctx.send(
                 embed=discord.Embed(
-                    title="Error",
-                    description="I don't have enough permissions to purge messages.",
+                    title="Error" + ("e" if lang.current == "it" else ""),
+                    description=lang.error,
                     color=discord.Color.red(),
                 ).set_footer(text=lang.fix)
             )
 
+
         case = await self.get_case(ctx)
         case = lang.case.format(case)
-        messages = "messages" if amount > 1 else "message"
-        have = "have" if amount > 1 else "has"
+        guild_case_ = await self.get_guild_case(ctx)
+        guild_case = guild_lang.case.format(guild_case_)
+        messages = lang.message if amount == 1 else lang.messages
+        messages_ = guild_lang.message if amount == 1 else guild_lang.messages
+        have = guild_lang.have if amount == 1 else guild_lang.has
 
         await self.log(
             guild=ctx.guild,
             embed=discord.Embed(
                 title="Purge",
-                description=f"{amount} {messages} {have} been purged by {ctx.author.mention}.",
+                description=f"{amount} {messages_} {have} {guild_lang.by} {ctx.author.mention}.",
                 color=discord.Color.lighter_grey(),
-            ).set_footer(text=case),
+            ).set_footer(text=guild_case),
         )
 
         await ctx.send(
             embed=discord.Embed(
-                title="Success",
-                description=f"Purged {amount} {messages}.",
+                title=lang.success,
+                description=lang.done.format(amount, messages),
                 color=discord.Color.lighter_grey(),
             ).set_footer(text=case)
         )
 
     async def get_case(self, ctx):
         """Gives the case number."""
+        lang = (await ctx.get_lang(self)).current
         num = await self.db.find_one({"_id": "cases"})
         if num == None:
             num = 0
-        elif "amount" in num:
-            num = num["amount"]
+        elif str(ctx.guild.id) in num:
+            num = num[str(ctx.guild.id)]
             num = int(num)
         else:
             num = 0
@@ -580,10 +599,38 @@ class Moderation(commands.Cog):
         await self.db.find_one_and_update(
             {"_id": "cases"}, {"$set": {str(ctx.guild.id): num}}, upsert=True
         )
+        prefix = ""
         suffix = ["th", "st", "nd", "rd", "th"][min(num % 10, 4)]
         if 11 <= (num % 100) <= 13:
             suffix = "th"
-        return f"{num}{suffix}"
+        if lang == "it":
+            suffix = ""
+            prefix = "n°"
+        return f"{prefix}{num}{suffix}"
+
+    async def get_guild_case(self, ctx):
+        """Gives the case number."""
+        lang = (await self.bot.lang.fetch_guild_lang(ctx)).current
+        num = await self.db.find_one({"_id": "cases"})
+        if num == None:
+            num = 0
+        elif str(ctx.guild.id) in num:
+            num = num[str(ctx.guild.id)]
+            num = int(num)
+        else:
+            num = 0
+        num += 1
+        await self.db.find_one_and_update(
+            {"_id": "cases"}, {"$set": {str(ctx.guild.id): num}}, upsert=True
+        )
+        prefix = ""
+        suffix = ["th", "st", "nd", "rd", "th"][min(num % 10, 4)]
+        if 11 <= (num % 100) <= 13:
+            suffix = "th"
+        if lang == "it":
+            suffix = ""
+            prefix = "n°"
+        return f"{prefix}{num}{suffix}"
 
     async def log(self, guild: discord.Guild, embed: discord.Embed):
         """Sends logs to the log channel."""

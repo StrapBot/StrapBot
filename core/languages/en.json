@@ -287,6 +287,7 @@
                     "error": "Muted role is already set up.",
                     "error_footer": "If you want to change role, just mention it.",
                     "name": "Muted",
+                    "success": "Success",
                     "done": "The muted role has been set to {}."
                 },
                 "warn": {
@@ -294,7 +295,7 @@
                     "msg": "You have been warned in {g}.",
                     "msg_": "You have been warned in {g} for: {r}",
                     "log": "has been warned by",
-                    "warn": "warn",
+                    "warn": "Warn",
                     "case": "This is the {} case.",
                     "logged": "Warning has been logged for {}. I couldn't warn them, they disabled DMs.",
                     "success": "Success",
@@ -324,6 +325,7 @@
                 },
                 "mute": {
                     "description": "Mutes a member.",
+                    "notset": "You must set up a muted role first.\nTo set one, run `{}muterole (@role)`.",
                     "error": "I don't have enough permissions to add the role.",
                     "fix": "Please fix the permissions.",
                     "case": "This is the {} case.",
@@ -335,6 +337,7 @@
                 },
                 "unmute": {
                     "description": "Unmutes a member.",
+                    "notset": "You don't have a muted role set up.\nYou will have to unmute them manually.",
                     "error": "I don't have enough permissions to remove the role.",
                     "fix": "Please fix the permissions.",
                     "case": "This is the {} case.",
@@ -345,21 +348,37 @@
                 "nuke": {
                     "description": "Nukes (deletes EVERY message in) a channel.",
                     "error": "I don't have enough permissions to nuke the channel.",
+                    "this": "this",
+                    "that": "that",
+                    "embeds": {
+                        "confirm": {
+                            "title": "Are you sure?",
+                            "description": "This command will delete EVERY SINGLE MESSAGE in {} channel!\nIf you are sure and responsible about what might happen send \"Yes, do as I say!\". Otherwise, send anything else to abort.\n**Unexpected bad things might happen if you decide to continue!**"
+                        }
+                    },
+                    "yes": "Yes, do as I say!",
+                    "aborted": "Aborted.",
                     "fix": "Please fix the permissions.",
                     "case": "This is the {} case.",
                     "success": "Success",
-                    "log": "has been nuked by"
+                    "nuked": "This channel has been nuked!",
+                    "log": "nuked"
                 },
                 "purge": {
                     "description": "Deletes an amount of messages.",
+                    "lt1": "You can only purge at least 1 message.",
+                    "ut2": "You can only purge up to 2000 messages.",
+                    "use_nuke": "Use {}nuke to purge the entire chat.",
                     "error": "I don't have enough permissions to delete messages.",
                     "fix": "Please fix the permissions.",
                     "case": "This is the {} case.",
                     "success": "Success",
-                    "has": "has",
-                    "have": "have",
-                    "log": "been purged by",
-                    "done": "been purged."
+                    "message": "message",
+                    "messages": "messages",
+                    "has": "has been purged",
+                    "have": "have been purged",
+                    "by": "by",
+                    "done": "Purged {} {}"
                 }
             }
         }

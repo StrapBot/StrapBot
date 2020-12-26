@@ -1,5 +1,7 @@
+import box
 import os
 import discord
+import json
 
 default_language = os.getenv("DEFAULT_LANGUAGE", "en")
 
@@ -100,5 +102,50 @@ class Languages:
             {"_id": "members"}, {"$unset": {str(member.id): {}}}, upsert=True
         )
 
-    async def fetch_user_lang(self, ctx):
-        return await ctx.get_lang()
+    async def fetch_user_lang(self, ctx, user: int = None):
+        if user == None:
+            user = ctx.author.id
+        member = discord.utils.get(self.bot.get_all_members(), id=user)
+        if member == None:
+            raise TypeError("Invalid user ID")
+
+        members = await self.db.find_one({"_id": "members"})
+        guilds  = await self.db.find_one({"_id": "guilds" })
+        try:
+            current = members[str(user)]
+        except KeyError:
+            try:
+                current = guilds[str(ctx.guild.id)]
+            except KeyError:
+                current = self.default
+            else:
+                current = current["language"]
+        else:
+            current = current["language"]
+        ret = json.load(open(f"core/languages/{current}.json"))
+        ret = ret["cogs"][ctx.command.cog.__class__.__name__]["commands"][ctx.command.qualified_name]
+
+        ret["current"] = current
+        ret = box.Box(ret)
+        return ret
+
+    async def fetch_guild_lang(self, ctx, *, guild: int = None):
+        if guild == None and ctx != None:
+            guild = ctx.guild.id
+        guild = self.bot.get_guild(guild)
+        if guild == None:
+            raise TypeError("Invalid guild ID")
+
+        guilds  = await self.db.find_one({"_id": "guilds"})
+        try:
+            current = guilds[str(guild.id)]
+        except KeyError:
+            current = self.default
+        else:
+            current = current["language"]
+        ret = json.load(open(f"core/languages/{current}.json"))
+        ret = ret["cogs"][ctx.command.cog.__class__.__name__]["commands"][ctx.command.qualified_name]
+
+        ret["current"] = current
+        ret = box.Box(ret)
+        return ret

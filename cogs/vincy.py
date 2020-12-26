@@ -33,7 +33,7 @@ class Vincy(commands.Cog):
             )
             .add_field(
                 name="REGOLA D'ORO!",
-                value=f"Rispetta, accetta e sii gentile con tutti.\n"
+                value=f"Rispetta, accetta e sii gentile con tutti. **Nessuno** è più speciale di un altro.\n"
                 "Tagga <@&595651372247154729> se vieni molestato. Non reagire.",
                 inline=False,
             )
@@ -142,7 +142,7 @@ class Vincy(commands.Cog):
                 or message.content == "Accetto"
                 or message.content == "ACCETTO"
             ):
-                await payload.member.add_roles(
+                await ctx.author.add_roles(
                     self.bot.get_guild(595318301127868417).get_role(595318972178497547),
                     reason="Ha accettato le regole",
                 )
@@ -154,6 +154,7 @@ class Vincy(commands.Cog):
                     self.agree["kicks"][str(message.author.id)] += 1
                 except KeyError:
                     self.agree["kicks"][str(message.author.id)] = 1
+                kicks = self.agree["kicks"][str(message.author.id)]
                 if kicks < 5:
                     await message.delete()
                     await message.author.kick(

@@ -260,103 +260,122 @@
             }
         },
         "Moderation": {
-            "name": "Moderation",
+            "name": "Moderazione",
             "commands": {
                 "setlog": {
-                    "description": "Sets up a log channel.",
-                    "test": "This channel has been set up to log actions.\nThis means that I will send bans/warns/kicks here.\n**NOTE:** Audit logs (message delete/edit, channel/role creation/deletion etc) is not supported for now.",
+                    "description": "Imposta un canale per i log.",
+                    "test": "Questo canale è stato impostato come canale per i log.\nQuesto significa che invierò gli avvertimenti/le espulsioni/i ban etc. qui.\n**NOTA:** I log dal registro attività (eliminazione/modifica di un messaggio, creazione/eliminazione di un canale/ruolo etc) non sono ancora supportati per ora.",
                     "embeds": {
                         "error": {
-                            "title": "Error",
-                            "description": "I don't have enough permissions to write in that channel.",
+                            "title": "Errore",
+                            "description": "Non ho i permessi necessari per scrivere in quel canale.",
                             "footer": {
-                                "text": "Please fix the permissions."
+                                "text": "Aggiusta i permessi."
                             }
                         },
                         "success": {
-                            "title": "Success",
-                            "description": "{} has been set up as log channel."
+                            "title": "Fatto",
+                            "description": "{} è stato impostato come canale per i log."
                         }
                     }
                 },
                 "muterole": {
-                    "description": "Sets up the muted role.",
-                    "error": "Muted role is already set up.",
-                    "error_footer": "If you want to change role, just mention it.",
-                    "name": "Muted",
-                    "done": "The muted role has been set to {}."
+                    "description": "Imposta il ruolo per i silenziati.",
+                    "error": "Il ruolo è già impostato.",
+                    "error_footer": "Se vuoi cambiare ruolo, menzionalo.",
+                    "name": "Silenziato",
+                    "success": "Fatto",
+                    "done": "Il ruolo è stato impostato a {}."
                 },
                 "warn": {
-                    "description": "Warns a member.",
-                    "msg": "You have been warned in {g}.",
-                    "msg_": "You have been warned in {g} for: {r}",
-                    "log": "has been warned by",
-                    "warn": "warn",
-                    "case": "This is the {} case.",
-                    "logged": "Warning has been logged for {}. I couldn't warn them, they disabled DMs.",
-                    "success": "Success",
-                    "done": "{} has been warned."
+                    "description": "Avverte un membro.",
+                    "msg": "Sei stato avvertito in {g}.",
+                    "msg_": "Sei stato avvertito in {g} per: {r}",
+                    "log": "è stato avvertito da",
+                    "warn": "Avvertimento",
+                    "case": "Questo è il caso {}.",
+                    "logged": "Avvertimento loggato per {}. Non ho potuto avvertirlo, ha disattivato i DM.",
+                    "success": "Fatto",
+                    "done": "{} è stato avvertito."
                 },
                 "kick": {
-                    "description": "Kicks a member.",
-                    "error": "I don't have enough permissions to kick them.",
-                    "fix": "Please fix the permissions.",
-                    "case": "This is the {} case.",
-                    "success": "Success",
-                    "log": "has been kicked by",
-                    "msg": "You have been kicked in {g}.",
-                    "msg_": "You have been kicked in {g} for: {r}",
-                    "done": "{} has been kicked."
+                    "description": "Espelle un membro.",
+                    "error": "Non ho i permessi necessari per espellerlo.",
+                    "fix": "Aggiusta i permessi.",
+                    "case": "Questo è il caso {}.",
+                    "success": "Fatto",
+                    "log": "è stato espulso da",
+                    "msg": "Sei stato espulso da {g}.",
+                    "msg_": "Sei stato espulso da {g} per: {r}",
+                    "done": "{} è stato espulso."
                 },
                 "ban": {
-                    "description": "Bans a member.",
-                    "error": "I don't have enough permissions to ban them.",
-                    "fix": "Please fix the permissions.",
-                    "case": "This is the {} case.",
-                    "success": "Success",
-                    "log": "has been banned by",
-                    "msg": "You have been banned in {g}.",
-                    "msg_": "You have been banned in {g} for: {r}",
-                    "done": "{} has been banned."
+                    "description": "Banna un membro.",
+                    "error": "Non ho i permessi necessari per bannarlo.",
+                    "fix": "Aggiusta i permessi.",
+                    "case": "Questo è il caso {}.",
+                    "success": "Fatto",
+                    "log": "è stato bannato da",
+                    "msg": "Sei stato bannato da {g}.",
+                    "msg_": "Sei stato bannato da {g} per: {r}",
+                    "done": "{} è stato bannato."
                 },
                 "mute": {
-                    "description": "Mutes a member.",
-                    "error": "I don't have enough permissions to add the role.",
-                    "fix": "Please fix the permissions.",
-                    "case": "This is the {} case.",
-                    "success": "Success",
-                    "log": "has been muted by",
-                    "msg": "You have been muted in {g}.",
-                    "msg_": "You have been muted in {g} for: {r}",
-                    "done": "{} has been muted."
+                    "description": "Silenzia un membro.",
+                    "notset": "Devi prima impostare un ruolo per i silenziati.\nPer impostarne uno, avvvia il comando `{}muterole (@role)`.",
+                    "error": "Non ho i permessi necessari per aggiungergli il ruolo.",
+                    "fix": "Aggiusta i permessi.",
+                    "case": "Questo è il caso {}.",
+                    "success": "Fatto",
+                    "log": "è stato silenziato da",
+                    "msg": "Sei stato silenziato in {g}.",
+                    "msg_": "Sei stato silenziato in {g} per: {r}",
+                    "done": "{} è stato silenziato."
                 },
                 "unmute": {
-                    "description": "Unmutes a member.",
-                    "error": "I don't have enough permissions to remove the role.",
-                    "fix": "Please fix the permissions.",
-                    "case": "This is the {} case.",
-                    "success": "Success",
-                    "log": "has been unmuted by",
-                    "done": "{} has been unmuted."
+                    "description": "Toglie il silenziamento a un membro.",
+                    "notset": "Non hai impostato un ruolo per i silenziati.\nDovrai toglierlo manualmente.",
+                    "error": "Non ho i permessi necessari per rimuovere il ruolo.",
+                    "fix": "Aggiusta i permessi.",
+                    "case": "Questo è il caso {}.",
+                    "success": "Fatto",
+                    "log": "può di nuovo parlare grazie a",
+                    "done": "{} può parlare di nuovo."
                 },
                 "nuke": {
-                    "description": "Nukes (deletes EVERY message in) a channel.",
-                    "error": "I don't have enough permissions to nuke the channel.",
-                    "fix": "Please fix the permissions.",
-                    "case": "This is the {} case.",
-                    "success": "Success",
-                    "log": "has been nuked by"
+                    "description": "Distrugge (cancella ONGI messaggio in) un canale.",
+                    "error": "Non ho i permessi necessari per distruggere quel canale.",
+                    "this": "questo",
+                    "that": "quel",
+                    "embeds": {
+                        "confirm": {
+                            "title": "Sei sicuro?",
+                            "description": "Questo comando eliminerà OGNI SINGOLO MESSAGGIO in {} canale!\nSe sei responsabile riguardo quello che succederà scrivi \"Sì, fai come voglio io!\". Altrimenti, invia qualsiasi altra cosa per annullare.\n**Se decidi di continuare, potrebbero accadere cose catastrofiche!**"
+                        }
+                    },
+                    "yes": "Sì, fai come voglio io!",
+                    "aborted": "Annullato.",
+                    "fix": "Aggiusta i permessi.",
+                    "case": "Questo è il caso {}.",
+                    "success": "Fatto",
+                    "nuked": "Questo canale è stato distrutto!",
+                    "log": "ha distrutto"
                 },
                 "purge": {
-                    "description": "Deletes an amount of messages.",
-                    "error": "I don't have enough permissions to delete messages.",
-                    "fix": "Please fix the permissions.",
-                    "case": "This is the {} case.",
-                    "success": "Success",
-                    "has": "has",
-                    "have": "have",
-                    "log": "been purged by",
-                    "done": "been purged."
+                    "description": "Elimina una quantità di messaggi.",
+                    "lt1": "Puoi eliminare almeno 1 messaggio.",
+                    "ut2": "Puoi eliminare al massimo 2000 messaggi.",
+                    "use_nuke": "Usa {}nuke per eliminare l'intera chat.",
+                    "error": "Non ho i permessi necessari per eliminare i messaggi.",
+                    "fix": "Aggiusta i permessi.",
+                    "case": "Questo è il caso {}.",
+                    "success": "Fatto",
+                    "message": "messaggio",
+                    "messages": "messaggi",
+                    "has": "è stato eliminato",
+                    "have": "sono stati eliminati",
+                    "by": "da",
+                    "done": "Ho eliminato {} {}"
                 }
             }
         }
