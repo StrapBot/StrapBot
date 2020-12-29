@@ -12,13 +12,12 @@ class Context(commands.Context):
         members = await db.find_one({"_id": "members"})
         guilds = await db.find_one({"_id": "guilds"})
         if str(self.author.id) in members:
-            current = members[str(self.author.id)]
+            current = members[str(self.author.id)]["language"]
         elif str(self.guild.id) in guilds:
-            current = guilds[str(self.guild.id)]
+            current = guilds[str(self.guild.id)]["language"]
         else:
             current = self.bot.lang.default
 
-        current = current["language"]
         ret = json.load(open(f"core/languages/{current}.json"))
 
         if cogs:
