@@ -1,10 +1,25 @@
+from logging import setLogRecordFactory
 import box
 import json
 import discord
 from discord.ext import commands
+from core.voice import VoiceState
 
 
 class Context(commands.Context):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.voice_states = self.bot.get_cog("Music").voice_states
+
+    @property
+    def voice_state(self):
+        state = self.voice_states.get(self.guild.id)
+        if not state or not state.exists:
+            state = VoiceState(self.bot, self)
+            self.voice_states[self.guild.id] = state
+
+        return state
+
     async def get_lang(self, cls=None, *, cogs=False, cog=False, all=False):
         if cls != None:
             cls = cls.__class__.__name__
