@@ -116,9 +116,17 @@ class Music(commands.Cog):
 
         ctx.voice_state.songs.clear()
 
-        if not ctx.voice_state.is_playing:
-            ctx.voice_state.voice.stop()
-            await ctx.message.add_reaction("⏹")
+        ctx.voice_state.voice.stop()
+        await ctx.message.add_reaction("⏹")
+
+    @commands.command(name="sotp", hidden=True)
+    @is_one_in_vc()
+    async def _sotp(self, ctx: commands.Context):
+        """sotp"""
+        ctx.voice_state.songs.clear()
+
+        ctx.voice_state.voice.stop()
+        await ctx.message.add_reaction("<:sotp:777922129492181002>")
 
     @commands.command(name="skip")
     async def _skip(self, ctx: commands.Context):
