@@ -7,6 +7,18 @@ import discord
 from discord.ext import commands
 from core.voice import *
 
+class MissingPerms(commands.MissingPermissions):
+    def __init__(self, missing_perms, *args):
+        self.missing_perms = missing_perms
+
+        missing = [perm.replace('_', ' ').replace('guild', 'server') for perm in missing_perms]
+
+        if len(missing) > 2:
+            fmt = '{}, and {}'.format(", ".join(missing[:-1]), missing[-1])
+        else:
+            fmt = ' and '.join(missing)
+        message = 'You are missing {} permission(s) to run this command.'.format(fmt)
+        commands.CheckFailure.__init__(self, message, *args) # I know, this is a bad way, but at least it works.
 
 def is_one_in_vc():
     async def check(ctx):
@@ -18,10 +30,12 @@ def is_one_in_vc():
 
         if users == 1:
             return True
-        if ctx.channel.permissions_for(ctx.author).manage_guild:
+        if ctx.channel.permissions_for(ctx.author).manage_channels:
+            return True
+        elif "dj" in [r.name.lower() for r in ctx.author.roles]:
             return True
         else:
-            raise commands.MissingPermissions(["Manage Server"])
+            raise MissingPerms(["a role named DJ or Manage Channels"])
 
     return commands.check(check)
 
@@ -30,11 +44,6 @@ class Music(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.db = bot.db.get_cog_partition(self)
-        self.voice_states = {}
-
-    def cog_unload(self):
-        for state in self.voice_states.values():
-            self.bot.loop.create_task(state.stop())
 
     def cog_check(self, ctx: commands.Context):
         if not ctx.guild:
@@ -73,7 +82,8 @@ class Music(commands.Cog):
             raise NotPlayingError(lang["error"])
 
         await ctx.voice_state.stop()
-        del self.voice_states[ctx.guild.id]
+        del self.bot.voice_states[ctx.guild.id]
+        await ctx.message.add_reaction("👋🏻")
 
     @commands.command(name="now", aliases=["current", "playing", "np"])
     async def _now(self, ctx: commands.Context):
@@ -237,7 +247,7 @@ class Music(commands.Cog):
         await ctx.message.add_reaction("🔂" if ctx.voice_state.loop else "⏹️")
 
     @commands.command(name="play", aliases=["p"])
-    async def _play(self, ctx: commands.Context, *, search: str):
+    async def _play(self, ctx: commands.Context, *, search: str=None):
         """Plays a song.
         If there are songs in the queue, this will be queued until the
         other songs finished playing.
@@ -245,9 +255,11 @@ class Music(commands.Cog):
         A list of these sites can be found here: https://rg3.github.io/youtube-dl/supportedsites.html
         """
 
-        if ctx.voice_state.is_playing and ctx.voice_state.voice.is_paused():
+        if ctx.voice_state.is_playing and ctx.voice_state.voice.is_paused() and search == None:
             return await ctx.invoke(self._resume)
 
+        if search == None:
+            raise commands.MissingRequiredArgument(type("testù" + ("ù" * 100), (object,), {"name": "search"})())
         lang = await ctx.get_lang(self)
         first = not ctx.voice_state.is_playing
         msg = lang["queued"] if not first else lang["playing"]
@@ -272,7 +284,7 @@ class Music(commands.Cog):
                 ctx.voice_state.current.source.volume = volume
                 if not first:
                     await ctx.send(
-                        embed=ctx.voice_state.current.create_embed(ctx, queued=True)
+                        embed=song.create_embed(ctx, queued=True)
                     )
 
     @commands.command(name="search")

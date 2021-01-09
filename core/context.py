@@ -7,16 +7,15 @@ from core.voice import VoiceState
 
 
 class Context(commands.Context):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.voice_states = self.bot.get_cog("Music").voice_states
+    #def __init__(self, *args, **kwargs):
+    #    super().__init__(*args, **kwargs)
 
     @property
     def voice_state(self):
-        state = self.voice_states.get(self.guild.id)
+        state = self.bot.voice_states.get(self.guild.id)
         if not state or not state.exists:
             state = VoiceState(self.bot, self)
-            self.voice_states[self.guild.id] = state
+            self.bot.voice_states[self.guild.id] = state
 
         return state
 

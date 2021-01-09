@@ -356,6 +356,7 @@ class VoiceState:
         self.text_watched = None
         self.duration = None
         self.raw_duration = None
+        self.is_skipped = False
 
         self.audio_player = bot.loop.create_task(self.audio_player_task())
 
@@ -420,7 +421,7 @@ class VoiceState:
     def _update_time_watched(self):
         self.raw_duration = self.current.source.raw_duration
 
-        while round(self.raw_duration) != 0 and self.is_playing:
+        while round(self.raw_duration) != 0 and self.is_playing and not self.is_skipped:
             self.raw_duration -= 1
             self.raw_watched = self.current.source.raw_duration - self.raw_duration
             val = round(
@@ -442,6 +443,7 @@ class VoiceState:
             __import__("time").sleep(1)
         else:
             self.watched = None
+            self.is_skipped = False
 
     def play_next_song(self, error=None):
         if error:
@@ -454,6 +456,7 @@ class VoiceState:
 
         if self.is_playing:
             self.voice.stop()
+        self.is_skipped = True
 
     async def stop(self):
         self.songs.clear()

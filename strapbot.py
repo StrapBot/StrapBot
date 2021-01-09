@@ -31,6 +31,7 @@ class StrapBot(commands.Bot):
         self._logger = None
         self._loops = Loops(self)
         self._version = None
+        self.voice_states = {}
         self.startup()
 
     @property
@@ -231,6 +232,8 @@ class StrapBot(commands.Bot):
             except asyncio.CancelledError:
                 pass
             finally:
+                for state in self.voice_states.values():
+                    self.loop.run_until_complete(state.stop())
                 self.loop.run_until_complete(self.session.close())
                 print()
                 self.logger.warning("Shutting down...")
@@ -239,7 +242,8 @@ class StrapBot(commands.Bot):
         self._loops.stop_all()
         if os.path.exists("testù.json"):
             os.remove("testù.json")
-        await super().close()
+
+        return await super().close()
 
     async def on_message(self, message):
         ctx = await self.get_context(message)
