@@ -13,7 +13,7 @@ class Context(commands.Context):
     @property
     def voice_state(self):
         state = self.bot.voice_states.get(self.guild.id)
-        if not state or not state.exists:
+        if not state:
             state = VoiceState(self.bot, self)
             self.bot.voice_states[self.guild.id] = state
 

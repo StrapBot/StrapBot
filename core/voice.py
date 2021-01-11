@@ -126,8 +126,11 @@ class YTDLSource(discord.PCMVolumeTransformer):
                 raise YTDLError(
                     "Couldn't find anything that matches `{}`".format(search)
                 )
-
-        webpage_url = process_info["webpage_url"]
+        
+        try:
+            webpage_url = process_info["webpage_url"]
+        except KeyError:
+            raise YTDLError("Playlists aren't supported yet. :(")
         partial = functools.partial(cls.ytdl.extract_info, webpage_url, download=False)
         processed_info = await loop.run_in_executor(None, partial)
 
@@ -346,7 +349,6 @@ class VoiceState:
         self.voice = None
         self.next = asyncio.Event()
         self.songs = SongQueue()
-        self.exists = True
 
         self._loop = False
         self._volume = 0.5
@@ -398,7 +400,7 @@ class VoiceState:
                         self.current = await self.songs.get()
                 except asyncio.TimeoutError:
                     self.bot.loop.create_task(self.stop())
-                    self.exists = False
+                    del self.bot.voice_states[self._ctx.guild.id]
 
                     return
 

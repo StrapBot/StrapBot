@@ -198,7 +198,7 @@ class StrapBot(commands.Bot):
                 )
             )
 
-        raise error
+        return await super().on_command_error(ctx, error)
 
     @property
     def db(self) -> MongoDB:
