@@ -7,7 +7,7 @@ from core.voice import VoiceState
 
 
 class Context(commands.Context):
-    #def __init__(self, *args, **kwargs):
+    # def __init__(self, *args, **kwargs):
     #    super().__init__(*args, **kwargs)
 
     @property

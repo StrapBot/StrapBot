@@ -7,18 +7,24 @@ import discord
 from discord.ext import commands
 from core.voice import *
 
+
 class MissingPerms(commands.MissingPermissions):
     def __init__(self, missing_perms, *args):
         self.missing_perms = missing_perms
 
-        missing = [perm.replace('_', ' ').replace('guild', 'server') for perm in missing_perms]
+        missing = [
+            perm.replace("_", " ").replace("guild", "server") for perm in missing_perms
+        ]
 
         if len(missing) > 2:
-            fmt = '{}, and {}'.format(", ".join(missing[:-1]), missing[-1])
+            fmt = "{}, and {}".format(", ".join(missing[:-1]), missing[-1])
         else:
-            fmt = ' and '.join(missing)
-        message = 'You are missing {} permission(s) to run this command.'.format(fmt)
-        commands.CheckFailure.__init__(self, message, *args) # I know, this is a bad way, but at least it works.
+            fmt = " and ".join(missing)
+        message = "You are missing {} permission(s) to run this command.".format(fmt)
+        commands.CheckFailure.__init__(
+            self, message, *args
+        )  # I know, this is a bad way, but at least it works.
+
 
 def is_one_in_vc():
     async def check(ctx):
@@ -255,7 +261,7 @@ class Music(commands.Cog):
         await ctx.message.add_reaction("🔂" if ctx.voice_state.loop else "⏹️")
 
     @commands.command(name="play", aliases=["p"])
-    async def _play(self, ctx: commands.Context, *, search: str=None):
+    async def _play(self, ctx: commands.Context, *, search: str = None):
         """Plays a song.
         If there are songs in the queue, this will be queued until the
         other songs finished playing.
@@ -263,11 +269,17 @@ class Music(commands.Cog):
         A list of these sites can be found here: https://rg3.github.io/youtube-dl/supportedsites.html
         """
 
-        if ctx.voice_state.is_playing and ctx.voice_state.voice.is_paused() and search == None:
+        if (
+            ctx.voice_state.is_playing
+            and ctx.voice_state.voice.is_paused()
+            and search == None
+        ):
             return await ctx.invoke(self._resume)
 
         if search == None:
-            raise commands.MissingRequiredArgument(type("testù" + ("ù" * 100), (object,), {"name": "search"})())
+            raise commands.MissingRequiredArgument(
+                type("testù" + ("ù" * 100), (object,), {"name": "search"})()
+            )
         lang = await ctx.get_lang(self)
         first = not ctx.voice_state.is_playing
         msg = lang["queued"] if not first else lang["playing"]
@@ -291,9 +303,7 @@ class Music(commands.Cog):
                 await asyncio.sleep(0.1)
                 ctx.voice_state.current.source.volume = volume
                 if not first:
-                    await ctx.send(
-                        embed=song.create_embed(ctx, queued=True)
-                    )
+                    await ctx.send(embed=song.create_embed(ctx, queued=True))
 
     @commands.command(name="search")
     async def _search(self, ctx: commands.Context, *, search: str):

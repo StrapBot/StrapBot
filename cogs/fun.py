@@ -310,9 +310,9 @@ class Fun(commands.Cog):
             text_list
         )  # convert list back to string(message) to print it as a word
         await ctx.send(
-            embed=discord.Embed(color=discord.Color.lighter_grey(), description=message).set_author(
-                name=ctx.author.name, icon_url=ctx.author.avatar_url
-            )
+            embed=discord.Embed(
+                color=discord.Color.lighter_grey(), description=message
+            ).set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
         )
         await webhook.delete()
         await ctx.message.delete()
