@@ -49,7 +49,7 @@ class Utilities(commands.Cog):
     @commands.command(pass_context=True)
     async def ping(self, ctx):
         """Shows ping."""
-        lang = await ctx.get_lang(self)
+        lang = await ctx.get_lang()
         return await ctx.send(
             embed=discord.Embed(
                 title="Pong!",
@@ -69,7 +69,7 @@ class Utilities(commands.Cog):
     @commands.command(pass_context=True, aliases=["guilds"])
     async def servers(self, ctx):
         """Returns the total number of servers I'm in."""
-        lang = await ctx.get_lang(self)
+        lang = await ctx.get_lang()
         return await ctx.send(
             embed=discord.Embed(
                 title=lang["title"],
@@ -89,7 +89,7 @@ class Utilities(commands.Cog):
     @commands.command(pass_context=True)
     async def invite(self, ctx):
         """Invite me on your servers!"""
-        lang = await ctx.get_lang(self)
+        lang = await ctx.get_lang()
         return await ctx.send(
             embed=discord.Embed(
                 title=lang["title"],

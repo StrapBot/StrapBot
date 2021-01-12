@@ -33,7 +33,7 @@ class Moderation(commands.Cog):
     @commands.has_permissions(manage_channels=True)
     async def setlog(self, ctx, channel: discord.TextChannel = None):
         """Sets up a log channel."""
-        lang = await ctx.get_lang(self)
+        lang = await ctx.get_lang()
         if channel == None:
             return await ctx.send_help(ctx.command)
 
@@ -63,7 +63,7 @@ class Moderation(commands.Cog):
     @commands.has_permissions(manage_roles=True)
     async def muterole(self, ctx, role: discord.Role = None):
         """Sets up the muted role."""
-        lang = await ctx.get_lang(self)
+        lang = await ctx.get_lang()
         if role is None:
             if (await self.db.find_one({"_id": "muterole"})) is not None:
                 if (
@@ -99,7 +99,7 @@ class Moderation(commands.Cog):
         """
         Warns the specified member.
         """
-        lang = await ctx.get_lang(self)
+        lang = await ctx.get_lang()
         user_lang = await self.bot.lang.fetch_user_lang(ctx, member.id)
         guild_lang = await self.bot.lang.fetch_guild_lang(ctx)
         if member == None:
@@ -157,7 +157,7 @@ class Moderation(commands.Cog):
     @commands.has_permissions(kick_members=True)
     async def kick(self, ctx, member: discord.Member = None, *, reason=None):
         """Kicks the specified member."""
-        lang = await ctx.get_lang(self)
+        lang = await ctx.get_lang()
         if member == None:
             return await ctx.send_help(ctx.command)
 
@@ -223,7 +223,7 @@ class Moderation(commands.Cog):
     @commands.has_permissions(ban_members=True)
     async def ban(self, ctx, member: discord.Member = None, *, reason=None):
         """Bans the specified member."""
-        lang = await ctx.get_lang(self)
+        lang = await ctx.get_lang()
         if member == None:
             return await ctx.send_help(ctx.command)
 
@@ -289,7 +289,7 @@ class Moderation(commands.Cog):
     @commands.has_permissions(manage_roles=True)
     async def mute(self, ctx, member: discord.Member = None, *, reason=None):
         """Mutes the specified member."""
-        lang = await ctx.get_lang(self)
+        lang = await ctx.get_lang()
         if member == None:
             return await ctx.send_help(ctx.command)
         role = await self.db.find_one({"_id": "muterole"})
@@ -372,7 +372,7 @@ class Moderation(commands.Cog):
     @commands.has_permissions(manage_roles=True)
     async def unmute(self, ctx, member: discord.Member = None, *, reason=None):
         """Unmutes the specified member."""
-        lang = await ctx.get_lang(self)
+        lang = await ctx.get_lang()
         guild_lang = await self.bot.lang.fetch_guild_lang(ctx)
         if member == None:
             return await ctx.send_help(ctx.command)
@@ -445,7 +445,7 @@ class Moderation(commands.Cog):
         Nukes (deletes EVERY message in) a channel.
         You can mention a channel to nuke that one instead.
         """
-        lang = await ctx.get_lang(self)
+        lang = await ctx.get_lang()
         guild_lang = await self.bot.lang.fetch_guild_lang(ctx)
         if channel == None:
             channel = ctx.channel
@@ -523,7 +523,7 @@ class Moderation(commands.Cog):
     @commands.has_permissions(manage_messages=True)
     async def purge(self, ctx, amount: int = 1):
         """Purge the specified amount of messages."""
-        lang = await ctx.get_lang(self)
+        lang = await ctx.get_lang()
         guild_lang = await self.bot.lang.fetch_guild_lang(ctx)
         max = 2000
         if amount <= 0:
@@ -591,7 +591,7 @@ class Moderation(commands.Cog):
 
     async def get_case(self, ctx):
         """Gives the case number."""
-        lang = (await ctx.get_lang(self)).current
+        lang = (await ctx.get_lang()).current
         num = await self.db.find_one({"_id": "cases"})
         if num == None:
             num = 0

@@ -20,8 +20,10 @@ class Context(commands.Context):
         return state
 
     async def get_lang(self, cls=None, *, cogs=False, cog=False, all=False):
-        if cls != None:
-            cls = cls.__class__.__name__
+        if cls == None:
+            cls = self.command.cog
+
+        cls = cls.__class__.__name__
         db = self.bot.db.db["LangConfig"]
         members = await db.find_one({"_id": "members"})
         guilds = await db.find_one({"_id": "guilds"})

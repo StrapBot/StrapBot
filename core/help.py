@@ -9,7 +9,7 @@ class HelpCommand(commands.HelpCommand):
     async def send_bot_help(self, mapping):
         ctx = self.context
         bot = ctx.bot
-        lang = await ctx.get_lang(self.cog)
+        lang = await ctx.get_lang()
         prefix = self.clean_prefix
         ergastolator = discord.utils.get(bot.get_all_members(), id=602819090012176384)
         vincy = discord.utils.get(bot.get_all_members(), id=726381259332386867)

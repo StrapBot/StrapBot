@@ -160,7 +160,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         bot = ctx.bot
         channel = ctx.channel
         loop = loop or asyncio.get_event_loop()
-        lang = await ctx.get_lang(ctx.command.cog)
+        lang = await ctx.get_lang()
 
         cls.search_query = "%s%s:%s" % ("ytsearch", 10, "".join(search))
 

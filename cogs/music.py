@@ -66,7 +66,7 @@ class Music(commands.Cog):
         """Summons the bot to a voice channel.
         If no channel was specified, it joins your channel.
         """
-        lang = await ctx.get_lang(self)
+        lang = await ctx.get_lang()
 
         if not channel and not ctx.author.voice:
             raise VoiceError(lang["error"])
@@ -82,7 +82,7 @@ class Music(commands.Cog):
     @is_one_in_vc()
     async def _leave(self, ctx: commands.Context):
         """Clears the queue and leaves the voice channel."""
-        lang = await ctx.get_lang(self)
+        lang = await ctx.get_lang()
 
         if not ctx.voice_state.voice:
             raise NotPlayingError(lang["error"])
@@ -137,7 +137,7 @@ class Music(commands.Cog):
     @commands.command(name="skip")
     async def _skip(self, ctx: commands.Context):
         """Skips to the next song."""
-        lang = await ctx.get_lang(self)
+        lang = await ctx.get_lang()
 
         if not ctx.voice_state.is_playing:
             raise NotPlayingError(lang["error"])
@@ -170,7 +170,7 @@ class Music(commands.Cog):
     async def _volume(self, ctx: commands.Context, *, volume: int = None):
         """Sets the player's volume."""
 
-        lang = await ctx.get_lang(self)
+        lang = await ctx.get_lang()
 
         if not ctx.voice_state.is_playing:
             return await ctx.send(lang["nothing"])
@@ -201,7 +201,7 @@ class Music(commands.Cog):
         """Shows the player's queue.
         You can optionally specify the page to show. Each page contains 10 elements.
         """
-        lang = await ctx.get_lang(self)
+        lang = await ctx.get_lang()
 
         if len(ctx.voice_state.songs) == 0:
             raise ValueError(lang["error"])
@@ -227,7 +227,7 @@ class Music(commands.Cog):
     @commands.command(name="shuffle")
     async def _shuffle(self, ctx: commands.Context):
         """Shuffles the queue."""
-        lang = await ctx.get_lang(self)
+        lang = await ctx.get_lang()
 
         if len(ctx.voice_state.songs) == 0:
             raise ValueError(lang["error"])
@@ -238,7 +238,7 @@ class Music(commands.Cog):
     @commands.command(name="remove")
     async def _remove(self, ctx: commands.Context, index: int):
         """Removes a song from the queue at a given index."""
-        lang = await ctx.get_lang(self)
+        lang = await ctx.get_lang()
 
         if len(ctx.voice_state.songs) == 0:
             raise ValueError(lang["error"])
@@ -251,7 +251,7 @@ class Music(commands.Cog):
         """Loops the currently playing song.
         Invoke this command again to unloop the song.
         """
-        lang = await ctx.get_lang(self)
+        lang = await ctx.get_lang()
 
         if not ctx.voice_state.is_playing:
             raise NotPlayingError(lang["error"])
@@ -280,7 +280,7 @@ class Music(commands.Cog):
             raise commands.MissingRequiredArgument(
                 type("testù" + ("ù" * 100), (object,), {"name": "search"})()
             )
-        lang = await ctx.get_lang(self)
+        lang = await ctx.get_lang()
         first = not ctx.voice_state.is_playing
         msg = lang["queued"] if not first else lang["playing"]
 
@@ -308,7 +308,7 @@ class Music(commands.Cog):
     @commands.command(name="search")
     async def _search(self, ctx: commands.Context, *, search: str):
         """Searchs for a YouTube video."""
-        lang = await ctx.get_lang(self)
+        lang = await ctx.get_lang()
         async with ctx.typing():
             try:
                 source = await YTDLSource.search_source(ctx, search, loop=self.bot.loop)
