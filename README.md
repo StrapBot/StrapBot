@@ -22,6 +22,7 @@ A bot which replaces ErgastolatorBot v2.0 and VincyBot07, and it's built better 
 + Renamed `Context` to `StrapContext`
 + `StrapContext.get_lang()` does no longer require class.
 + Moderation commands are fully translated!
++ VoiceState now works globally.
 - Removed Herobrine
 
 ### pre-v2.1
