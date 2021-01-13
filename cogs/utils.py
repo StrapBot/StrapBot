@@ -15,19 +15,19 @@ class Utilities(commands.Cog):
             },
         )
         bot.help_command.cog = self
+        self.ergastolator = self.vincy = None
 
     def cog_unload(self):
         self.bot.help_command = self._original_help_command
 
     @commands.Cog.listener()
     async def on_ready(self):
-        self.ergastolator = discord.utils.get(
-            self.bot.get_all_members(), id=602819090012176384
+        self.ergastolator = str(
+            discord.utils.get(self.bot.get_all_members(), id=602819090012176384)
         )
-        self.vincy = discord.utils.get(
-            self.bot.get_all_members(), id=726381259332386867
+        self.vincy = str(
+            discord.utils.get(self.bot.get_all_members(), id=726381259332386867)
         )
-        self.footer = f"Made by {str(self.ergastolator)} and {str(self.vincy)}"
 
     @commands.command(name="testù", pass_context=True)
     async def testu(self, ctx):
@@ -36,7 +36,11 @@ class Utilities(commands.Cog):
             embed=discord.Embed(
                 title="testù", description=f"testù", color=discord.Color.lighter_grey()
             )
-            .set_footer(text=self.footer)
+            .set_footer(
+                text=(await ctx.get_lang(cog=True)).ergavincy.format(
+                    self.ergastolator, self.vincy
+                )
+            )
             .set_thumbnail(
                 url="https://cdn.discordapp.com/avatars/740140581174378527/226deca56aaa9cbe5f27dcbf7dda732d.png?size=256"
             )
@@ -56,7 +60,11 @@ class Utilities(commands.Cog):
                 description=f"{lang['latency']}: {round(self.bot.latency*1000)} ms",
                 color=discord.Color.lighter_grey(),
             )
-            .set_footer(text=self.footer)
+            .set_footer(
+                text=(await ctx.get_lang(cog=True)).ergavincy.format(
+                    self.ergastolator, self.vincy
+                )
+            )
             .set_thumbnail(
                 url="https://cdn.discordapp.com/avatars/740140581174378527/226deca56aaa9cbe5f27dcbf7dda732d.png?size=256"
             )
@@ -66,7 +74,7 @@ class Utilities(commands.Cog):
             )
         )
 
-    @commands.command(pass_context=True, aliases=["guilds"])
+    @commands.command(aliases=["guilds"])
     async def servers(self, ctx):
         """Returns the total number of servers I'm in."""
         lang = await ctx.get_lang()
@@ -76,7 +84,11 @@ class Utilities(commands.Cog):
                 description=lang["description_"].format(len(self.bot.guilds)),
                 color=discord.Color.lighter_grey(),
             )
-            .set_footer(text=self.footer)
+            .set_footer(
+                text=(await ctx.get_lang(cog=True)).ergavincy.format(
+                    self.ergastolator, self.vincy
+                )
+            )
             .set_thumbnail(
                 url="https://cdn.discordapp.com/avatars/740140581174378527/226deca56aaa9cbe5f27dcbf7dda732d.png?size=256"
             )
@@ -86,7 +98,7 @@ class Utilities(commands.Cog):
             )
         )
 
-    @commands.command(pass_context=True)
+    @commands.command()
     async def invite(self, ctx):
         """Invite me on your servers!"""
         lang = await ctx.get_lang()
@@ -96,7 +108,11 @@ class Utilities(commands.Cog):
                 description=lang["description_"],
                 color=discord.Color.lighter_grey(),
             )
-            .set_footer(text=self.footer)
+            .set_footer(
+                text=(await ctx.get_lang(cog=True)).ergavincy.format(
+                    self.ergastolator, self.vincy
+                )
+            )
             .set_thumbnail(
                 url="https://cdn.discordapp.com/avatars/740140581174378527/226deca56aaa9cbe5f27dcbf7dda732d.png?size=256"
             )

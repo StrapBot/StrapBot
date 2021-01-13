@@ -229,6 +229,7 @@
         },
         "Utilities": {
             "name": "Utilities",
+            "ergavincy": "Made by {} and {}",
             "commands": {
                 "help": {
                     "description": "Shows this message.",

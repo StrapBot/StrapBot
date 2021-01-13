@@ -126,7 +126,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
                 raise YTDLError(
                     "Couldn't find anything that matches `{}`".format(search)
                 )
-        
+
         try:
             webpage_url = process_info["webpage_url"]
         except KeyError:
@@ -253,13 +253,13 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
         duration = []
         if days > 0:
-            duration.append(f"{days} day{day}")
+            duration.append(f"{round(days)} day{day}")
         if hours > 0:
-            duration.append(f"{hours} hour{hour}")
+            duration.append(f"{round(hours)} hour{hour}")
         if minutes > 0:
-            duration.append(f"{minutes} minute{minute}")
+            duration.append(f"{round(minutes)} minute{minute}")
         if seconds > 0:
-            duration.append(f"{seconds} second{second}")
+            duration.append(f"{round(seconds)} second{second}")
 
         return ", ".join(duration)  # TODO: translate this
 

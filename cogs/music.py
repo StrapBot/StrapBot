@@ -233,7 +233,7 @@ class Music(commands.Cog):
             raise ValueError(lang["error"])
 
         ctx.voice_state.songs.shuffle()
-        await ctx.message.add_reaction("✅")
+        await ctx.message.add_reaction("🔀")
 
     @commands.command(name="remove")
     async def _remove(self, ctx: commands.Context, index: int):

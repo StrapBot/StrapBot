@@ -226,6 +226,7 @@
         },
         "Utilities": {
             "name": "Utilità",
+            "ergavincy": "Fatto da {} e {}",
             "commands": {
                 "help": {
                     "description": "Mostra questo messaggio.",

@@ -70,7 +70,7 @@ class HelpCommand(commands.HelpCommand):
         lang = ret["cogs"][topic.cog.__class__.__name__]["commands"][
             topic.qualified_name
         ]
-        ulang = await self.context.get_lang(self.cog)
+        ulang = await self.context.get_lang()
 
         embed = discord.Embed(
             title=f"**{self.get_command_signature(topic)}**",
