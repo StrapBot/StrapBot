@@ -65,9 +65,6 @@ class Utilities(commands.Cog):
                     self.ergastolator, self.vincy
                 )
             )
-            .set_thumbnail(
-                url="https://cdn.discordapp.com/avatars/740140581174378527/226deca56aaa9cbe5f27dcbf7dda732d.png?size=256"
-            )
             .set_author(
                 name="StrapBot",
                 icon_url="https://cdn.discordapp.com/avatars/740140581174378527/226deca56aaa9cbe5f27dcbf7dda732d.png?size=64",
@@ -88,9 +85,6 @@ class Utilities(commands.Cog):
                 text=(await ctx.get_lang(cog=True)).ergavincy.format(
                     self.ergastolator, self.vincy
                 )
-            )
-            .set_thumbnail(
-                url="https://cdn.discordapp.com/avatars/740140581174378527/226deca56aaa9cbe5f27dcbf7dda732d.png?size=256"
             )
             .set_author(
                 name="StrapBot",
