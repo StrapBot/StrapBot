@@ -49,7 +49,9 @@ class HelpCommand(commands.HelpCommand):
 
             embed.add_field(name=cog_name, value="".join(commands), inline=True)
 
-        await self.get_destination().send(reference=self.context.message.to_reference(), embed=embed)
+        await self.get_destination().send(
+            reference=self.context.message.to_reference(), embed=embed
+        )
 
     async def _get_help_embed(self, topic):
         if not await self.filter_commands([topic]):
@@ -108,7 +110,8 @@ class HelpCommand(commands.HelpCommand):
                 )
             )
 
-        await self.get_destination().send(reference=self.context.message.to_reference(), 
+        await self.get_destination().send(
+            reference=self.context.message.to_reference(),
             embed=discord.Embed(
                 description=cog.description, color=discord.Color.lighter_grey()
             )
@@ -119,13 +122,15 @@ class HelpCommand(commands.HelpCommand):
             .add_field(
                 name="Commands",
                 value="".join(commands) if len(commands) != 0 else "No commands.",
-            )
+            ),
         )
 
     async def send_command_help(self, command):
         topic = await self._get_help_embed(command)
         if topic is not None:
-            await self.get_destination().send(reference=self.context.message.to_reference(), embed=topic)
+            await self.get_destination().send(
+                reference=self.context.message.to_reference(), embed=topic
+            )
 
     async def send_group_help(self, group):
         topic = await self._get_help_embed(group)
@@ -144,7 +149,9 @@ class HelpCommand(commands.HelpCommand):
         if format_ != "":
             embed.add_field(name="Subcommands", value=format_[:1024], inline=False)
 
-        await self.get_destination().send(reference=self.context.message.to_reference(), embed=embed)
+        await self.get_destination().send(
+            reference=self.context.message.to_reference(), embed=embed
+        )
 
     async def send_error_message(self, error):
         command = self.context.kwargs.get("command")
@@ -170,4 +177,6 @@ class HelpCommand(commands.HelpCommand):
             )
         else:
             embed.title = "Could not find command or category."
-        await self.get_destination().send(reference=self.context.message.to_reference(), embed=embed)
+        await self.get_destination().send(
+            reference=self.context.message.to_reference(), embed=embed
+        )
