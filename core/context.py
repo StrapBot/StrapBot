@@ -6,7 +6,7 @@ from discord.ext import commands
 from core.voice import VoiceState
 
 
-class Context(commands.Context):
+class StrapContext(commands.Context):
     async def send(self, *msgs, **kwargs):
         reference = kwargs.pop("reference", self.message.to_reference())
         message = kwargs.pop("content", " ".join(str(msg) for msg in msgs))

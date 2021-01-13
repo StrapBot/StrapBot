@@ -11,7 +11,7 @@ from dotenv import load_dotenv as import_dotenv
 from core.languages import Languages
 from core.mongodb import *
 from core.loops import Loops
-from core.context import Context
+from core.context import StrapContext
 from core.logs import StrapLog
 
 import_dotenv()
@@ -80,7 +80,7 @@ class StrapBot(commands.Bot):
                     f"Could not load extension {extension}", exc_info=True
                 )
 
-    async def get_context(self, message, *, cls=Context):
+    async def get_context(self, message, *, cls=StrapContext):
         return await super().get_context(message, cls=cls)
 
     def prefix(self, bot, message):
