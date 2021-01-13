@@ -7,8 +7,10 @@ from core.voice import VoiceState
 
 
 class Context(commands.Context):
-    # def __init__(self, *args, **kwargs):
-    #    super().__init__(*args, **kwargs)
+    async def send(self, *msgs, **kwargs):
+        reference = kwargs.pop("reference", self.message.to_reference())
+        message = kwargs.pop("content", " ".join(str(msg) for msg in msgs))
+        return await super().send(message, reference=reference, **kwargs)
 
     @property
     def voice_state(self):
