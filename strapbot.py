@@ -13,6 +13,7 @@ from core.mongodb import *
 from core.loops import Loops
 from core.context import StrapContext
 from core.logs import StrapLog
+from core.imgen import DankMemerImgen
 
 import_dotenv()
 
@@ -31,8 +32,15 @@ class StrapBot(commands.Bot):
         self._logger = None
         self._loops = Loops(self)
         self._version = None
+        self._imgen = None
         self.voice_states = {}
         self.startup()
+
+    @property
+    def imgen(self) -> DankMemerImgen:
+        if self._imgen is None:
+            self._imgen = DankMemerImgen(self)
+        return self._imgen
 
     @property
     def logger(self) -> StrapLog:

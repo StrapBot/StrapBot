@@ -5,6 +5,7 @@ from discord.ext import commands
 import box
 import json
 import string
+import typing
 from io import BytesIO
 
 
@@ -314,9 +315,155 @@ class Fun(commands.Cog):
                 color=discord.Color.lighter_grey(), description=message
             ).set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
         )
-        await webhook.delete()
         await ctx.message.delete()
 
+    @commands.command()
+    async def meme(self, ctx):
+        """Gives a random meme."""
+        lang = (await ctx.get_lang()).current
+        if lang == "it":
+            subreddit = "r/memesITA"
+        else:
+            subreddit = choice(["r/memes", "r/dankmemes"])
+        r = await self.bot.session.get(
+            f"https://www.reddit.com/{subreddit}/top.json?sort=top&t=day&limit=500"
+        )
+        r = await r.json()
+        r = box.Box(r)
+        data = choice(r.data.children).data
+        img = data.url
+        title = data.title
+        upvotes = data.ups
+        downvotes = data.downs
+        em = discord.Embed(color=ctx.author.color, title=title, url=f"https://reddit.com{data.permalink}")
+        em.set_image(url=img)
+        em.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
+        em.set_footer(text=f"👍{upvotes} | 👎 {downvotes}")
+        await ctx.send(embed=em)
+
+    @commands.command()
+    async def crab(self, ctx, *, text: str):
+        if len(text.split(",")) == 1 or text == "," or len(text.split(",")) > 2:
+            text = "You need to split your,message with a comma"
+        
+        await ctx.message.add_reaction("⏳")
+
+        file = await self.bot.imgen.crab(text=text)
+
+        await ctx.message.remove_reaction("⏳", ctx.me)
+        await ctx.message.add_reaction("⌛")
+
+        await ctx.send(file=file)
+
+        await ctx.message.remove_reaction("⌛", ctx.me)
+        await ctx.message.add_reaction("🦀")
+
+    @commands.command(aliases=["yt"])
+    async def youtube(self, ctx, author: typing.Optional[discord.User] = None, *, text: str):
+        if author == None:
+            author = ctx.author
+
+        await ctx.message.add_reaction("⏳")
+
+        file = await self.bot.imgen.youtube(text=text, avatars=[f"{author.avatar_url}"], usernames=[author.name])
+
+        await ctx.message.remove_reaction("⏳", ctx.me)
+        await ctx.message.add_reaction("⌛")
+
+        await ctx.send(file=file)
+
+        await ctx.message.remove_reaction("⌛", ctx.me)
+
+    @commands.command(aliases=["wdt"])
+    async def whodidthis(self, ctx, author: discord.User = None):
+        if author == None:
+            author = ctx.author
+
+        await ctx.message.add_reaction("⏳")
+
+        image = f"{author.avatar_url}"
+        if ctx.message.attachments:
+            url = ctx.message.attachments[0].url
+            if url.endswith("png"):
+                image = f"{ctx.message.attachments[0].url}"
+
+        file = await self.bot.imgen.whodidthis(avatars=[image])
+
+        await ctx.message.remove_reaction("⏳", ctx.me)
+        await ctx.message.add_reaction("⌛")
+
+        await ctx.send(file=file)
+
+        await ctx.message.remove_reaction("⌛", ctx.me)
+        await ctx.message.add_reaction("😂")
+
+    @commands.command(aliases=["wti"])
+    async def whothisis(self, ctx, author: typing.Optional[discord.User] = None, *, name: str = None):
+        if author == None:
+            author = ctx.author
+        elif name == None:
+            name = author.name
+            author = ctx.author
+        else:
+            raise commands.MissingRequiredArgument(
+                type("testù" + ("ù" * 100), (object,), {"name": "name"})()
+            )
+
+        await ctx.message.add_reaction("⏳")
+
+        image = f"{author.avatar_url}"
+        if ctx.message.attachments:
+            url = ctx.message.attachments[0].url
+            if url.endswith("png"):
+                image = f"{ctx.message.attachments[0].url}"
+
+        file = await self.bot.imgen.whothisis(avatars=[image], text=name)
+
+        await ctx.message.remove_reaction("⏳", ctx.me)
+        await ctx.message.add_reaction("⌛")
+
+        await ctx.send(file=file)
+
+        await ctx.message.remove_reaction("⌛", ctx.me)
+        await ctx.message.add_reaction("🤔")
+
+    @commands.command(aliases=["cmm"])
+    async def changemymind(self, ctx, *, text: str = "StrapBot is the best bot ever"):
+        await ctx.message.add_reaction("⏳")
+
+        file = await self.bot.imgen.changemymind(text=text)
+
+        await ctx.message.remove_reaction("⏳", ctx.me)
+        await ctx.message.add_reaction("⌛")
+
+        await ctx.send(file=file)
+
+        await ctx.message.remove_reaction("⌛", ctx.me)
+        await ctx.message.add_reaction("🧠")
+        await ctx.message.add_reaction("🔧")
+
+    @commands.command()
+    async def jail(self, ctx, author: discord.User = None):
+        if author == None:
+            author = ctx.author
+
+        await ctx.message.add_reaction("⏳")
+
+        image = f"{author.avatar_url}"
+        if ctx.message.attachments:
+            url = ctx.message.attachments[0].url
+            if url.endswith("png"):
+                image = f"{ctx.message.attachments[0].url}"
+
+        file = await self.bot.imgen.jail(avatars=[image])
+
+        await ctx.message.remove_reaction("⏳", ctx.me)
+        await ctx.message.add_reaction("⌛")
+
+        await ctx.send(file=file)
+
+        await ctx.message.remove_reaction("⌛", ctx.me)
+        await ctx.message.add_reaction("👮‍♂️")
 
 def setup(bot):
     bot.add_cog(Fun(bot))
