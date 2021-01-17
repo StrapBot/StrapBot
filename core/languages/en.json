@@ -135,6 +135,9 @@
                 },
                 "changemymind": {
                     "description": "Change my mind."
+                },
+                "jail": {
+                    "description": "Puts you in a jail"
                 }
             }
         },
