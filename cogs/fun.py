@@ -1,3 +1,5 @@
+"""thanks dankmemer for some of the commands :)"""
+
 from enum import Enum
 from random import randint, choice, shuffle
 import discord
@@ -335,7 +337,11 @@ class Fun(commands.Cog):
         title = data.title
         upvotes = data.ups
         downvotes = data.downs
-        em = discord.Embed(color=ctx.author.color, title=title, url=f"https://reddit.com{data.permalink}")
+        em = discord.Embed(
+            color=ctx.author.color,
+            title=title,
+            url=f"https://reddit.com{data.permalink}",
+        )
         em.set_image(url=img)
         em.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
         em.set_footer(text=f"👍{upvotes} | 👎 {downvotes}")
@@ -345,7 +351,7 @@ class Fun(commands.Cog):
     async def crab(self, ctx, *, text: str):
         if len(text.split(",")) == 1 or text == "," or len(text.split(",")) > 2:
             text = "You need to split your,message with a comma"
-        
+
         await ctx.message.add_reaction("⏳")
 
         file = await self.bot.imgen.crab(text=text)
@@ -359,13 +365,17 @@ class Fun(commands.Cog):
         await ctx.message.add_reaction("🦀")
 
     @commands.command(aliases=["yt"])
-    async def youtube(self, ctx, author: typing.Optional[discord.Member] = None, *, text: str):
+    async def youtube(
+        self, ctx, author: typing.Optional[discord.Member] = None, *, text: str
+    ):
         if author == None:
             author = ctx.author
 
         await ctx.message.add_reaction("⏳")
 
-        file = await self.bot.imgen.youtube(text=text, avatars=[f"{author.avatar_url}"], usernames=[author.name])
+        file = await self.bot.imgen.youtube(
+            text=text, avatars=[f"{author.avatar_url}"], usernames=[author.name]
+        )
 
         await ctx.message.remove_reaction("⏳", ctx.me)
         await ctx.message.add_reaction("⌛")
@@ -398,7 +408,9 @@ class Fun(commands.Cog):
         await ctx.message.add_reaction("😂")
 
     @commands.command(aliases=["wti"])
-    async def whothisis(self, ctx, author: typing.Optional[discord.Member] = None, *, name: str = None):
+    async def whothisis(
+        self, ctx, author: typing.Optional[discord.Member] = None, *, name: str = None
+    ):
         if name == None and author != None:
             name = author.name
             author = ctx.author
@@ -431,7 +443,12 @@ class Fun(commands.Cog):
         await ctx.message.add_reaction("🤔")
 
     @commands.command(aliases=["cmm"])
-    async def changemymind(self, ctx, *, text: str = "StrapBot is the best bot ever. (Please put some text)"):
+    async def changemymind(
+        self,
+        ctx,
+        *,
+        text: str = "StrapBot is the best bot ever. (Please put some text)",
+    ):
         await ctx.message.add_reaction("⏳")
 
         file = await self.bot.imgen.changemymind(text=text)
@@ -492,6 +509,7 @@ class Fun(commands.Cog):
 
         await ctx.message.remove_reaction("⌛", ctx.me)
         await ctx.message.add_reaction("🏅")
+
 
 def setup(bot):
     bot.add_cog(Fun(bot))

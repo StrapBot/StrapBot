@@ -3,8 +3,10 @@ import os
 from discord import File
 from io import BytesIO
 
+
 class UnauthorizedError(Exception):
     pass
+
 
 class DankMemerImgen:
     """this is just the Dank Memer API but on StrapBot"""
@@ -17,6 +19,7 @@ class DankMemerImgen:
 
     def request(self, thing):
         """Make an HTTP request and get the video/image."""
+
         async def something(fmt="png", **params):
             if self.TOKEN == None:
                 raise UnauthorizedError(
@@ -25,7 +28,9 @@ class DankMemerImgen:
                     f"at {self.URL}/request and wait for it to be approved."
                 )
 
-            async with self.bot.session.post(f"{self.URL}/api/{thing}", json=params, headers=self.headers) as request:
+            async with self.bot.session.post(
+                f"{self.URL}/api/{thing}", json=params, headers=self.headers
+            ) as request:
                 response = await request.content.read()
                 if not fmt in ["text", "plain", "plaintext"]:
                     byte = BytesIO(response)
