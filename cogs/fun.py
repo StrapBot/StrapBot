@@ -465,5 +465,30 @@ class Fun(commands.Cog):
         await ctx.message.remove_reaction("⌛", ctx.me)
         await ctx.message.add_reaction("👮‍♂️")
 
+    @commands.command()
+    async def award(self, ctx, author: discord.User = None):
+        if author == None:
+            author = ctx.author
+
+        await ctx.message.add_reaction("⏳")
+
+        image = f"{author.avatar_url}"
+        username = author.name
+        if ctx.message.attachments:
+            url = ctx.message.attachments[0].url
+            if url.endswith("png"):
+                image = f"{ctx.message.attachments[0].url}"
+                username = ""
+
+        file = await self.bot.imgen.award(avatars=[image], usernames=[username])
+
+        await ctx.message.remove_reaction("⏳", ctx.me)
+        await ctx.message.add_reaction("⌛")
+
+        await ctx.send(file=file)
+
+        await ctx.message.remove_reaction("⌛", ctx.me)
+        await ctx.message.add_reaction("🏅")
+
 def setup(bot):
     bot.add_cog(Fun(bot))
