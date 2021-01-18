@@ -399,15 +399,18 @@ class Fun(commands.Cog):
 
     @commands.command(aliases=["wti"])
     async def whothisis(self, ctx, author: typing.Optional[discord.User] = None, *, name: str = None):
-        if author == None:
-            author = ctx.author
-        elif name == None:
+        if name == None and author != None:
             name = author.name
             author = ctx.author
+        elif name != None:
+            name = name
         else:
             raise commands.MissingRequiredArgument(
                 type("testù" + ("ù" * 100), (object,), {"name": "name"})()
             )
+
+        if author == None:
+            author = ctx.author
 
         await ctx.message.add_reaction("⏳")
 
@@ -428,7 +431,7 @@ class Fun(commands.Cog):
         await ctx.message.add_reaction("🤔")
 
     @commands.command(aliases=["cmm"])
-    async def changemymind(self, ctx, *, text: str = "StrapBot is the best bot ever"):
+    async def changemymind(self, ctx, *, text: str = "StrapBot is the best bot ever. (Please put some text)"):
         await ctx.message.add_reaction("⏳")
 
         file = await self.bot.imgen.changemymind(text=text)
