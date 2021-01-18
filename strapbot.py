@@ -273,6 +273,8 @@ class StrapBot(commands.Bot):
                     and not message.content.endswith("-np")
                 ):
                     await message.channel.send("<@&792399102381260840>")
+            elif message.channel.id == 800809114736263189:
+                await message.publish()
 
         allowed_guilds = [
             595318301127868417,
