@@ -359,7 +359,7 @@ class Fun(commands.Cog):
         await ctx.message.add_reaction("🦀")
 
     @commands.command(aliases=["yt"])
-    async def youtube(self, ctx, author: typing.Optional[discord.User] = None, *, text: str):
+    async def youtube(self, ctx, author: typing.Optional[discord.Member] = None, *, text: str):
         if author == None:
             author = ctx.author
 
@@ -375,7 +375,7 @@ class Fun(commands.Cog):
         await ctx.message.remove_reaction("⌛", ctx.me)
 
     @commands.command(aliases=["wdt"])
-    async def whodidthis(self, ctx, author: discord.User = None):
+    async def whodidthis(self, ctx, author: discord.Member = None):
         if author == None:
             author = ctx.author
 
@@ -398,7 +398,7 @@ class Fun(commands.Cog):
         await ctx.message.add_reaction("😂")
 
     @commands.command(aliases=["wti"])
-    async def whothisis(self, ctx, author: typing.Optional[discord.User] = None, *, name: str = None):
+    async def whothisis(self, ctx, author: typing.Optional[discord.Member] = None, *, name: str = None):
         if name == None and author != None:
             name = author.name
             author = ctx.author
@@ -446,7 +446,7 @@ class Fun(commands.Cog):
         await ctx.message.add_reaction("🔧")
 
     @commands.command()
-    async def jail(self, ctx, author: discord.User = None):
+    async def jail(self, ctx, author: discord.Member = None):
         if author == None:
             author = ctx.author
 
@@ -469,7 +469,7 @@ class Fun(commands.Cog):
         await ctx.message.add_reaction("👮‍♂️")
 
     @commands.command()
-    async def award(self, ctx, author: discord.User = None):
+    async def award(self, ctx, author: discord.Member = None):
         if author == None:
             author = ctx.author
 
