@@ -138,6 +138,9 @@
                 },
                 "jail": {
                     "description": "Puts you in a jail"
+                },
+                "award": {
+                    "description": "Award yourself"
                 }
             }
         },
