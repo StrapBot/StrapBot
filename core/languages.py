@@ -6,6 +6,11 @@ import json
 default_language = os.getenv("DEFAULT_LANGUAGE", "en")
 
 
+class Language(box.Box):
+    def __repr__(self):
+        return f"<Language current={repr(self.current)}>"
+
+
 class Languages:
     def __init__(self, bot):
         self.bot = bot
@@ -128,7 +133,7 @@ class Languages:
         ]
 
         ret["current"] = current
-        ret = box.Box(ret)
+        ret = Language(ret)
         return ret
 
     async def fetch_guild_lang(self, ctx, *, guild: int = None):
@@ -151,10 +156,5 @@ class Languages:
         ]
 
         ret["current"] = current
-        ret = box.Box(ret)
+        ret = Language(ret)
         return ret
-
-
-class Language(box.Box):
-    def __repr__(self):
-        return f"<Language current={repr(self.current)}>"

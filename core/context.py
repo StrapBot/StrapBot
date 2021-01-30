@@ -1,10 +1,10 @@
 from logging import setLogRecordFactory
-import box
 import json
 import discord
 from discord.ext import commands
 from core.voice import VoiceState
 from core.paginator import EmbedPaginatorSession
+from core.languages import Language
 
 
 class StrapContext(commands.Context):
@@ -63,5 +63,5 @@ class StrapContext(commands.Context):
             ret = ret["cogs"][cls]["commands"][self.command.qualified_name]
 
         ret["current"] = current
-        ret = box.Box(ret)
+        ret = Language(ret)
         return ret
