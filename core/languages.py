@@ -153,3 +153,8 @@ class Languages:
         ret["current"] = current
         ret = box.Box(ret)
         return ret
+
+
+class Language(box.Box):
+    def __repr__(self):
+        return f"<Language current={repr(self.current)}>"

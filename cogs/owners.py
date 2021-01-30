@@ -6,6 +6,7 @@ from io import StringIO
 from textwrap import indent
 from contextlib import redirect_stdout
 from discord.ext import commands
+from core.paginator import *
 
 
 def cleanup_code(content: str) -> str:
@@ -93,6 +94,7 @@ class OwnerOnly(commands.Cog):
     async def eval_(self, ctx, *, body: str):
         """Avvia un codice Python."""
 
+        body = cleanup_code(body)
         self.bot.logger.warning(f"Running eval command:\n{body}")
 
         env = {
@@ -108,8 +110,8 @@ class OwnerOnly(commands.Cog):
 
         env.update(globals())
 
-        body = cleanup_code(body)
         stdout = StringIO()
+        embed = discord.Embed(color=discord.Color.lighter_grey())
 
         to_compile = f'async def func():\n{indent(body, "  ")}'
 
@@ -131,7 +133,10 @@ class OwnerOnly(commands.Cog):
             exec(to_compile, env)
         except Exception as exc:
             await ctx.send(f"```py\n{exc.__class__.__name__}: {exc}\n```")
-            return await ctx.message.add_reaction("⁉️")
+            try:
+                return await ctx.message.add_reaction("⁉️")
+            except (discord.errors.NotFound, discord.errors.HTTPException):
+                return
 
         run_eval = env["func"]
         try:
@@ -140,37 +145,65 @@ class OwnerOnly(commands.Cog):
         except Exception:
             value = stdout.getvalue()
             paginated_text = paginate(f"{value}{traceback.format_exc()}")
+            pages = []
+            try:
+                await ctx.message.add_reaction("⁉️")
+                await ctx.message.add_reaction("⏳")
+            except (discord.errors.NotFound, discord.errors.HTTPException):
+                pass
             for page in paginated_text:
                 if page == paginated_text[-1]:
-                    await ctx.send(f"```py\n{page}\n```")
-                    break
-                await ctx.send(f"```py\n{page}\n```")
-            return await ctx.message.add_reaction("⁉️")
+                    pages.append(f"```py\n{page}\n```")
+            try:
+                await ctx.message.remove_reaction("⏳", ctx.me)
+            except (discord.errors.NotFound, discord.errors.HTTPException):
+                pass
+            session = MessagePaginatorSession(ctx, *pages, embed=embed)
+            return await session.run()
 
         else:
-            await ctx.message.add_reaction("✅")
+            try:
+                await ctx.message.add_reaction("✅")
+                await ctx.message.add_reaction("⏳")
+            except (discord.errors.NotFound, discord.errors.HTTPException):
+                pass
             value = stdout.getvalue()
+            pages = []
             if ret is None:
                 if value:
+                    paginated_text = paginate(value)
+                    for page in paginated_text:
+                        pages.append(f"```py\n{page}\n```")
                     try:
-                        await ctx.send(f"```py\n{value}\n```")
-                    except Exception:
-                        paginated_text = paginate(value)
-                        for page in paginated_text:
-                            if page == paginated_text[-1]:
-                                await ctx.send(f"```py\n{page}\n```")
-                                break
-                            await ctx.send(f"```py\n{page}\n```")
+                        await ctx.message.remove_reaction("⏳", ctx.me)
+                    except (discord.errors.NotFound, discord.errors.HTTPException):
+                        pass
+                    session = MessagePaginatorSession(ctx, *pages, embed=embed)
+                    await session.run()
             else:
                 try:
                     await ctx.send(f"```py\n{value}{ret}\n```")
                 except Exception:
                     paginated_text = paginate(f"{value}{ret}")
                     for page in paginated_text:
-                        if page == paginated_text[-1]:
-                            await ctx.send(f"```py\n{page}\n```")
-                            break
-                        await ctx.send(f"```py\n{page}\n```")
+                        pages.append(f"```py\n{page}\n```")
+                    try:
+                        await ctx.message.remove_reaction("⏳", ctx.me)
+                    except (discord.errors.NotFound, discord.errors.HTTPException):
+                        pass
+                    session = MessagePaginatorSession(ctx, *pages, embed=embed)
+                    await session.run()
+
+    @commands.command()
+    async def reload(self, ctx, ext):
+        try:
+            self.bot.reload_extension(f"cogs.{ext}")
+        except Exception:
+            await ctx.send(
+                "testùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùù"
+            )
+            raise
+        await ctx.send(f"Reloaded `{ext}`.")
 
 
 def setup(bot):

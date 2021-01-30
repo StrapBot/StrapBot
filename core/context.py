@@ -4,13 +4,23 @@ import json
 import discord
 from discord.ext import commands
 from core.voice import VoiceState
+from core.paginator import EmbedPaginatorSession
 
 
 class StrapContext(commands.Context):
     async def send(self, *msgs, **kwargs):
         reference = kwargs.pop("reference", self.message.to_reference())
         message = kwargs.pop("content", " ".join(str(msg) for msg in msgs))
-        return await super().send(message, reference=reference, **kwargs)
+        embeds = kwargs.pop("embeds", None)
+        if embeds:
+            session = EmbedPaginatorSession(self, *embeds)
+            return await session.run()
+        try:
+            ret = await super().send(message, reference=reference, **kwargs)
+        except discord.errors.HTTPException:
+            ret = await super().send(message, **kwargs)
+
+        return ret
 
     @property
     def voice_state(self):

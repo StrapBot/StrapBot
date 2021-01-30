@@ -257,7 +257,7 @@ class StrapBot(commands.Bot):
         ctx = await self.get_context(message)
 
         if self.user.id == 740140581174378527:
-            if message.channel.id == 792398761866952744: #guild-announcements
+            if message.channel.id == 792398761866952744:  # guild-announcements
                 if message.author.id != self.user.id:
                     await message.publish()
                 if (
@@ -265,7 +265,7 @@ class StrapBot(commands.Bot):
                     and not message.content.endswith("-np")
                 ):
                     await message.channel.send("<@&792399034174144512>")
-            elif message.channel.id == 779035653714214912: #announcements
+            elif message.channel.id == 779035653714214912:  # announcements
                 if message.author.id != self.user.id:
                     await message.publish()
                 if (
@@ -273,7 +273,7 @@ class StrapBot(commands.Bot):
                     and not message.content.endswith("-np")
                 ):
                     await message.channel.send("<@&792399102381260840>")
-            elif message.channel.id == 800809114736263189: #commits
+            elif message.channel.id == 800809114736263189:  # commits
                 await message.publish()
 
         allowed_guilds = [
