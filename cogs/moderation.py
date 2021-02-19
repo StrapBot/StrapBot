@@ -44,7 +44,7 @@ class Moderation(commands.Cog):
                     color=discord.Color.lighter_grey(),
                 )
             )
-        except discord.errors.Forbidden:
+        except discord.errors.HTTPException:
             embed = discord.Embed.from_dict(lang.embeds.error)
             embed.color = discord.Color.red()
             await ctx.send(embed=embed)
@@ -136,7 +136,7 @@ class Moderation(commands.Cog):
 
         try:
             await member.send(msg)
-        except discord.errors.Forbidden:
+        except discord.errors.HTTPException:
             return await ctx.send(
                 embed=discord.Embed(
                     title="Logg" + ("ato" if lang.current == "it" else "ed"),
@@ -180,12 +180,12 @@ class Moderation(commands.Cog):
 
         try:
             mesage = await member.send(msg)
-        except discord.errors.Forbidden:
+        except discord.errors.HTTPException:
             mesage = None
 
         try:
             await member.kick(reason=reason)
-        except discord.errors.Forbidden:
+        except discord.errors.HTTPException:
             if mesage != None:
                 await mesage.delete()
             return await ctx.send(
@@ -246,12 +246,12 @@ class Moderation(commands.Cog):
 
         try:
             mesage = await member.send(msg)
-        except discord.errors.Forbidden:
+        except discord.errors.HTTPException:
             mesage = None
 
         try:
             await member.ban(reason=reason, delete_message_days=0)
-        except discord.errors.Forbidden:
+        except discord.errors.HTTPException:
             if mesage != None:
                 await mesage.delete()
             return await ctx.send(
@@ -329,12 +329,12 @@ class Moderation(commands.Cog):
 
         try:
             mesage = await member.send(msg)
-        except discord.errors.Forbidden:
+        except discord.errors.HTTPException:
             mesage = None
 
         try:
             await member.add_roles(role, reason=reason)
-        except discord.errors.Forbidden:
+        except discord.errors.HTTPException:
             if mesage != None:
                 await mesage.delete()
             return await ctx.send(
@@ -405,7 +405,7 @@ class Moderation(commands.Cog):
 
         try:
             await member.remove_roles(role, reason=reason)
-        except discord.errors.Forbidden:
+        except discord.errors.HTTPException:
             return await ctx.send(
                 embed=discord.Embed(
                     title="Error" + ("e" if lang.current == "it" else ""),
@@ -489,7 +489,7 @@ class Moderation(commands.Cog):
 
                 await new_channel.edit(position=channel_position)
                 await channel.delete()
-            except discord.errors.Forbidden:
+            except discord.errors.HTTPException:
                 return await ctx.send(
                     embed=discord.Embed(
                         title="Error" + ("e" if lang.current == "it" else ""),
@@ -555,7 +555,7 @@ class Moderation(commands.Cog):
         try:
             await ctx.message.delete()
             await ctx.channel.purge(limit=amount)
-        except discord.errors.Forbidden:
+        except discord.errors.HTTPException:
             return await ctx.send(
                 embed=discord.Embed(
                     title="Error" + ("e" if lang.current == "it" else ""),
