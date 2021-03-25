@@ -6,7 +6,7 @@ import typing
 import asyncio
 
 from discord import User, Reaction, Message, Embed
-from discord import HTTPException, InvalidArgument, NotFound
+from discord import HTTPException, InvalidArgument, NotFound, Forbidden
 from discord.ext import commands
 
 
@@ -187,7 +187,7 @@ class PaginatorSession:
                 await self.show_page(num)
                 try:
                     await msg.delete()
-                except discord.errors.Forbidden:
+                except Forbidden:
                     pass
         except asyncio.TimeoutError:
             await self.show_page(0)

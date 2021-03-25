@@ -9,7 +9,7 @@ class HelpCommand(commands.HelpCommand):
     async def send_bot_help(self, mapping):
         ctx = self.context
         bot = ctx.bot
-        lang = await ctx.get_lang()
+        lang = ctx.lang
         prefix = self.clean_prefix
         ergastolator = discord.utils.get(bot.get_all_members(), id=602819090012176384)
         vincy = discord.utils.get(bot.get_all_members(), id=726381259332386867)
@@ -50,7 +50,9 @@ class HelpCommand(commands.HelpCommand):
             embed.add_field(name=cog_name, value="".join(commands), inline=True)
 
         await self.get_destination().send(
-            reference=self.context.message.to_reference(), embed=embed
+            reference=self.context.message.reference
+            or self.context.message.to_reference(),
+            embed=embed,
         )
 
     async def _get_help_embed(self, topic):
@@ -111,7 +113,8 @@ class HelpCommand(commands.HelpCommand):
             )
 
         await self.get_destination().send(
-            reference=self.context.message.to_reference(),
+            reference=self.context.message.reference
+            or self.context.message.to_reference(),
             embed=discord.Embed(
                 description=cog.description, color=discord.Color.lighter_grey()
             )
@@ -129,7 +132,9 @@ class HelpCommand(commands.HelpCommand):
         topic = await self._get_help_embed(command)
         if topic is not None:
             await self.get_destination().send(
-                reference=self.context.message.to_reference(), embed=topic
+                reference=self.context.message.reference
+                or self.context.message.to_reference(),
+                embed=topic,
             )
 
     async def send_group_help(self, group):
@@ -150,7 +155,9 @@ class HelpCommand(commands.HelpCommand):
             embed.add_field(name="Subcommands", value=format_[:1024], inline=False)
 
         await self.get_destination().send(
-            reference=self.context.message.to_reference(), embed=embed
+            reference=self.context.message.reference
+            or self.context.message.to_reference(),
+            embed=embed,
         )
 
     async def send_error_message(self, error):
@@ -178,5 +185,7 @@ class HelpCommand(commands.HelpCommand):
         else:
             embed.title = "Could not find command or category."
         await self.get_destination().send(
-            reference=self.context.message.to_reference(), embed=embed
+            reference=self.context.message.reference
+            or self.context.message.to_reference(),
+            embed=embed,
         )

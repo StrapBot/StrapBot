@@ -34,28 +34,7 @@ class MongoDB:
 
     async def setup_indexes(self):
         """Setup text indexes so we can use the $search operator"""
-        coll = self.db.logs
-        index_name = "messages.content_text_messages.author.name_text_key_text"
-
-        index_info = await coll.index_information()
-
-        # Backwards compatibility
-        old_index = "messages.content_text_messages.author.name_text"
-        if old_index in index_info:
-            self.bot.logger.info("Dropping old index: %s", old_index)
-            await coll.drop_index(old_index)
-
-        if index_name not in index_info:
-            self.bot.logger.info('Creating "text" index for logs collection.')
-            self.bot.logger.info("Name: %s", index_name)
-            await coll.create_index(
-                [
-                    ("messages.content", "text"),
-                    ("messages.author.name", "text"),
-                    ("key", "text"),
-                ]
-            )
-        self.bot.logger.debug("Successfully configured and verified database indexes.")
+        ...
 
     async def validate_database_connection(self):
         try:
@@ -85,6 +64,7 @@ class MongoDB:
                     "to only include alphanumeric characters, no symbols."
                     ""
                 )
+            raise
 
     def get_cog_partition(self, cog):
         cls_name = cog.__class__.__name__

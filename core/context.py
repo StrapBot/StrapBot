@@ -3,17 +3,26 @@ import json
 import discord
 from discord.ext import commands
 from core.voice import VoiceState
-from core.paginator import EmbedPaginatorSession
+from core.paginator import EmbedPaginatorSession, MessagePaginatorSession
 from core.languages import Language
 
 
 class StrapContext(commands.Context):
+    message: discord.Message
+    author: discord.Member
+
     async def send(self, *msgs, **kwargs):
-        reference = kwargs.pop("reference", self.message.to_reference())
+        reference = self.message.reference or self.message.to_reference()
+        reference = kwargs.pop("reference", reference)
         message = kwargs.pop("content", " ".join(str(msg) for msg in msgs))
         embeds = kwargs.pop("embeds", None)
+        messages = kwargs.pop("messages", None)
         if embeds:
             session = EmbedPaginatorSession(self, *embeds)
+            return await session.run()
+        elif messages:
+            embed = kwargs.pop("embed", None)
+            session = MessagePaginatorSession(self, *messages, embed=embed)
             return await session.run()
         try:
             ret = await super().send(message, reference=reference, **kwargs)
@@ -49,18 +58,23 @@ class StrapContext(commands.Context):
         ret = json.load(open(f"core/languages/{current}.json"))
 
         if cogs:
-            ret = ret["cogs"]
+            ret = ret.get("cogs", {})
         elif cog:
             if cls == None:
                 raise RuntimeError("No class specified.")
 
-            ret = ret["cogs"][cls]
+            ret = ret.get("cogs", {}).get(cls, {})
         elif all:
             ret = ret
         else:
             if cls == None:
                 raise RuntimeError("No class specified.")
-            ret = ret["cogs"][cls]["commands"][self.command.qualified_name]
+            ret = (
+                ret.get("cogs", {})
+                .get(cls, {})
+                .get("commands", {})
+                .get(self.command.qualified_name, {})
+            )
 
         ret["current"] = current
         ret = Language(ret)

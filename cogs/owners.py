@@ -174,10 +174,6 @@ class OwnerOnly(commands.Cog):
                     paginated_text = paginate(value)
                     for page in paginated_text:
                         pages.append(f"```py\n{page}\n```")
-                    try:
-                        await ctx.message.remove_reaction("⏳", ctx.me)
-                    except (discord.errors.NotFound, discord.errors.HTTPException):
-                        pass
                     session = MessagePaginatorSession(ctx, *pages, embed=embed)
                     await session.run()
             else:
@@ -187,12 +183,13 @@ class OwnerOnly(commands.Cog):
                     paginated_text = paginate(f"{value}{ret}")
                     for page in paginated_text:
                         pages.append(f"```py\n{page}\n```")
-                    try:
-                        await ctx.message.remove_reaction("⏳", ctx.me)
-                    except (discord.errors.NotFound, discord.errors.HTTPException):
-                        pass
                     session = MessagePaginatorSession(ctx, *pages, embed=embed)
                     await session.run()
+
+            try:
+                await ctx.message.remove_reaction("⏳", ctx.me)
+            except (discord.errors.NotFound, discord.errors.HTTPException):
+                pass
 
     @commands.command()
     async def reload(self, ctx, ext):

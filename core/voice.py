@@ -160,7 +160,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
         bot = ctx.bot
         channel = ctx.channel
         loop = loop or asyncio.get_event_loop()
-        lang = await ctx.get_lang()
 
         cls.search_query = "%s%s:%s" % ("ytsearch", 10, "".join(search))
 
@@ -170,7 +169,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         info = await loop.run_in_executor(None, partial)
 
         cls.search = {}
-        cls.search["title"] = f"{lang['results']}:\n**{search}**"
+        cls.search["title"] = f"{ctx.lang['results']}:\n**{search}**"
         cls.search["type"] = "rich"
         cls.search["color"] = 7506394
         cls.search["author"] = {
@@ -191,7 +190,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
             VUrl = "https://www.youtube.com/watch?v=%s" % (VId)
             lst.append(f'`{i + 1}.` [{e.get("title")}]({VUrl})\n')
 
-        lst.append(lang["choose"])
+        lst.append(ctx.lang["choose"])
         cls.search["description"] = "\n".join(lst)
 
         em = discord.Embed.from_dict(cls.search)

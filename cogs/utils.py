@@ -53,11 +53,10 @@ class Utilities(commands.Cog):
     @commands.command(pass_context=True)
     async def ping(self, ctx):
         """Shows ping."""
-        lang = await ctx.get_lang()
         return await ctx.send(
             embed=discord.Embed(
                 title="Pong!",
-                description=f"{lang['latency']}: {round(self.bot.latency*1000)} ms",
+                description=f"{ctx.lang['latency']}: {round(self.bot.latency*1000)} ms",
                 color=discord.Color.lighter_grey(),
             )
             .set_footer(
@@ -74,11 +73,10 @@ class Utilities(commands.Cog):
     @commands.command(aliases=["guilds"])
     async def servers(self, ctx):
         """Returns the total number of servers I'm in."""
-        lang = await ctx.get_lang()
         return await ctx.send(
             embed=discord.Embed(
-                title=lang["title"],
-                description=lang["description_"].format(len(self.bot.guilds)),
+                title=ctx.lang["title"],
+                description=ctx.lang["description_"].format(len(self.bot.guilds)),
                 color=discord.Color.lighter_grey(),
             )
             .set_footer(
@@ -95,11 +93,10 @@ class Utilities(commands.Cog):
     @commands.command()
     async def invite(self, ctx):
         """Invite me on your servers!"""
-        lang = await ctx.get_lang()
         return await ctx.send(
             embed=discord.Embed(
-                title=lang["title"],
-                description=lang["description_"],
+                title=ctx.lang["title"],
+                description=ctx.lang["description_"],
                 color=discord.Color.lighter_grey(),
             )
             .set_footer(

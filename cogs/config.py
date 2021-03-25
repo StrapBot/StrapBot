@@ -44,8 +44,7 @@ class Config(commands.Cog):
 
         await self.bot.lang.set_user(ctx.author.id, lang=lang)
 
-        lang_ = await ctx.get_lang()
-        embed = discord.Embed.from_dict(lang_["embed"])
+        embed = discord.Embed.from_dict(ctx.lang["embed"])
         embed.color = discord.Color.lighter_grey()
 
         return await ctx.send(embed=embed)
@@ -65,8 +64,8 @@ class Config(commands.Cog):
 
         await self.bot.lang.set_guild(ctx.guild.id, ctx.author.id, lang=lang)
 
-        _lang_ = await ctx.get_lang()
-        embed = discord.Embed.from_dict(_lang_["embed"])
+        ctx.lang = await ctx.get_lang()
+        embed = discord.Embed.from_dict(ctx.lang["embed"])
         embed.color = discord.Color.lighter_grey()
 
         return await ctx.send(embed=embed)

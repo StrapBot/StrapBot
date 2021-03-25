@@ -33,19 +33,18 @@ class Moderation(commands.Cog):
     @commands.has_permissions(manage_channels=True)
     async def setlog(self, ctx, channel: discord.TextChannel = None):
         """Sets up a log channel."""
-        lang = await ctx.get_lang()
         if channel == None:
             return await ctx.send_help(ctx.command)
 
         try:
             await channel.send(
                 embed=discord.Embed(
-                    description=lang.test,
+                    description=ctx.lang.test,
                     color=discord.Color.lighter_grey(),
                 )
             )
         except discord.errors.HTTPException:
-            embed = discord.Embed.from_dict(lang.embeds.error)
+            embed = discord.Embed.from_dict(ctx.lang.embeds.error)
             embed.color = discord.Color.red()
             await ctx.send(embed=embed)
         else:
@@ -54,7 +53,7 @@ class Moderation(commands.Cog):
                 {"$set": {str(ctx.guild.id): channel.id}},
                 upsert=True,
             )
-            embed = discord.Embed.from_dict(lang.embeds.success)
+            embed = discord.Embed.from_dict(ctx.lang.embeds.success)
             embed.description = embed.description.format(channel.mention)
             embed.color = discord.Color.lighter_grey()
             await ctx.send(embed=embed)
@@ -63,7 +62,6 @@ class Moderation(commands.Cog):
     @commands.has_permissions(manage_roles=True)
     async def muterole(self, ctx, role: discord.Role = None):
         """Sets up the muted role."""
-        lang = await ctx.get_lang()
         if role is None:
             if (await self.db.find_one({"_id": "muterole"})) is not None:
                 if (
@@ -74,12 +72,12 @@ class Moderation(commands.Cog):
                 ):
                     return await ctx.send(
                         embed=discord.Embed(
-                            title="Error" + ("e" if lang.current == "it" else ""),
-                            description=lang.error,
+                            title="Error" + ("e" if ctx.lang.current == "it" else ""),
+                            description=ctx.lang.error,
                             color=discord.Color.red(),
-                        ).set_footer(text=lang.error_footer)
+                        ).set_footer(text=ctx.lang.error_footer)
                     )
-            role = await ctx.guild.create_role(name=lang.name)
+            role = await ctx.guild.create_role(name=ctx.lang.name)
 
         await self.db.find_one_and_update(
             {"_id": "muterole"}, {"$set": {str(ctx.guild.id): role.id}}, upsert=True
@@ -87,8 +85,8 @@ class Moderation(commands.Cog):
 
         await ctx.send(
             embed=discord.Embed(
-                title=lang.success,
-                description=lang.done.format(role.mention),
+                title=ctx.lang.success,
+                description=ctx.lang.done.format(role.mention),
                 color=discord.Color.lighter_grey(),
             )
         )
@@ -99,7 +97,6 @@ class Moderation(commands.Cog):
         """
         Warns the specified member.
         """
-        lang = await ctx.get_lang()
         user_lang = await self.bot.lang.fetch_user_lang(ctx, member.id)
         guild_lang = await self.bot.lang.fetch_guild_lang(ctx)
         if member == None:
@@ -115,7 +112,7 @@ class Moderation(commands.Cog):
                 reason = reason + "."
 
         case = await self.get_case(ctx)
-        case = lang.case.format(case)
+        case = ctx.lang.case.format(case)
         guild_case_ = await self.get_guild_case(ctx)
         guild_case = guild_lang.case.format(guild_case_)
 
@@ -139,16 +136,16 @@ class Moderation(commands.Cog):
         except discord.errors.HTTPException:
             return await ctx.send(
                 embed=discord.Embed(
-                    title="Logg" + ("ato" if lang.current == "it" else "ed"),
-                    description=lang.logged.format(str(member)),
+                    title="Logg" + ("ato" if ctx.lang.current == "it" else "ed"),
+                    description=ctx.lang.logged.format(str(member)),
                     color=discord.Color.lighter_grey(),
                 ).set_footer(text=case)
             )
 
         await ctx.send(
             embed=discord.Embed(
-                title=lang.success,
-                description=lang.done.format(str(member)),
+                title=ctx.lang.success,
+                description=ctx.lang.done.format(str(member)),
                 color=discord.Color.lighter_grey(),
             ).set_footer(text=case)
         )
@@ -157,7 +154,6 @@ class Moderation(commands.Cog):
     @commands.has_permissions(kick_members=True)
     async def kick(self, ctx, member: discord.Member = None, *, reason=None):
         """Kicks the specified member."""
-        lang = await ctx.get_lang()
         if member == None:
             return await ctx.send_help(ctx.command)
 
@@ -190,14 +186,14 @@ class Moderation(commands.Cog):
                 await mesage.delete()
             return await ctx.send(
                 embed=discord.Embed(
-                    title="Error" + ("e" if lang.current == "it" else ""),
-                    description=lang.error,
+                    title="Error" + ("e" if ctx.lang.current == "it" else ""),
+                    description=ctx.lang.error,
                     color=discord.Color.red(),
-                ).set_footer(text=lang.fix)
+                ).set_footer(text=ctx.lang.fix)
             )
 
         case = await self.get_case(ctx)
-        case = lang.case.format(case)
+        case = ctx.lang.case.format(case)
         guild_case_ = await self.get_guild_case(ctx)
         guild_case = guild_lang.case.format(guild_case_)
 
@@ -213,8 +209,8 @@ class Moderation(commands.Cog):
 
         await ctx.send(
             embed=discord.Embed(
-                title=lang.success,
-                description=lang.done.format(str(member)),
+                title=ctx.lang.success,
+                description=ctx.lang.done.format(str(member)),
                 color=discord.Color.lighter_grey(),
             ).set_footer(text=case)
         )
@@ -223,7 +219,6 @@ class Moderation(commands.Cog):
     @commands.has_permissions(ban_members=True)
     async def ban(self, ctx, member: discord.Member = None, *, reason=None):
         """Bans the specified member."""
-        lang = await ctx.get_lang()
         if member == None:
             return await ctx.send_help(ctx.command)
 
@@ -256,14 +251,14 @@ class Moderation(commands.Cog):
                 await mesage.delete()
             return await ctx.send(
                 embed=discord.Embed(
-                    title="Error" + ("e" if lang.current == "it" else ""),
-                    description=lang.error,
+                    title="Error" + ("e" if ctx.lang.current == "it" else ""),
+                    description=ctx.lang.error,
                     color=discord.Color.red(),
-                ).set_footer(text=lang.fix)
+                ).set_footer(text=ctx.lang.fix)
             )
 
         case = await self.get_case(ctx)
-        case = lang.case.format(case)
+        case = ctx.lang.case.format(case)
         guild_case_ = await self.get_guild_case(ctx)
         guild_case = guild_lang.case.format(guild_case_)
 
@@ -279,8 +274,8 @@ class Moderation(commands.Cog):
 
         await ctx.send(
             embed=discord.Embed(
-                title=lang.success,
-                description=lang.done.format(str(member)),
+                title=ctx.lang.success,
+                description=ctx.lang.done.format(str(member)),
                 color=discord.Color.lighter_grey(),
             ).set_footer(text=case)
         )
@@ -289,7 +284,6 @@ class Moderation(commands.Cog):
     @commands.has_permissions(manage_roles=True)
     async def mute(self, ctx, member: discord.Member = None, *, reason=None):
         """Mutes the specified member."""
-        lang = await ctx.get_lang()
         if member == None:
             return await ctx.send_help(ctx.command)
         role = await self.db.find_one({"_id": "muterole"})
@@ -313,8 +307,8 @@ class Moderation(commands.Cog):
         if no_role:
             return await ctx.send(
                 embed=discord.Embed(
-                    title="Error" + ("e" if lang.current == "it" else ""),
-                    description=lang.notset.format(ctx.prefix),
+                    title="Error" + ("e" if ctx.lang.current == "it" else ""),
+                    description=ctx.lang.notset.format(ctx.prefix),
                     color=discord.Color.red(),
                 )
             )
@@ -339,14 +333,14 @@ class Moderation(commands.Cog):
                 await mesage.delete()
             return await ctx.send(
                 embed=discord.Embed(
-                    title="Error" + ("e" if lang.current == "it" else ""),
-                    description=lang.error,
+                    title="Error" + ("e" if ctx.lang.current == "it" else ""),
+                    description=ctx.lang.error,
                     color=discord.Color.red(),
-                ).set_footer(text=lang.fix)
+                ).set_footer(text=ctx.lang.fix)
             )
 
         case = await self.get_case(ctx)
-        case = lang.case.format(case)
+        case = ctx.lang.case.format(case)
         guild_case_ = await self.get_guild_case(ctx)
         guild_case = guild_lang.case.format(guild_case_)
 
@@ -362,8 +356,8 @@ class Moderation(commands.Cog):
 
         await ctx.send(
             embed=discord.Embed(
-                title=lang.success,
-                description=lang.done.format(str(member)),
+                title=ctx.lang.success,
+                description=ctx.lang.done.format(str(member)),
                 color=discord.Color.lighter_grey(),
             ).set_footer(text=case)
         )
@@ -372,7 +366,6 @@ class Moderation(commands.Cog):
     @commands.has_permissions(manage_roles=True)
     async def unmute(self, ctx, member: discord.Member = None, *, reason=None):
         """Unmutes the specified member."""
-        lang = await ctx.get_lang()
         guild_lang = await self.bot.lang.fetch_guild_lang(ctx)
         if member == None:
             return await ctx.send_help(ctx.command)
@@ -397,8 +390,8 @@ class Moderation(commands.Cog):
         if no_role:
             return await ctx.send(
                 embed=discord.Embed(
-                    title="Error" + ("e" if lang.current == "it" else ""),
-                    description=lang.notset(),
+                    title="Error" + ("e" if ctx.lang.current == "it" else ""),
+                    description=ctx.lang.notset(),
                     color=discord.Color.red(),
                 )
             )
@@ -408,14 +401,14 @@ class Moderation(commands.Cog):
         except discord.errors.HTTPException:
             return await ctx.send(
                 embed=discord.Embed(
-                    title="Error" + ("e" if lang.current == "it" else ""),
-                    description=lang.error,
+                    title="Error" + ("e" if ctx.lang.current == "it" else ""),
+                    description=ctx.lang.error,
                     color=discord.Color.red(),
-                ).set_footer(text=lang.fix)
+                ).set_footer(text=ctx.lang.fix)
             )
 
         case = await self.get_case(ctx)
-        case = lang.case.format(case)
+        case = ctx.lang.case.format(case)
         guild_case_ = await self.get_guild_case(ctx)
         guild_case = guild_lang.case.format(guild_case_)
         fp = "per" if guild_lang.current == "it" else "for"
@@ -432,8 +425,8 @@ class Moderation(commands.Cog):
 
         await ctx.send(
             embed=discord.Embed(
-                title=lang.success,
-                description=lang.done.format(str(member)),
+                title=ctx.lang.success,
+                description=ctx.lang.done.format(str(member)),
                 color=discord.Color.lighter_grey(),
             ).set_footer(text=case)
         )
@@ -445,41 +438,40 @@ class Moderation(commands.Cog):
         Nukes (deletes EVERY message in) a channel.
         You can mention a channel to nuke that one instead.
         """
-        lang = await ctx.get_lang()
         guild_lang = await self.bot.lang.fetch_guild_lang(ctx)
         if channel == None:
             channel = ctx.channel
-        tot = lang.this if channel.id == ctx.channel.id else lang.that
-        embed = discord.Embed.from_dict(lang.embeds.confirm)
+        tot = ctx.lang.this if channel.id == ctx.channel.id else ctx.lang.that
+        embed = discord.Embed.from_dict(ctx.lang.embeds.confirm)
         embed.description = embed.description.format(tot)
         embed.color = discord.Color.red()
         message = await ctx.send(embed=embed)
 
         def surecheck(m):
-            return m.author == ctx.message.author
+            return m.author == ctx.author
 
         try:
             sure = await self.bot.wait_for("message", check=surecheck, timeout=30)
         except asyncio.TimeoutError:
             await message.edit(
                 embed=discord.Embed(
-                    title=lang.aborted, color=discord.Color.lighter_grey()
+                    title=ctx.lang.aborted, color=discord.Color.lighter_grey()
                 )
             )
             ensured = False
         else:
-            if sure.content == lang.yes:
+            if sure.content == ctx.lang.yes:
                 ensured = True
             else:
                 await message.edit(
                     embed=discord.Embed(
-                        title=lang.aborted, color=discord.Color.lighter_grey()
+                        title=ctx.lang.aborted, color=discord.Color.lighter_grey()
                     )
                 )
                 ensured = False
         if ensured:
-            case_ = await self.get_case(ctx)
-            case = lang.case.format(case)
+            case = await self.get_case(ctx)
+            case = ctx.lang.case.format(case)
             guild_case = guild_lang.case.format(case)
 
             channel_position = channel.position
@@ -492,16 +484,16 @@ class Moderation(commands.Cog):
             except discord.errors.HTTPException:
                 return await ctx.send(
                     embed=discord.Embed(
-                        title="Error" + ("e" if lang.current == "it" else ""),
-                        description=lang.error.format(tot),
+                        title="Error" + ("e" if ctx.lang.current == "it" else ""),
+                        description=ctx.lang.error.format(tot),
                         color=discord.Color.red(),
-                    ).set_footer(text=lang.fix)
+                    ).set_footer(text=ctx.lang.fix)
                 )
 
             await new_channel.send(
                 embed=discord.Embed(
                     title="Nuke",
-                    description=lang.nuked,
+                    description=ctx.lang.nuked,
                     color=discord.Color.lighter_grey(),
                 )
                 .set_image(
@@ -523,7 +515,6 @@ class Moderation(commands.Cog):
     @commands.has_permissions(manage_messages=True)
     async def purge(self, ctx, amount: int = 1):
         """Purge the specified amount of messages."""
-        lang = await ctx.get_lang()
         guild_lang = await self.bot.lang.fetch_guild_lang(ctx)
         max = 2000
         if amount <= 0:
@@ -538,18 +529,18 @@ class Moderation(commands.Cog):
 
             return await ctx.send(
                 embed=discord.Embed(
-                    title="Error" + ("e" if lang.current == "it" else ""),
-                    description=lang.lt1,
+                    title="Error" + ("e" if ctx.lang.current == "it" else ""),
+                    description=ctx.lang.lt1,
                     color=discord.Color.red(),
                 )
             )
         if amount > max:
             return await ctx.send(
                 embed=discord.Embed(
-                    title="Error" + ("e" if lang.current == "it" else ""),
-                    description=lang.ut2,
+                    title="Error" + ("e" if ctx.lang.current == "it" else ""),
+                    description=ctx.lang.ut2,
                     color=discord.Color.red(),
-                ).set_footer(text=lang.use_nuke.format(ctx.prefix))
+                ).set_footer(text=ctx.lang.use_nuke.format(ctx.prefix))
             )
 
         try:
@@ -558,17 +549,17 @@ class Moderation(commands.Cog):
         except discord.errors.HTTPException:
             return await ctx.send(
                 embed=discord.Embed(
-                    title="Error" + ("e" if lang.current == "it" else ""),
-                    description=lang.error,
+                    title="Error" + ("e" if ctx.lang.current == "it" else ""),
+                    description=ctx.lang.error,
                     color=discord.Color.red(),
-                ).set_footer(text=lang.fix)
+                ).set_footer(text=ctx.lang.fix)
             )
 
         case = await self.get_case(ctx)
-        case = lang.case.format(case)
+        case = ctx.lang.case.format(case)
         guild_case_ = await self.get_guild_case(ctx)
         guild_case = guild_lang.case.format(guild_case_)
-        messages = lang.message if amount == 1 else lang.messages
+        messages = ctx.lang.message if amount == 1 else ctx.lang.messages
         messages_ = guild_lang.message if amount == 1 else guild_lang.messages
         have = guild_lang.have if amount == 1 else guild_lang.has
 
@@ -583,15 +574,15 @@ class Moderation(commands.Cog):
 
         await ctx.send(
             embed=discord.Embed(
-                title=lang.success,
-                description=lang.done.format(amount, messages),
+                title=ctx.lang.success,
+                description=ctx.lang.done.format(amount, messages),
                 color=discord.Color.lighter_grey(),
             ).set_footer(text=case)
         )
 
     async def get_case(self, ctx):
         """Gives the case number."""
-        lang = (await ctx.get_lang()).current
+        lang = (ctx.lang).current
         num = await self.db.find_one({"_id": "cases"})
         if num == None:
             num = 0
@@ -608,7 +599,7 @@ class Moderation(commands.Cog):
         suffix = ["th", "st", "nd", "rd", "th"][min(num % 10, 4)]
         if 11 <= (num % 100) <= 13:
             suffix = "th"
-        if lang == "it":
+        if ctx.lang == "it":
             suffix = ""
             prefix = "n°"
         return f"{prefix}{num}{suffix}"
@@ -632,7 +623,7 @@ class Moderation(commands.Cog):
         suffix = ["th", "st", "nd", "rd", "th"][min(num % 10, 4)]
         if 11 <= (num % 100) <= 13:
             suffix = "th"
-        if lang == "it":
+        if ctx.lang == "it":
             suffix = ""
             prefix = "n°"
         return f"{prefix}{num}{suffix}"

@@ -88,8 +88,11 @@ class StrapBot(commands.Bot):
                     f"Could not load extension {extension}", exc_info=True
                 )
 
-    async def get_context(self, message, *, cls=StrapContext):
-        return await super().get_context(message, cls=cls)
+    async def get_context(self, message, *, cls: commands.Context = StrapContext):
+        ctx: StrapContext = await super().get_context(message, cls=cls)
+        if ctx.command:
+            ctx.lang = await ctx.get_lang()
+        return ctx
 
     def prefix(self, bot, message):
         pxs = []
