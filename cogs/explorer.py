@@ -3,7 +3,7 @@ import random
 from discord.ext import commands
 
 
-class FileExplorer(commands.Cog):
+class FileExplorer(commands.Cog, name="File Explorer (beta)"):
     def __init__(self, bot):
         self.bot = bot
         self.db = bot.db.get_cog_partition(self)

@@ -13,7 +13,7 @@ class HelpCommand(commands.HelpCommand):
         prefix = self.clean_prefix
         ergastolator = discord.utils.get(bot.get_all_members(), id=602819090012176384)
         vincy = discord.utils.get(bot.get_all_members(), id=726381259332386867)
-        cogs = [bot.get_cog("Fun"), bot.get_cog("Moderation"), bot.get_cog("Music")]
+        cogs = [bot.get_cog("Fun"), bot.get_cog("Moderation"), bot.get_cog("Music"), bot.get_cog("File Explorer (beta)")]
         random.shuffle(cogs)
         cogs.append(bot.get_cog("Utilities"))
         embed = discord.Embed.from_dict(lang["embed"])
