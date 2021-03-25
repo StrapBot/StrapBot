@@ -3,6 +3,7 @@ import json
 import random
 from discord.ext import commands
 from difflib import get_close_matches
+from core.paginator import EmbedPaginatorSession as EPS
 
 
 class HelpCommand(commands.HelpCommand):
@@ -13,39 +14,44 @@ class HelpCommand(commands.HelpCommand):
         prefix = self.clean_prefix
         ergastolator = discord.utils.get(bot.get_all_members(), id=602819090012176384)
         vincy = discord.utils.get(bot.get_all_members(), id=726381259332386867)
-        cogs = [bot.get_cog("Fun"), bot.get_cog("Moderation"), bot.get_cog("Music"), bot.get_cog("File Explorer (beta)")]
+        cogs = [
+            [bot.get_cog("Fun"), bot.get_cog("Moderation")],
+            [bot.get_cog("Music"), bot.get_cog("File Explorer (beta)")],
+        ]
         random.shuffle(cogs)
-        cogs.append(bot.get_cog("Utilities"))
-        embed = discord.Embed.from_dict(lang["embed"])
-        embed.color = discord.Color.lighter_grey()
-        embed.description = embed.description.format(prefix=prefix)
-        embed.set_footer(
-            text=embed.footer.text.format(vincy=vincy, ergastolator=ergastolator),
-            icon_url=embed.footer.icon_url,
-        )
-        for cog in cogs:
-            lang_ = await ctx.get_lang(cog, cog=True)
-            commands = []
-            for command in await self.filter_commands(
-                cog.get_commands(),
-                sort=True,
-            ):
-                cmd = lang_.get("commands", {}).get(command.qualified_name, {"description": command.short_doc})
-                if command.qualified_name != "help":
-                    commands.append(
-                        f"**{prefix + command.qualified_name}** "
-                        + f"- {cmd['description']}\n"
+        cogs.append([bot.get_cog("Utilities")])
+        embeds = []
+        for cog_group in cogs:
+            embed = discord.Embed.from_dict(lang["embed"])
+            embed.color = discord.Color.lighter_grey()
+            embed.description = embed.description.format(prefix=prefix)
+            embed.set_footer(
+                text=embed.footer.text.format(vincy=vincy, ergastolator=ergastolator),
+                icon_url=embed.footer.icon_url,
+            )
+            for cog in cog_group:
+                lang_ = await ctx.get_lang(cog, cog=True)
+                commands = []
+                for command in await self.filter_commands(
+                    cog.get_commands(),
+                    sort=True,
+                ):
+                    cmd = lang_.get("commands", {}).get(
+                        command.qualified_name, {"description": command.short_doc}
                     )
+                    if command.qualified_name != "help":
+                        commands.append(
+                            f"**{prefix + command.qualified_name}** "
+                            + f"- {cmd['description']}\n"
+                        )
 
-            cog_name = lang_["name"] if "name" in lang else cog.qualified_name
+                cog_name = lang_["name"] if "name" in lang else cog.qualified_name
 
-            embed.add_field(name=cog_name, value="".join(commands), inline=True)
+                embed.add_field(name=cog_name, value="".join(commands), inline=True)
+            embeds.append(embed)
 
-        await self.get_destination().send(
-            reference=self.context.message.reference
-            or self.context.message.to_reference(),
-            embed=embed,
-        )
+        session = EPS(self.context, *embeds, destination=self.get_destination())
+        return await session.run()
 
     async def _get_help_embed(self, topic):
         if not await self.filter_commands([topic]):
@@ -63,8 +69,11 @@ class HelpCommand(commands.HelpCommand):
         else:
             ret = json.load(open(f"core/languages/{self.bot.lang.default}.json"))
 
-        lang = ret.get("cogs", {}).get(topic.cog.__class__.__name__, {}).get("commands").get(
-            topic.qualified_name, {"description": topic.short_doc}
+        lang = (
+            ret.get("cogs", {})
+            .get(topic.cog.__class__.__name__, {})
+            .get("commands")
+            .get(topic.qualified_name, {"description": topic.short_doc})
         )
         ulang = await self.context.get_lang()
 

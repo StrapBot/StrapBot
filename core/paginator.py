@@ -258,7 +258,11 @@ class EmbedPaginatorSession(PaginatorSession):
             raise TypeError("Page must be an Embed object.")
 
     async def _create_base(self, item: Embed) -> None:
-        self.base = await self.destination.send(embed=item)
+        self.base = await self.destination.send(
+            embed=item,
+            reference=self.ctx.message.reference
+            or self.ctx.message.to_reference(),
+        )
 
     async def _show_page(self, page):
         await self.base.edit(content=None, embed=page)

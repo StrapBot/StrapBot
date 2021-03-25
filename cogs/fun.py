@@ -154,7 +154,9 @@ class Fun(commands.Cog):
         if outcome is True:
             await ctx.send(f"{bot_choice.value} {ctx.lang['win']} {author.mention}!")
         elif outcome is False:
-            await ctx.send(f"{bot_choice.value} {ctx.langlang['lose']} {author.mention}!")
+            await ctx.send(
+                f"{bot_choice.value} {ctx.langlang['lose']} {author.mention}!"
+            )
         else:
             await ctx.send(f"{bot_choice.value} {ctx.lang['square']} {author.mention}!")
 

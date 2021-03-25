@@ -167,13 +167,14 @@ class Music(commands.Cog):
     async def _volume(self, ctx: commands.Context, *, volume: int = None):
         """Sets the player's volume."""
 
-
         if not ctx.voice_state.is_playing:
             return await ctx.send(ctx.lang["nothing"])
 
         if volume == None:
             return await ctx.send(
-                ctx.lang["info"].format(round(ctx.voice_state.current.source.volume * 100))
+                ctx.lang["info"].format(
+                    round(ctx.voice_state.current.source.volume * 100)
+                )
             )
 
         if volume < 1 or volume > 100:

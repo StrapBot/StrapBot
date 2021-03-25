@@ -177,7 +177,7 @@ class FileExplorer(commands.Cog, name="File Explorer (beta)"):
                 )
 
             if tg[-1] != "/":
-                if (isinstance(files_[tg[-1]], dict) and not _dirs):
+                if isinstance(files_[tg[-1]], dict) and not _dirs:
                     return await ctx.send(
                         f"Error deleting `{file}`: Is a directory. You may use `-r` to force its deletion."
                     )
@@ -204,12 +204,16 @@ class FileExplorer(commands.Cog, name="File Explorer (beta)"):
                             "This will delete **ALL**  your data you saved here.\n"
                             'Please send "Yes, I am aware that this is a very bad idea and I will lose all my data.", if you are.'
                         ),
-                        color=discord.Color.red()
+                        color=discord.Color.red(),
                     )
                 )
 
                 def msgchk(m):
-                    return m.author.id == ctx.author.id and m.content == "Yes, I am aware that this is a very bad idea and I will lose all my data."
+                    return (
+                        m.author.id == ctx.author.id
+                        and m.content
+                        == "Yes, I am aware that this is a very bad idea and I will lose all my data."
+                    )
 
                 try:
                     msg = await self.bot.wait_for("message", check=msgchk, timeout=20)
@@ -219,7 +223,9 @@ class FileExplorer(commands.Cog, name="File Explorer (beta)"):
                     await self.db.delete_one({"_id": ctx.author.id})
             else:
                 del files_[tg[-1]]
-                await self.db.find_one_and_update({"_id": ctx.author.id}, {"$set": _files})
+                await self.db.find_one_and_update(
+                    {"_id": ctx.author.id}, {"$set": _files}
+                )
 
         await ctx.send("Done.")
 
