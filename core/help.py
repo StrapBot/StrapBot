@@ -18,6 +18,8 @@ class HelpCommand(commands.HelpCommand):
             [bot.get_cog("Fun"), bot.get_cog("Moderation")],
             [bot.get_cog("Music"), bot.get_cog("File Explorer (beta)")],
         ]
+        for grp in cogs:
+            random.shuffle(grp)
         random.shuffle(cogs)
         cogs.append([bot.get_cog("Utilities")])
         embeds = []
