@@ -30,19 +30,11 @@ class HelpCommand(commands.HelpCommand):
                 cog.get_commands(),
                 sort=True,
             ):
-                cmd = lang_["commands"][command.qualified_name]
+                cmd = lang_.get("commands", {}).get(command.qualified_name, {"description": command.short_doc})
                 if command.qualified_name != "help":
                     commands.append(
                         f"**{prefix + command.qualified_name}** "
-                        + (
-                            f"- {cmd['description']}\n"
-                            if "description" in cmd
-                            else (
-                                f"- {command.short_doc}\n"
-                                if command.short_doc
-                                else "- No description.\n"
-                            )
-                        )
+                        + f"- {cmd['description']}\n"
                     )
 
             cog_name = lang_["name"] if "name" in lang else cog.qualified_name
@@ -71,20 +63,14 @@ class HelpCommand(commands.HelpCommand):
         else:
             ret = json.load(open(f"core/languages/{self.bot.lang.default}.json"))
 
-        lang = ret["cogs"][topic.cog.__class__.__name__]["commands"][
-            topic.qualified_name
-        ]
+        lang = ret.get("cogs", {}).get(topic.cog.__class__.__name__, {}).get("commands").get(
+            topic.qualified_name, {"description": topic.short_doc}
+        )
         ulang = await self.context.get_lang()
 
         embed = discord.Embed(
             title=f"**{self.get_command_signature(topic)}**",
-            description=lang["description"]
-            if "description" in lang
-            else (
-                topic.help.format(prefix=self.clean_prefix)
-                if topic.help
-                else "No message."
-            ),
+            description=lang["description"],
             color=discord.Color.lighter_grey(),
         )
         if "examples" in lang:
