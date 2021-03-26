@@ -4,7 +4,7 @@
 [![Bot status](https://top.gg/api/widget/status/740140581174378527.svg?noavatar=true)](https://top.gg/bot/740140581174378527)
 [![Bot votes](https://top.gg/api/widget/upvotes/740140581174378527.svg?noavatar=true)](https://top.gg/bot/740140581174378527)
 # StrapBot
-A bot which replaces ErgastolatorBot v2.0 and VincyBot07, and it's built better than ErgastolatorBot v2.0 and VincyBot07.
+A multi-function Discord bot, with multiple languages support, fun, music commands and more!
 
 ## Invite me!
 
