@@ -110,8 +110,9 @@ class FileExplorer(commands.Cog, name="File Explorer (beta)"):
 
             if tg[-1] in files_:
                 if isinstance(files_[tg[-1]], dict):
-                    return await ctx.send(f"Error creating `{file}`: Directory exists.")
-                return await ctx.send(f"Error creating `{file}`: File exists.")
+                    await ctx.send(f"Error creating `{file}`: Directory exists.")
+                else:
+                    await ctx.send(f"Error creating `{file}`: File exists.")
 
             files_[tg[-1]] = ""
             paths.append(file)
@@ -261,8 +262,11 @@ class FileExplorer(commands.Cog, name="File Explorer (beta)"):
 
             if tg[-1] in files_:
                 if isinstance(files_[tg[-1]], dict):
-                    return await ctx.send(f"Error creating `{file}`: Directory exists.")
-                return await ctx.send(f"Error creating `{file}`: File exists.")
+                    await ctx.send(f"Error creating `{file}`: Directory exists.")
+                else:
+                    await ctx.send(f"Error creating `{file}`: File exists.")
+                
+                continue
 
             files_[tg[-1]] = {}
             paths.append(file + "/")
