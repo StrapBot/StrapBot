@@ -161,10 +161,7 @@
                     "description": "Displays the currently playing song."
                 },
                 "pause": {
-                    "description": "Pauses the currently playing song."
-                },
-                "resume": {
-                    "description": "Resumes a currently paused song."
+                    "description": "Pauses/Resumes the currently playing song."
                 },
                 "stop": {
                     "description": "Stops playing song and clears the queue."
