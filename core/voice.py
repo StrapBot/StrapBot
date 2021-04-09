@@ -78,8 +78,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
                 + self.upload_date[0:4]
             )
 
-        self.title = str(data.get("title"))
-        self.escaped_title = discord.utils.escape_markdown(self.title)
+        self.title = discord.utils.escape_markdown(str(data.get("title")))
         self.thumbnail = data.get("thumbnail")
         self.description = data.get("description")
         self.raw_duration = data.get("duration")
@@ -96,7 +95,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         self.stream_url = data.get("url")
 
     def __str__(self):
-        return f"**{self.escaped_title}**" + (
+        return f"**{self.title}**" + (
             f" by **{self.uploader}**" if self.uploader != None else ""
         )
 
@@ -274,7 +273,7 @@ class Song:
 
     def create_embed(self, ctx, queued=False, nowcmd=False):
         embed = discord.Embed(
-            description="**[{0.source.escaped_title}]({0.source.url})**".format(self),
+            description="**[{0.source.title}]({0.source.url})**".format(self),
             color=discord.Color.lighter_grey(),
         ).set_author(
             name=("Started" if self.is_first and not nowcmd else "Now") + " playing"
@@ -346,7 +345,7 @@ class VoiceState:
         self._ctx = ctx
 
         self.current = None
-        self.voice: discord.VoiceClient = None
+        self.voice = None
         self.next = asyncio.Event()
         self.songs = SongQueue()
 
@@ -395,7 +394,6 @@ class VoiceState:
                 # If no song will be added to the queue in time,
                 # the player will disconnect due to performance
                 # reasons.
-                await self.voice.channel.edit(topic="Not playing.")
                 try:
                     async with timeout(180):  # 3 minutes
                         self.current = await self.songs.get()
@@ -410,10 +408,6 @@ class VoiceState:
                 await self.current.source.channel.send(
                     embed=self.current.create_embed(self._ctx)
                 )
-                if isinstance(self.voice.channel, discord.StageChannel):
-                    await self.voice.channel.edit(
-                        topic=f'Now playing: "{self.current.source.title}" by {self.current.source.uploader}'
-                    )
             # If the song is looped
             elif self.loop == True:
                 self.now = discord.FFmpegPCMAudio(
