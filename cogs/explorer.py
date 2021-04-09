@@ -74,7 +74,7 @@ class FileExplorer(commands.Cog, name="File Explorer (beta)"):
 
         if isinstance(files, bytes):
             files = files.decode("UTF-8")
-        
+
         if files == "":
             return await ctx.send("File is empty.")
 
@@ -218,7 +218,10 @@ class FileExplorer(commands.Cog, name="File Explorer (beta)"):
                 except TimeoutError:
                     return await message.edit(content="Aborted.")
                 else:
-                    if msg.content == "Yes, I know this is a very bad idea and I am going to lose all my data.":
+                    if (
+                        msg.content
+                        == "Yes, I know this is a very bad idea and I am going to lose all my data."
+                    ):
                         await self.db.delete_one({"_id": ctx.author.id})
                     else:
                         return await message.edit(content="Aborted.")
@@ -265,7 +268,7 @@ class FileExplorer(commands.Cog, name="File Explorer (beta)"):
                     await ctx.send(f"Error creating `{file}`: Directory exists.")
                 else:
                     await ctx.send(f"Error creating `{file}`: File exists.")
-                
+
                 continue
 
             files_[tg[-1]] = {}
@@ -288,10 +291,11 @@ class FileExplorer(commands.Cog, name="File Explorer (beta)"):
                 upsert=True,
             )
             ret = await self.db.find_one({"_id": id})
-        
+
         ret.pop("_id")
 
         return ret
+
 
 def setup(bot):
     bot.add_cog(FileExplorer(bot))
