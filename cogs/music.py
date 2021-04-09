@@ -4,7 +4,6 @@
 import math
 import asyncio
 import discord
-import typing
 from discord.ext import commands
 from core.voice import *
 
@@ -62,10 +61,7 @@ class Music(commands.Cog):
 
     @commands.command(name="summon", aliases=["join"])
     async def _summon(
-        self,
-        ctx: commands.Context,
-        *,
-        channel: typing.Union[discord.VoiceChannel, discord.StageChannel] = None,
+        self, ctx: commands.Context, *, channel: discord.VoiceChannel = None
     ):
         """Summons the bot to a voice channel.
         If no channel was specified, it joins your channel.
@@ -99,18 +95,23 @@ class Music(commands.Cog):
 
         await ctx.send(embed=ctx.voice_state.current.create_embed(ctx, nowcmd=True))
 
-    @commands.command(name="pause", aliases=["resume"])
+    @commands.command(name="pause")
     @is_one_in_vc()
     async def _pause(self, ctx: commands.Context):
-        """Pauses/Resumes the currently playing song."""
+        """Pauses the currently playing song."""
 
         if ctx.voice_state.is_playing and ctx.voice_state.voice.is_playing():
-            if ctx.invoked_with == "resume":
-                raise NameError("Already playing")
             ctx.voice_state.voice.pause()
-        else:
+            await ctx.message.add_reaction("⏯")
+
+    @commands.command(name="resume")
+    @is_one_in_vc()
+    async def _resume(self, ctx: commands.Context):
+        """Resumes a currently paused song."""
+
+        if ctx.voice_state.is_playing and ctx.voice_state.voice.is_paused():
             ctx.voice_state.voice.resume()
-        await ctx.message.add_reaction("⏯")
+            await ctx.message.add_reaction("⏯")
 
     @commands.command(name="stop")
     @is_one_in_vc()
@@ -266,7 +267,7 @@ class Music(commands.Cog):
             and ctx.voice_state.voice.is_paused()
             and search == None
         ):
-            return await ctx.invoke(self._pause)
+            return await ctx.invoke(self._resume)
 
         if search == None:
             raise commands.MissingRequiredArgument(
@@ -282,18 +283,19 @@ class Music(commands.Cog):
         if not ctx.voice_state.voice:
             await ctx.invoke(self._summon)
 
-        if isinstance(ctx.voice_state.voice.channel, discord.StageChannel):
-            await ctx.guild.me.edit(suppress=False)
-
         async with ctx.typing():
-            source = await YTDLSource.create_source(ctx, search, loop=self.bot.loop)
-            source.volume = volume
-            song = Song(source, first=first)
+            try:
+                source = await YTDLSource.create_source(ctx, search, loop=self.bot.loop)
+            except YTDLError as e:
+                raise RuntimeError(str(e)) from e
+            else:
+                song = Song(source, first=first)
 
-            await ctx.voice_state.songs.put(song)
-            await asyncio.sleep(0.1)
-            if not first:
-                await ctx.send(embed=song.create_embed(ctx, queued=True))
+                await ctx.voice_state.songs.put(song)
+                await asyncio.sleep(0.1)
+                ctx.voice_state.current.source.volume = volume
+                if not first:
+                    await ctx.send(embed=song.create_embed(ctx, queued=True))
 
     @commands.command(name="search")
     async def _search(self, ctx: commands.Context, *, search: str):

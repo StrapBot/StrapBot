@@ -158,7 +158,10 @@
                     "description": "Mostra la canzone in riproduzione."
                 },
                 "pause": {
-                    "description": "Pausa/Riprende la canzone in riproduzione."
+                    "description": "Mette in pausa la canzone in riproduzione."
+                },
+                "resume": {
+                    "description": "Rimette una canzone in pausa in riproduzione."
                 },
                 "stop": {
                     "description": "Smette di riprodurre una canzone e svuota la coda."
