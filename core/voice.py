@@ -395,7 +395,6 @@ class VoiceState:
                 # If no song will be added to the queue in time,
                 # the player will disconnect due to performance
                 # reasons.
-                await self.voice.channel.edit(topic="Not playing.")
                 try:
                     async with timeout(180):  # 3 minutes
                         self.current = await self.songs.get()
@@ -410,10 +409,7 @@ class VoiceState:
                 await self.current.source.channel.send(
                     embed=self.current.create_embed(self._ctx)
                 )
-                if isinstance(self.voice.channel, discord.StageChannel):
-                    await self.voice.channel.edit(
-                        topic=f'Now playing: "{self.current.source.title}" by {self.current.source.uploader}'
-                    )
+
             # If the song is looped
             elif self.loop == True:
                 self.now = discord.FFmpegPCMAudio(
@@ -422,6 +418,8 @@ class VoiceState:
                 self.voice.play(self.now, after=self.play_next_song)
 
             await self.bot.loop.run_in_executor(None, self._update_time_watched)
+
+
 
             await self.next.wait()
 

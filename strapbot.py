@@ -165,7 +165,7 @@ class StrapBot(commands.Bot):
         await self.change_presence(activity=self.activity)
 
     async def on_command_error(self, ctx, error):
-        error = getattr(error, "original", error)
+        error = getattr(error, "original", error)   
         if isinstance(error, commands.CommandNotFound):
             self.logger.warning(str(error))
             return
@@ -310,7 +310,7 @@ class StrapBot(commands.Bot):
 
         if not message.author.bot:
             if message.content.lower() in messages:
-                await ctx.send(message.content)
+                await ctx.send(message.content, tts=message.tts)
 
         return await self.process_commands(message)
 

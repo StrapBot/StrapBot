@@ -104,6 +104,9 @@ class Music(commands.Cog):
     async def _pause(self, ctx: commands.Context):
         """Pauses/Resumes the currently playing song."""
 
+        if not ctx.voice_state.voice:
+            raise RuntimeError("Nothing is being played right now.")
+
         if ctx.voice_state.is_playing and ctx.voice_state.voice.is_playing():
             if ctx.invoked_with == "resume":
                 raise NameError("Already playing")
@@ -128,8 +131,9 @@ class Music(commands.Cog):
         """sotp"""
         ctx.voice_state.songs.clear()
 
-        ctx.voice_state.voice.stop()
-        await ctx.message.add_reaction("<:sotp:777922129492181002>")
+        if ctx.voice_state.voice:
+            ctx.voice_state.voice.stop()
+        await ctx.message.add_reaction("<:sotp:806631974692978698>")
 
     @commands.command(name="skip")
     async def _skip(self, ctx: commands.Context):
@@ -318,6 +322,7 @@ class Music(commands.Cog):
 
     @_summon.before_invoke
     @_play.before_invoke
+    @_search.before_invoke
     async def ensure_voice_state(self, ctx: commands.Context):
         if not ctx.author.voice or not ctx.author.voice.channel:
             raise commands.CommandError("You are not connected to any voice channel.")
