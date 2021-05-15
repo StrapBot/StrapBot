@@ -3,8 +3,6 @@ import os
 import discord
 import json
 
-from werkzeug import LanguageAccept
-
 default_language = os.getenv("DEFAULT_LANGUAGE", "en")
 
 
