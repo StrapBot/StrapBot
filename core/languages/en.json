@@ -173,14 +173,15 @@
                         "voted": "Voted",
                         "success": "Your skip vote has been added!",
                         "error": "You have already voted to skip this song.",
-                        "current": "Currently at"
+                        "current_": "Currently at"
                     }
                 },
                 "queue": {
                     "description": "Shows the player's queue.",
                     "error": "Empty queue.",
-                    "tracks": "**{} tracks:**\n\n{}",
-                    "pages": "Viewing page {}/{}"
+                    "tracks": "**{} tracks:**\n\n{}\n\n{}",
+                    "pages": "Viewing page {}/{}",
+                    "current_": "Current song: **{}**"
                 },
                 "shuffle": {
                     "description": "Shuffles the queue.",
@@ -197,9 +198,15 @@
                 },
                 "play": {
                     "description": "Plays a song.",
-                    "examples": ["https://www.youtube.com/watch?v=dQw4w9WgXcQ"],
-                    "error": "An error occurred while processing this request: {}",
-                    "queued": "Enqueued {}",
+                    "examples": [
+                        "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                        "https://youtube.com/playlist?list=PLRBp0Fe2GpgnIh0AiYKh7o7HnYAej-5ph"
+                    ],
+                    "noresults": "Couldn't find anything that matches `{}`",
+                    "unfetchable": "Couldn't fetch {}",
+                    "queueing": "Adding to queue...",
+                    "fetching": "Fetching song(s), this might take a while...",
+                    "queued": "Enqueued {} songs.",
                     "playing": "Started playing {} now!"
                 },
                 "search": {

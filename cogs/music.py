@@ -6,6 +6,7 @@ import asyncio
 import discord
 import typing
 from discord.ext import commands
+from core.context import StrapContext
 from core.voice import *
 
 
@@ -52,7 +53,7 @@ class Music(commands.Cog):
         self.bot = bot
         self.db = bot.db.get_cog_partition(self)
 
-    def cog_check(self, ctx: commands.Context):
+    def cog_check(self, ctx: StrapContext):
         if not ctx.guild:
             raise commands.NoPrivateMessage(
                 "This command can't be used in DM channels."
@@ -63,7 +64,7 @@ class Music(commands.Cog):
     @commands.command(name="summon", aliases=["join"])
     async def _summon(
         self,
-        ctx: commands.Context,
+        ctx: StrapContext,
         *,
         channel: typing.Union[discord.VoiceChannel, discord.StageChannel] = None,
     ):
@@ -83,7 +84,7 @@ class Music(commands.Cog):
 
     @commands.command(name="leave", aliases=["disconnect"])
     @is_one_in_vc()
-    async def _leave(self, ctx: commands.Context):
+    async def _leave(self, ctx: StrapContext):
         """Clears the queue and leaves the voice channel."""
 
         if not ctx.voice_state.voice:
@@ -94,14 +95,14 @@ class Music(commands.Cog):
         await ctx.message.add_reaction("👋🏻")
 
     @commands.command(name="now", aliases=["current", "playing", "np"])
-    async def _now(self, ctx: commands.Context):
+    async def _now(self, ctx: StrapContext):
         """Displays the currently playing song."""
 
         await ctx.send(embed=ctx.voice_state.current.create_embed(ctx, nowcmd=True))
 
     @commands.command(name="pause", aliases=["resume"])
     @is_one_in_vc()
-    async def _pause(self, ctx: commands.Context):
+    async def _pause(self, ctx: StrapContext):
         """Pauses/Resumes the currently playing song."""
 
         if not ctx.voice_state.voice:
@@ -117,7 +118,7 @@ class Music(commands.Cog):
 
     @commands.command(name="stop")
     @is_one_in_vc()
-    async def _stop(self, ctx: commands.Context):
+    async def _stop(self, ctx: StrapContext):
         """Stops playing song and clears the queue."""
 
         ctx.voice_state.songs.clear()
@@ -127,7 +128,7 @@ class Music(commands.Cog):
 
     @commands.command(name="sotp", hidden=True)
     @is_one_in_vc()
-    async def _sotp(self, ctx: commands.Context):
+    async def _sotp(self, ctx: StrapContext):
         """sotp"""
         ctx.voice_state.songs.clear()
 
@@ -136,7 +137,7 @@ class Music(commands.Cog):
         await ctx.message.add_reaction("<:sotp:806631974692978698>")
 
     @commands.command(name="skip")
-    async def _skip(self, ctx: commands.Context):
+    async def _skip(self, ctx: StrapContext):
         """Skips to the next song."""
 
         if not ctx.voice_state.is_playing:
@@ -160,14 +161,14 @@ class Music(commands.Cog):
                         title=ctx.lang.vote.voted,
                         description=ctx.lang.vote.success,
                         color=discord.Color.lighter_grey(),
-                    ).add_field(name=ctx.lang.vote.current, value=f"**{total_votes}**")
+                    ).add_field(name=ctx.lang.vote.current_, value=f"**{total_votes}**")
                 )
 
         else:
             raise RuntimeError(ctx.lang["vote"]["error"])
 
     @commands.command(name="volume")
-    async def _volume(self, ctx: commands.Context, *, volume: int = None):
+    async def _volume(self, ctx: StrapContext, *, volume: int = None):
         """Sets the player's volume."""
 
         if not ctx.voice_state.is_playing:
@@ -197,34 +198,57 @@ class Music(commands.Cog):
         )
 
     @commands.command(name="queue")
-    async def _queue(self, ctx: commands.Context, *, page: int = 1):
+    async def _queue(self, ctx: StrapContext):
         """Shows the player's queue.
         You can optionally specify the page to show. Each page contains 10 elements.
         """
-
         if len(ctx.voice_state.songs) == 0:
             raise ValueError(ctx.lang["error"])
 
         items_per_page = 10
-        pages = math.ceil(len(ctx.voice_state.songs) / items_per_page)
+        current_title = discord.utils.escape_markdown(
+            ctx.voice_state.current.source.title
+        )
+        current = ctx.lang.current_.format(
+            f"[{current_title}]({ctx.voice_state.current.source.url})"
+        )
 
-        start = (page - 1) * items_per_page
-        end = start + items_per_page
+        pages = [
+            ctx.voice_state.songs[i : i + items_per_page]
+            for i in range(0, len(ctx.voice_state.songs), items_per_page)
+        ]
 
-        queue = ""
-        for i, song in enumerate(ctx.voice_state.songs[start:end], start=start):
-            queue += "`{0}.` [**{1.source.title}**]({1.source.url})\n".format(
-                i + 1, song
+        ret = []
+        for n, page in enumerate(pages):
+            queue = []
+            for i, song in enumerate(page):
+                if n != 0:
+                    i = int(str(f"{n}{i}"))
+
+                title = (
+                    discord.utils.escape_markdown(song.source.title)
+                    .replace("[", "(")
+                    .replace("]", ")")
+                )
+                if len(title) >= 50:
+                    title = "".join(list(title)[:50]) + "..."
+
+                queue_to_append = f"`{i + 1}.` [**{title}**]({song.source.url})"
+                queue.append(queue_to_append)
+
+            ret.append(
+                discord.Embed(
+                    description=ctx.lang.tracks.format(
+                        len(ctx.voice_state.songs), current, "\n".join(queue)
+                    ),
+                    color=discord.Color.lighter_grey(),
+                )
             )
 
-        embed = discord.Embed(
-            description=ctx.lang["tracks"].format(len(ctx.voice_state.songs), queue),
-            color=discord.Color.lighter_grey(),
-        ).set_footer(text=ctx.lang["pages"].format(page, pages))
-        await ctx.send(embed=embed)
+        await ctx.send(embeds=ret)
 
     @commands.command(name="shuffle")
-    async def _shuffle(self, ctx: commands.Context):
+    async def _shuffle(self, ctx: StrapContext):
         """Shuffles the queue."""
 
         if len(ctx.voice_state.songs) == 0:
@@ -234,7 +258,7 @@ class Music(commands.Cog):
         await ctx.message.add_reaction("🔀")
 
     @commands.command(name="remove")
-    async def _remove(self, ctx: commands.Context, index: int):
+    async def _remove(self, ctx: StrapContext, index: int):
         """Removes a song from the queue at a given index."""
 
         if len(ctx.voice_state.songs) == 0:
@@ -244,7 +268,7 @@ class Music(commands.Cog):
         await ctx.message.add_reaction("✅")
 
     @commands.command(name="loop")
-    async def _loop(self, ctx: commands.Context):
+    async def _loop(self, ctx: StrapContext):
         """Loops the currently playing song.
         Invoke this command again to unloop the song.
         """
@@ -257,13 +281,14 @@ class Music(commands.Cog):
         await ctx.message.add_reaction("🔂" if ctx.voice_state.loop else "⏹️")
 
     @commands.command(name="play", aliases=["p"])
-    async def _play(self, ctx: commands.Context, *, search: str = None):
+    async def _play(self, ctx: StrapContext, *, search: str = None):
         """Plays a song.
         If there are songs in the queue, this will be queued until the
         other songs finished playing.
         This command automatically searches from various sites if no URL is provided.
         A list of these sites can be found here: https://rg3.github.io/youtube-dl/supportedsites.html
         """
+        src = YTDLSource
 
         if (
             ctx.voice_state.is_playing
@@ -272,35 +297,61 @@ class Music(commands.Cog):
         ):
             return await ctx.invoke(self._pause)
 
+        if not ctx.voice_state.voice:
+            await ctx.invoke(self._summon)
+
         if search == None:
             raise commands.MissingRequiredArgument(
                 type("testù" + ("ù" * 100), (object,), {"name": "search"})()
             )
+
         first = not ctx.voice_state.is_playing
-        msg = ctx.lang["queued"] if not first else ctx.lang["playing"]
 
         volume = (await self.db.find_one({"_id": "volumes"}) or {}).get(
             str(ctx.guild.id), 0.5
         )
-
-        if not ctx.voice_state.voice:
-            await ctx.invoke(self._summon)
-
         if isinstance(ctx.voice_state.voice.channel, discord.StageChannel):
             await ctx.guild.me.edit(suppress=False)
 
         async with ctx.typing():
-            source = await YTDLSource.create_source(ctx, search, loop=self.bot.loop)
-            source.volume = volume
-            song = Song(source, first=first)
+            msg = await ctx.send(ctx.lang.fetching)
+            result: dict = await self.bot.loop.run_in_executor(
+                None, lambda: src.ytdl.extract_info(search, download=False)
+            )
+            if not result:
+                raise YTDLError(
+                    ctx.lang.noresults.format(search)
+                )
 
-            await ctx.voice_state.songs.put(song)
+            if not "entries" in result or isinstance(result, list):
+                videos: list = result
+            else:
+                videos: list = result["entries"]
+
+            if not videos:
+                raise RuntimeError(ctx.lang.unfetchable.format(search))
+
+            await msg.edit(content=ctx.lang.queueing)
+            for video in videos:
+                source: YTDLSource = await src.create_source(
+                    ctx, video["webpage_url"], loop=self.bot.loop
+                )
+                source.volume = volume
+                song = Song(source, first=first)
+                await ctx.voice_state.songs.put(song)
+
+            await msg.delete()
             await asyncio.sleep(0.1)
-            if not first:
-                await ctx.send(embed=song.create_embed(ctx, queued=True))
+            ctx.voice_state.playedonce = True
+            if len(result["entries"]) > 1:
+                await ctx.send(ctx.lang.queued.format(len(result['entries'])))
+            elif not first:
+                await ctx.send(
+                    embed=song.create_embed(ctx, queued=True), reference=None
+                )
 
     @commands.command(name="search")
-    async def _search(self, ctx: commands.Context, *, search: str):
+    async def _search(self, ctx: StrapContext, *, search: str):
         """Searchs for a YouTube video."""
         async with ctx.typing():
             try:
@@ -323,7 +374,7 @@ class Music(commands.Cog):
     @_summon.before_invoke
     @_play.before_invoke
     @_search.before_invoke
-    async def ensure_voice_state(self, ctx: commands.Context):
+    async def ensure_voice_state(self, ctx: StrapContext):
         if not ctx.author.voice or not ctx.author.voice.channel:
             raise commands.CommandError("You are not connected to any voice channel.")
 

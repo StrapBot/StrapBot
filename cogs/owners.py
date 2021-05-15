@@ -1,6 +1,7 @@
 import json
 import discord
 import inspect
+import random
 import traceback
 from io import StringIO
 from textwrap import indent
@@ -197,7 +198,7 @@ class OwnerOnly(commands.Cog):
             self.bot.reload_extension(f"cogs.{ext}")
         except Exception:
             await ctx.send(
-                "testùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùù"
+                "testù" + ("ù" * random.randint(20, 50))
             )
             raise
         await ctx.send(f"Reloaded `{ext}`.")

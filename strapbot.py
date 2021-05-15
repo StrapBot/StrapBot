@@ -165,7 +165,7 @@ class StrapBot(commands.Bot):
         await self.change_presence(activity=self.activity)
 
     async def on_command_error(self, ctx, error):
-        error = getattr(error, "original", error)   
+        error = getattr(error, "original", error)
         if isinstance(error, commands.CommandNotFound):
             self.logger.warning(str(error))
             return

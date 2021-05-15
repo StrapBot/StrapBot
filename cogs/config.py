@@ -44,6 +44,7 @@ class Config(commands.Cog):
 
         await self.bot.lang.set_user(ctx.author.id, lang=lang)
 
+        ctx.lang = await ctx.get_lang()
         embed = discord.Embed.from_dict(ctx.lang["embed"])
         embed.color = discord.Color.lighter_grey()
 

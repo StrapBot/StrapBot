@@ -35,7 +35,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         "restrictfilenames": True,
         "noplaylist": True,
         "nocheckcertificate": True,
-        "ignoreerrors": False,
+        "ignoreerrors": True,
         "logtostderr": False,
         "quiet": True,
         "no_warnings": True,
@@ -268,7 +268,7 @@ class Song:
     __slots__ = ("source", "requester", "is_first")
 
     def __init__(self, source: YTDLSource, first: bool = False):
-        self.source = source
+        self.source: YTDLSource = source
         self.requester = source.requester
         self.is_first = first
 
@@ -345,10 +345,11 @@ class VoiceState:
         self.bot = bot
         self._ctx = ctx
 
-        self.current = None
+        self.current: Song = None
         self.voice: discord.VoiceClient = None
         self.next = asyncio.Event()
         self.songs = SongQueue()
+        self.playedonce = False
 
         self._loop = False
         self._volume = 0.5
@@ -396,12 +397,14 @@ class VoiceState:
                 # the player will disconnect due to performance
                 # reasons.
                 try:
-                    async with timeout(180):  # 3 minutes
+                    if self.playedonce:
+                        async with timeout(180):  # 3 minutes
+                            self.current = await self.songs.get()
+                    else:
                         self.current = await self.songs.get()
                 except asyncio.TimeoutError:
                     self.bot.loop.create_task(self.stop())
                     del self.bot.voice_states[self._ctx.guild.id]
-
                     return
 
                 self.current.source.volume = self._volume
@@ -418,8 +421,6 @@ class VoiceState:
                 self.voice.play(self.now, after=self.play_next_song)
 
             await self.bot.loop.run_in_executor(None, self._update_time_watched)
-
-
 
             await self.next.wait()
 

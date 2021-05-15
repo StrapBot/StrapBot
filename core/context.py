@@ -9,9 +9,11 @@ from core.languages import Language
 
 class StrapContext(commands.Context):
     message: discord.Message
+    guild: discord.Guild
     author: discord.Member
+    lang: Language = None
 
-    async def send(self, *msgs, **kwargs):
+    async def send(self, *msgs, **kwargs) -> discord.Message:
         reference = self.message.reference or self.message.to_reference()
         reference = kwargs.pop("reference", reference)
         message = kwargs.pop("content", " ".join(str(msg) for msg in msgs))
@@ -32,7 +34,7 @@ class StrapContext(commands.Context):
         return ret
 
     @property
-    def voice_state(self):
+    def voice_state(self) -> VoiceState:
         state = self.bot.voice_states.get(self.guild.id)
         if not state:
             state = VoiceState(self.bot, self)
@@ -40,7 +42,7 @@ class StrapContext(commands.Context):
 
         return state
 
-    async def get_lang(self, cls=None, *, cogs=False, cog=False, all=False):
+    async def get_lang(self, cls=None, *, cogs=False, cog=False, all=False) -> Language:
         if cls == None:
             cls = self.command.cog
 

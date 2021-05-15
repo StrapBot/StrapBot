@@ -170,14 +170,15 @@
                         "voted": "Votato",
                         "success": "Il tuo voto per saltare è stato aggiunto!",
                         "error": "Hai già votato per saltare questa canzone.",
-                        "current": "Voti in totale"
+                        "current_": "Voti in totale"
                     }
                 },
                 "queue": {
                     "description": "Mostra la coda.",
                     "error": "Coda vuota.",
                     "pages": "Visualizzando la pagina {}/{}.",
-                    "tracks": "**{} tracce:**\n\n{}"
+                    "tracks": "**{} tracce:**\n\n{}\n\n{}",
+                    "current_": "In riproduzione: **{}**"
                 },
                 "shuffle": {
                     "description": "Attiva la riproduzione casuale.",
@@ -194,9 +195,15 @@
                 },
                 "play": {
                     "description": "Riproduce una canzone.",
-                    "examples": ["https://www.youtube.com/watch?v=dQw4w9WgXcQ"],
-                    "error": "C'è stato un errore mentre cercavo di riprodurre questa canzone: {}",
-                    "queued": "Ho inserito {} nella coda.",
+                    "examples": [
+                        "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                        "https://youtube.com/playlist?list=PLRBp0Fe2GpgnIh0AiYKh7o7HnYAej-5ph"
+                    ],
+                    "noresults": "Nessun risultato di ricerca per `{}`",
+                    "unfetchable": "Non sono riuscito ad ottenere {}",
+                    "queueing": "Aggiungo alla coda...",
+                    "fetching": "Ottengo la/e canzone/i, potrebbe volerci un po'...",
+                    "queued": "Ho inserito {} canzoni in coda.",
                     "playing": "Inizio a riprodurre {} adesso!"
                 },
                 "search": {
