@@ -3,6 +3,8 @@ import os
 import discord
 import json
 
+from werkzeug import LanguageAccept
+
 default_language = os.getenv("DEFAULT_LANGUAGE", "en")
 
 
@@ -14,7 +16,7 @@ class Language(box.Box):
 class Languages:
     def __init__(self, bot):
         self.bot = bot
-        self.db = bot.db.db["LangConfig"]
+        self.db = bot.db.db["Config"]
         self.default = os.getenv("DEFAULT_LANGUAGE", "en")
         self.get_users = self.get_members
 
@@ -61,10 +63,12 @@ class Languages:
             raise TypeError("Invalid guild ID.")
 
         await self.unset_user(member.id)
+        data = (await self.db.find_one({"_id": "members"})).get(str(guild.id)) or {}
+        data["language"] = lang
 
         return await self.db.find_one_and_update(
             {"_id": "guilds"},
-            {"$set": {str(guild.id): {"language": lang}}},
+            {"$set": {str(guild.id): data}},
             upsert=True,
         )
 
@@ -89,9 +93,12 @@ class Languages:
         if member == None:
             raise TypeError("Invalid user ID")
 
+        data = (await self.db.find_one({"_id": "members"})).get(str(member.id)) or {}
+        data["language"] = lang
+
         return await self.db.find_one_and_update(
             {"_id": "members"},
-            {"$set": {str(member.id): {"language": lang}}},
+            {"$set": {str(member.id): data}},
             upsert=True,
         )
 

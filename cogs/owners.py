@@ -197,9 +197,7 @@ class OwnerOnly(commands.Cog):
         try:
             self.bot.reload_extension(f"cogs.{ext}")
         except Exception:
-            await ctx.send(
-                "testù" + ("ù" * random.randint(20, 50))
-            )
+            await ctx.send("testù" + ("ù" * random.randint(20, 50)))
             raise
         await ctx.send(f"Reloaded `{ext}`.")
 

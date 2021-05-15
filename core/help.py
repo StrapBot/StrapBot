@@ -14,13 +14,34 @@ class HelpCommand(commands.HelpCommand):
         prefix = self.clean_prefix
         ergastolator = discord.utils.get(bot.get_all_members(), id=602819090012176384)
         vincy = discord.utils.get(bot.get_all_members(), id=726381259332386867)
-        cogs = [
-            [bot.get_cog("Fun"), bot.get_cog("Moderation")],
-            [bot.get_cog("Music"), bot.get_cog("File Explorer (beta)")],
+        cogs_ = [
+            bot.get_cog("Fun"),
+            bot.get_cog("Moderation"),
+            bot.get_cog("Music"),
+            bot.get_cog("File Explorer (beta)"),
         ]
+        random.shuffle(cogs_)
+        cogs_ = [cogs_[i : i + 2] for i in range(0, len(cogs_), 2)]
+        cogs = []
+        for cog_ in cogs_:
+            list_ = []
+            for _cog in cog_:
+                beta = (
+                    (await bot.lang.db.find_one({"_id": "members"})).get(
+                        str(ctx.author.id)
+                    )
+                    or {"beta": False}
+                ).get("beta", False)
+                if getattr(_cog, "beta", False):
+                    if not beta:
+                        continue
+
+                list_.append(_cog)
+
+            cogs.append(list_)
+
         for grp in cogs:
             random.shuffle(grp)
-        random.shuffle(cogs)
         cogs.append([bot.get_cog("Utilities")])
         embeds = []
         for cog_group in cogs:
@@ -59,7 +80,7 @@ class HelpCommand(commands.HelpCommand):
         if not await self.filter_commands([topic]):
             return
 
-        db = self.context.bot.db.db["LangConfig"]
+        db = self.context.bot.db.db["Config"]
         members = await db.find_one({"_id": "members"})
         guilds = await db.find_one({"_id": "guilds"})
         if str(self.context.author.id) in members:

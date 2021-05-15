@@ -50,6 +50,32 @@ class Config(commands.Cog):
 
         return await ctx.send(embed=embed)
 
+    @user.command(name="beta")
+    async def _beta(self, ctx):
+        """
+        Configure beta commands.
+        """
+        ctx.lang = await ctx.get_lang()
+
+        data = (await self.db.find_one({"_id": "members"})).get(
+            str(ctx.author.id)
+        ) or {}
+        beta = True
+        if "beta" in data:
+            beta = not data["beta"]
+
+        data["beta"] = beta
+        await self.db.find_one_and_update(
+            {"_id": "members"},
+            {"$set": {str(ctx.author.id): data}},
+            upsert=True,
+        )
+
+        embed = discord.Embed.from_dict(ctx.lang["eembed" if beta else "dembed"])
+        embed.color = discord.Color.lighter_grey()
+
+        return await ctx.send(embed=embed)
+
     @server.command(name="lang", aliases=["language", "l"], usage="<language>")
     @commands.has_guild_permissions(manage_guild=True)
     async def lang_(self, ctx, lang="default"):

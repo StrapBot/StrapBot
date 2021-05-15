@@ -7,6 +7,7 @@ from asyncio import TimeoutError
 class FileExplorer(commands.Cog, name="File Explorer (beta)"):
     def __init__(self, bot):
         self.bot = bot
+        self.beta = True
         self.db = bot.db.get_cog_partition(self)
 
     @commands.command()

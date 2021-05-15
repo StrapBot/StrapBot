@@ -334,6 +334,33 @@ class StrapBot(commands.Bot):
                 elif str(payload.emoji) == "2️⃣":
                     await member.remove_roles(guild.get_role(792399034174144512))
 
+    async def process_commands(self, message):
+        if message.author.bot:
+            return
+
+        ctx: StrapContext = await self.get_context(message)
+
+        if getattr(ctx.cog, "beta", False):
+            beta = (
+                (await self.lang.db.find_one({"_id": "members"})).get(
+                    str(ctx.author.id)
+                )
+                or {"beta": False}
+            ).get("beta", False)
+            if not beta:
+                return await ctx.send(
+                    embed=discord.Embed(
+                        title="Warning",
+                        description=(
+                            "You can't use this command because it's a beta command.\n"
+                            f"If you really want to use it, please use `{ctx.prefix}config user beta` first."
+                        ),
+                        color=discord.Color.orange(),
+                    )
+                )
+
+        await self.invoke(ctx)
+
 
 bot = StrapBot()
 

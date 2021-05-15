@@ -240,14 +240,25 @@
                     "examples": ["server lang it", "user lang en"]
                 },
                 "config user lang": {
-                    "description": "Configure your language.\n**NOTA:** the only valid languages\nare `en` and `it` for now.",
+                    "description": "Configure your language.\n**NOTE:** the only valid languages\nare `en` and `it` for now.",
                     "embed": {
                         "title": "Language changed!",
                         "description": "You set your language to English!"
                     }
                 },
+                "config user beta": {
+                    "description": "Toggle beta commands.",
+                    "eembed": {
+                        "title": "Beta commands",
+                        "description": "Enabled!"
+                    },
+                    "dembed": {
+                        "title": "Beta commands",
+                        "description": "Disabled!"
+                    }
+                },
                 "config server lang": {
-                    "description": "Configure server's language.\n**NOTA:** the only valid languages\nare `en` and `it` for now.",
+                    "description": "Configure server's language.\n**NOTE:** the only valid languages\nare `en` and `it` for now.",
                     "embed": {
                         "title": "Language changed!",
                         "description": "You set the server's language to English!"

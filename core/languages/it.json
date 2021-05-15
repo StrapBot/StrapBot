@@ -243,6 +243,17 @@
                         "description": "Hai impostato la tua lingua a italiano!"
                     }
                 },
+                "config user beta": {
+                    "description": "Gestisci i comandi beta.",
+                    "eembed": {
+                        "title": "Comandi beta",
+                        "description": "Attivati!"
+                    },
+                    "dembed": {
+                        "title": "Comandi beta",
+                        "description": "Disattivati!"
+                    }
+                },
                 "config server lang": {
                     "description": "Configura la lingua del server.\n**NOTA:** le uniche lingue valide\nsono solo `en` e `it` per ora.",
                     "embed": {

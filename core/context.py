@@ -47,7 +47,7 @@ class StrapContext(commands.Context):
             cls = self.command.cog
 
         cls = cls.__class__.__name__
-        db = self.bot.db.db["LangConfig"]
+        db = self.bot.db.db["Config"]
         members = await db.find_one({"_id": "members"})
         guilds = await db.find_one({"_id": "guilds"})
         if str(self.author.id) in members:

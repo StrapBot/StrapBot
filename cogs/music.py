@@ -319,9 +319,7 @@ class Music(commands.Cog):
                 None, lambda: src.ytdl.extract_info(search, download=False)
             )
             if not result:
-                raise YTDLError(
-                    ctx.lang.noresults.format(search)
-                )
+                raise YTDLError(ctx.lang.noresults.format(search))
 
             if not "entries" in result or isinstance(result, list):
                 videos: list = result
@@ -344,7 +342,7 @@ class Music(commands.Cog):
             await asyncio.sleep(0.1)
             ctx.voice_state.playedonce = True
             if len(result["entries"]) > 1:
-                await ctx.send(ctx.lang.queued.format(len(result['entries'])))
+                await ctx.send(ctx.lang.queued.format(len(result["entries"])))
             elif not first:
                 await ctx.send(
                     embed=song.create_embed(ctx, queued=True), reference=None
