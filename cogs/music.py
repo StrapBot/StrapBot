@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 
-
-import math
 import asyncio
 import discord
 import typing
 from discord.ext import commands
 from core.context import StrapContext
 from core.voice import *
-
 
 class MissingPerms(commands.MissingPermissions):
     def __init__(self, missing_perms, *args):
@@ -331,17 +328,25 @@ class Music(commands.Cog):
 
             await msg.edit(content=ctx.lang.queueing)
             for video in videos:
+                need_to_break = False
+                if isinstance(videos, dict):
+                    url = videos["webpage_url"]
+                    need_to_break = True
+                else:
+                    url = video["webpage_url"]
                 source: YTDLSource = await src.create_source(
-                    ctx, video["webpage_url"], loop=self.bot.loop
+                    ctx, url, loop=self.bot.loop
                 )
                 source.volume = volume
                 song = Song(source, first=first)
                 await ctx.voice_state.songs.put(song)
+                if need_to_break:
+                    break
 
             await msg.delete()
             await asyncio.sleep(0.1)
             ctx.voice_state.playedonce = True
-            if len(result["entries"]) > 1:
+            if "entries" in result and len(result["entries"]) > 1:
                 await ctx.send(ctx.lang.queued.format(len(result["entries"])))
             elif not first:
                 await ctx.send(
