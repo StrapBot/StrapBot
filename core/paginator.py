@@ -139,12 +139,20 @@ class PaginatorSession:
             await self.show_page(self.current)
         while self.running:
             try:
-                done, pending = (await asyncio.wait([self.ctx.bot.wait_for(
-                    "reaction_add", check=self.react_check, timeout=self.timeout
-                ), self.ctx.bot.wait_for(
-                    "reaction_remove", check=self.react_check, timeout=self.timeout
-                )], return_when=asyncio.FIRST_COMPLETED))
-                
+                done, pending = await asyncio.wait(
+                    [
+                        self.ctx.bot.wait_for(
+                            "reaction_add", check=self.react_check, timeout=self.timeout
+                        ),
+                        self.ctx.bot.wait_for(
+                            "reaction_remove",
+                            check=self.react_check,
+                            timeout=self.timeout,
+                        ),
+                    ],
+                    return_when=asyncio.FIRST_COMPLETED,
+                )
+
                 reaction, user = done.pop().result()
 
                 for future in done:

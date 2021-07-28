@@ -7,6 +7,7 @@ from discord.ext import commands
 from core.context import StrapContext
 from core.voice import *
 
+
 class MissingPerms(commands.MissingPermissions):
     def __init__(self, missing_perms, *args):
         self.missing_perms = missing_perms
