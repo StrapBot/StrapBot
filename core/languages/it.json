@@ -145,10 +145,28 @@
             "name": "Musica",
             "description": "Ascolta le tue canzoni preferite con StrapBot!",
             "error": "C'è stato un errore: {}",
+            "ensure_voice": {
+                "notconnected": "Non sono connesso ad un canale vocale.",
+                "join": "Innanzitutto entra in un canale vocale.",
+                "perms": "Ho bisogno dei permessi per connettermi al canale vocale e parlare.",
+                "samevc": "Devi essere nello stesso mio canale vocale."
+            },
+            "now": {
+                "started": "Riproduzione avviata",
+                "playing": "In riproduzione",
+                "enqueued": "Inserito nella coda",
+                "duration": "Durata",
+                "listened": "{watched} ascoltati su {entire_duration}.\n{duration} rimanenti.",
+                "requester": "Richiesto da",
+                "likes": "Mi piace",
+                "dislikes": "Non mi piace",
+                "views": "Visualizzazioni"
+            },
             "commands": {
                 "summon": {
                     "description": "Entra in un canale vocale.",
-                    "error": "Non sei un un canale vocale, e non hai specificato il canale vocale dove entrare."
+                    "error": "Non sei un un canale vocale, e non hai specificato il canale vocale dove entrare.",
+                    "alr": "Sono già connesso ad un canale vocale."
                 },
                 "leave": {
                     "description": "Esce dal canale vocale.",
@@ -158,7 +176,9 @@
                     "description": "Mostra la canzone in riproduzione."
                 },
                 "pause": {
-                    "description": "Pausa/Riprende la canzone in riproduzione."
+                    "description": "Pausa/Riprende la canzone in riproduzione.",
+                    "error": "Nessuna canzone è in riproduzione al momento.",
+                    "notpaused": "La riproduzione non è in pausa."
                 },
                 "stop": {
                     "description": "Smette di riprodurre una canzone e svuota la coda."
@@ -182,15 +202,11 @@
                 },
                 "shuffle": {
                     "description": "Attiva la riproduzione casuale.",
-                    "error": "Coda vuota"
-                },
-                "remove": {
-                    "description": "Rimuove una canzone dalla coda.",
-                    "examples": ["4"],
-                    "error": "Coda vuota."
+                    "error": "Coda vuota",
+                    "notplaying": "Non c'è nulla in riproduzione."
                 },
                 "loop": {
-                    "description": "Attiva la ripetizione del brano.",
+                    "description": "Attiva la ripetizione della coda.",
                     "error": "Non c'è nulla in riproduzione al momento."
                 },
                 "play": {
@@ -200,10 +216,10 @@
                         "https://youtube.com/playlist?list=PLRBp0Fe2GpgnIh0AiYKh7o7HnYAej-5ph"
                     ],
                     "noresults": "Nessun risultato di ricerca per `{}`",
-                    "unfetchable": "Non sono riuscito ad ottenere {}",
                     "queueing": "Aggiungo alla coda...",
                     "fetching": "Ottengo la/e canzone/i, potrebbe volerci un po'...",
                     "queued": "Ho inserito {} canzoni in coda.",
+                    "onequeued": "**{}** da **{}** inserito nella coda.",
                     "playing": "Inizio a riprodurre {} adesso!"
                 },
                 "search": {

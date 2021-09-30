@@ -148,10 +148,28 @@
             "name": "Music",
             "description": "Listen to your favorite music with StrapBot!",
             "error": "An error occurred: {}",
+            "ensure_voice": {
+                "notconnected": "I'm not connected to any voice channel.",
+                "join": "Please join a voice channel first.",
+                "perms": "I need the permissions to connect to your voice channel and speak.",
+                "samevc": "You need to be in the same voice channel."
+            },
+            "now": {
+                "started": "Started playing",
+                "playing": "Now playing",
+                "enqueued": "Enqueued",
+                "duration": "Duration",
+                "listened": "{watched} listened of {entire_duration}.\n{duration} remaining.",
+                "requester": "Requested by",
+                "likes": "Likes",
+                "dislikes": "Dislikes",
+                "views": "Views"
+            },
             "commands": {
                 "summon": {
                     "description": "Summons the bot to a voice channel.",
-                    "error": "You are neither connected to a voice channel nor specified a channel to join."
+                    "error": "You are neither connected to a voice channel nor specified a channel to join.",
+                    "alr": "Already connected to a voice channel."
                 },
                 "leave": {
                     "description": "Clears the queue and leaves the voice channel.",
@@ -161,7 +179,9 @@
                     "description": "Displays the currently playing song."
                 },
                 "pause": {
-                    "description": "Pauses/Resumes the currently playing song."
+                    "description": "Pauses/Resumes the currently playing song.",
+                    "error": "Nothing playing at the moment.",
+                    "notpaused": "Not paused."
                 },
                 "stop": {
                     "description": "Stops playing song and clears the queue."
@@ -185,12 +205,8 @@
                 },
                 "shuffle": {
                     "description": "Shuffles the queue.",
-                    "error": "Empty queue."
-                },
-                "remove": {
-                    "description": "Removes a song from the queue.",
-                    "examples": ["4"],
-                    "error": "Empty queue."
+                    "error": "Empty queue.",
+                    "notplaying": "Not playing."
                 },
                 "loop": {
                     "description": "Loops the currently playing song.",
@@ -203,10 +219,10 @@
                         "https://youtube.com/playlist?list=PLRBp0Fe2GpgnIh0AiYKh7o7HnYAej-5ph"
                     ],
                     "noresults": "Couldn't find anything that matches `{}`",
-                    "unfetchable": "Couldn't fetch {}",
                     "queueing": "Adding to queue...",
                     "fetching": "Fetching song(s), this might take a while...",
                     "queued": "Enqueued {} songs.",
+                    "onequeued": "Enqueued **{}** by **{}**.",
                     "playing": "Started playing {} now!"
                 },
                 "search": {

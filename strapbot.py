@@ -1,9 +1,9 @@
 import os
 import asyncio
-import traceback
 import discord
 import logging
-import re
+import lavalink
+from youtube_dl import YoutubeDL
 from pkg_resources import parse_version
 from aiohttp import ClientSession
 from discord.ext import commands
@@ -14,6 +14,7 @@ from core.loops import Loops
 from core.context import StrapContext
 from core.logs import StrapLog
 from core.imgen import DankMemerImgen
+from functools import partial
 
 import_dotenv()
 
@@ -25,6 +26,8 @@ class StrapBot(commands.Bot):
         super().__init__(command_prefix=self.prefix, intents=intents)
         self._lang = None
         self._db = None
+        self._ytdl = None
+        self._lavalink = None
         self.token = os.getenv("TOKEN")
         self._session = None
         self._connected = asyncio.Event()
@@ -35,6 +38,39 @@ class StrapBot(commands.Bot):
         self._imgen = None
         self.voice_states = {}
         self.startup()
+
+    @property
+    def lavalink(self):
+        if self._lavalink is None:
+            self._lavalink = lavalink.Client(self.user.id)
+            self._lavalink.add_node(
+                os.getenv("LAVALINK_HOST"),
+                int(os.getenv("LAVALINK_PORT", 2333)),
+                os.getenv("LAVALINK_PASS"),
+                os.getenv("LAVALINK_REGION"),
+                os.getenv("LAVALINK_NODE", "StrapBot"),
+            )  # Host, Port, Password, Region, Name
+
+        return self._lavalink
+
+    @property
+    def ytdl(self):
+        if self._ytdl is None:
+            options = {
+                "outtmpl": "%(extractor)s-%(id)s-%(title)s.%(ext)s",
+                "noplaylist": True,
+                "nocheckcertificate": True,
+                "ignoreerrors": True,
+                "logtostderr": False,
+                "quiet": True,
+                "no_warnings": True,
+                "default_search": "auto",
+                "source_address": "0.0.0.0",
+            }
+            self._ytdl = YoutubeDL(options)
+            self._ytdl.cache.remove()
+
+        return self._ytdl
 
     @property
     def imgen(self) -> DankMemerImgen:
@@ -96,7 +132,9 @@ class StrapBot(commands.Bot):
 
     def prefix(self, bot, message):
         pxs = []
-        if self.user.id == 779286377514139669:
+        if os.getenv("BOT_PREFIX"):
+            pxs.append(os.getenv("BOT_PREFIX"))
+        elif self.user.id == 779286377514139669:
             pxs.append("sb,")
         else:
             pxs.append("sb.")
@@ -154,6 +192,7 @@ class StrapBot(commands.Bot):
 
     async def on_ready(self):
         await self.wait_for_connected()
+        self.add_listener(self.lavalink.voice_update_handler, "on_socket_response")
         guild = self.get_guild(int(os.getenv("MAIN_GUILD_ID", 1)))
         if guild == None:
             self.logger.fatal("Invalid main guild ID.")
@@ -185,9 +224,10 @@ class StrapBot(commands.Bot):
                 )
             )
 
-        if isinstance(error, commands.NotOwner) or isinstance(
-            error, commands.CheckFailure
-        ):
+        if (
+            isinstance(error, commands.NotOwner)
+            or isinstance(error, commands.CheckFailure)
+        ) and ctx.command.cog.__class__.__name__.lower() != "music":
             await ctx.send(
                 embed=discord.Embed(
                     title="Error",
@@ -200,7 +240,9 @@ class StrapBot(commands.Bot):
                 )
             )
 
-        if ctx.command.cog.__class__.__name__.lower() == "music":
+        if ctx.command.cog.__class__.__name__.lower() == "music" and not isinstance(
+            error, commands.CheckFailure
+        ):
             await ctx.send(
                 embed=discord.Embed(
                     title="Error",

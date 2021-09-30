@@ -3,6 +3,7 @@ asyncio
 python-dotenv
 pynacl
 youtube-dl
+lavalink
 python-box
 pymongo
 dnspython
