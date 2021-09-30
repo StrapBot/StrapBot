@@ -14,6 +14,12 @@ A multi-function Discord bot, with multiple languages support, fun, music comman
 
 [Click here](https://top.gg/bot/740140581174378527/vote) to vote.
 
+## Installation/Selfhosting
+
+Please... don't. Just use the instance we host. \
+If you **really** want to selfhost out bot you need to get a MongoDB connection string (or selfhost MongoDB) install and configure [DankMemer's Imgen](https://github.com/DankMemer/imgen), install and configure [Lavalink](https://github.com/freyacodes/Lavalink/releases/latest). \
+Note that we're **not** helping you to set it up on your host.
+
 ## Changelog
 
 ### v2.2: All music!
