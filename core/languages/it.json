@@ -154,6 +154,7 @@
             "now": {
                 "started": "Riproduzione avviata",
                 "playing": "In riproduzione",
+                "onvs": "In riproduzione su Vincy's stream",
                 "enqueued": "Inserito nella coda",
                 "duration": "Durata",
                 "listened": "{watched} ascoltati su {entire_duration}.\n{duration} rimanenti.",

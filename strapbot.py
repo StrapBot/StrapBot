@@ -187,12 +187,12 @@ class StrapBot(commands.Bot):
             if self.lang.default == "en"
             else "Connesso all'API di Discord."
         )
+        self.add_listener(self.lavalink.voice_update_handler, "on_socket_response")
         await self.db.setup_indexes()
         self._connected.set()
 
     async def on_ready(self):
         await self.wait_for_connected()
-        self.add_listener(self.lavalink.voice_update_handler, "on_socket_response")
         guild = self.get_guild(int(os.getenv("MAIN_GUILD_ID", 1)))
         if guild == None:
             self.logger.fatal("Invalid main guild ID.")

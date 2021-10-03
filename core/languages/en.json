@@ -157,6 +157,7 @@
             "now": {
                 "started": "Started playing",
                 "playing": "Now playing",
+                "onvs": "Now playing on Vincy's stream",
                 "enqueued": "Enqueued",
                 "duration": "Duration",
                 "listened": "{watched} listened of {entire_duration}.\n{duration} remaining.",

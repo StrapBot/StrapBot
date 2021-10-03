@@ -140,20 +140,24 @@ class Music(commands.Cog):
             return
 
         titolo = current.title
+        np = (lang.started if is_first and not nowcmd else lang.playing) if not queued else lang.enqueued
+        npurl = discord.Embed.Empty
+        url = source.webpage_url or current.uri
+
         if vincystreaming:
-            titolo = "Vincy's stream"
-            if nowcmd:
-                titolo = self.guilds_data["global"].vincystream_current + " [Vincy's stream]"
+            titolo = self.guilds_data["global"].vincystream_current
+            np = lang.onvs
+            npurl = self.VINCYSTREAM_URL
+
 
         titolo = discord.utils.escape_markdown(titolo)
 
         embed = discord.Embed(
-            description=f"**[{titolo}]({current.uri})**",
+            description=f"**[{titolo}]({url})**",
             color=discord.Color.lighter_grey(),
         ).set_author(
-            name=(lang.started if is_first and not nowcmd else lang.playing)
-            if not queued
-            else lang.enqueued,
+            name=np,
+            url=npurl,
             icon_url=self.bot.user.avatar_url,
         )
         if source.duration or player.current.duration:
@@ -190,7 +194,7 @@ class Music(commands.Cog):
         if source.uploader:
             embed.add_field(
                 name="Uploader",
-                value=f"**[{current.author}]({source.uploader_url})**",
+                value=f"**[{source.uploader}]({source.uploader_url})**",
             )
 
         if source.like_count:
@@ -344,6 +348,19 @@ class Music(commands.Cog):
 
             if self.guilds_data["global"].vincystream_current != title:
                 self.guilds_data["global"].vincystream_current = title
+                for guild_id, data in self.guilds_data.items():
+                    if guild_id == "global":
+                        continue
+
+                    if not bool(data.vincystreaming):
+                        continue
+
+                    player = data.player
+                    player.delete("current_track_info")
+                    if not player:
+                        continue
+
+                    await asyncio.gather(self.get_info(player, title, True), self.send_msg(player, data.bound, player.current, False, data.lang.now, data.lang.current))
 
             response.close()
 
@@ -649,6 +666,7 @@ class Music(commands.Cog):
             await asyncio.sleep(0)
 
         vincystreaming = bool(self.guilds_data[int(player.guild_id)].vincystreaming)
+        player.delete("current_track_info")
 
         def create_embed():
             return self.create_nowplaying_embed(
@@ -672,12 +690,47 @@ class Music(commands.Cog):
 
         await m.edit(embed=create_embed())
 
+    async def get_info(self, player, search, vincystreaming):
+        data = None
+        curr = player.current
+        player.delete("current_track_info")
+        old = player.fetch("current_track_info")
+        while data == None or data == old and curr == player.current:
+            data = await self.bot.loop.run_in_executor(
+                None,
+                partial(
+                    self.bot.ytdl.extract_info,
+                    search,
+                    download=False,
+                    process=vincystreaming,
+                ),
+            )
+            if curr != player.current:
+                return
+        
+        if vincystreaming:
+            info = None
+            if not "entries" in data:
+                info = data
+            else:
+                for entry in data["entries"]:
+                    if entry and entry["uploader"] in ["NoCopyrightSounds", "NCS Lyrics"]:
+                        info = entry
+                        break
+        else:
+            info = data
+
+        player.store("current_track_info", info)
+        return info
+
     async def track_hook(self, event):
 
         if isinstance(event, lavalink.events.TrackStartEvent):
-            self.guilds_data[int(event.player.guild_id)].vincystreaming = (
+            self.guilds_data[int(event.player.guild_id)].player = event.player
+            self.guilds_data[int(event.player.guild_id)].vincystreaming = vincystreaming = (
                 event.player.current.uri == self.VINCYSTREAM_URL
             )
+            search = event.player.current.uri if not vincystreaming else self.guilds_data["global"].vincystream_current
             cls = self.__class__.__name__
             db = self.bot.db.db["Config"]
             guilds = await db.find_one({"_id": "guilds"})
@@ -695,24 +748,11 @@ class Music(commands.Cog):
             lang["current"] = current_lang
             lang = Language(lang)
 
+            self.guilds_data[int(event.player.guild_id)].current_lang = current_lang
+            self.guilds_data[int(event.player.guild_id)].lang = lang
+
             async def alt_upd():
                 return
-
-            async def get_info():
-                data = None
-                event.player.delete("current_track_info")
-                old = event.player.fetch("current_track_info")
-                while data == None or data == old:
-                    data = await self.bot.loop.run_in_executor(
-                        None,
-                        partial(
-                            self.bot.ytdl.extract_info,
-                            event.player.current.uri,
-                            download=False,
-                            process=False,
-                        ),
-                    )
-                event.player.store("current_track_info", data)
 
             guild_id = int(event.player.guild_id)
             guild = self.bot.get_guild(guild_id)
@@ -730,7 +770,7 @@ class Music(commands.Cog):
             is_first = self.guilds_data[guild.id].is_first
 
             await asyncio.gather(
-                get_info(),
+                self.get_info(event.player, search, vincystreaming),
                 upd,
                 self.send_msg(
                     event.player,
