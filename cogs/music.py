@@ -1,10 +1,12 @@
+from doctest import ELLIPSIS_MARKER
 import os
 import json
 import re
 import random
+from aiohttp import ClientResponse
 import discord
 import lavalink
-from discord.ext import commands
+from discord.ext import commands, tasks
 import asyncio
 from box import Box, BoxKeyError
 from functools import partial
@@ -88,10 +90,13 @@ def is_one_in_vc():
 
 
 class Music(commands.Cog):
+
+    VINCYSTREAM_URL = "http://alphabet.ergastolator.website/vincystream"
     def __init__(self, bot):
         self.bot = bot
         self.db = bot.db.get_cog_partition(self)
         self.guilds_data = GuildsData()
+        self.meta_loop.start()
         lavalink.add_event_hook(self.track_hook)
 
     def cog_unload(self):
@@ -128,9 +133,20 @@ class Music(commands.Cog):
         is_first=False,
         lang=None,
         current_lang=None,
+        vincystreaming=False
     ):
         current = current or player.current
-        titolo = discord.utils.escape_markdown(current.title)
+        if not current:
+            return
+
+        titolo = current.title
+        if vincystreaming:
+            titolo = "Vincy's stream"
+            if nowcmd:
+                titolo = self.guilds_data["global"].vincystream_current + " [Vincy's stream]"
+
+        titolo = discord.utils.escape_markdown(titolo)
+
         embed = discord.Embed(
             description=f"**[{titolo}]({current.uri})**",
             color=discord.Color.lighter_grey(),
@@ -261,6 +277,7 @@ class Music(commands.Cog):
     @commands.command(name="now", aliases=["nowplaying", "playing", "np"])
     async def now_playing(self, ctx):
         player: DefaultPlayer = self.bot.lavalink.player_manager.get(ctx.guild.id)
+        vincystreaming = bool(self.guilds_data[ctx.guild.id].vincystreaming)
         await ctx.send(
             embed=self.create_nowplaying_embed(
                 YTDLData(player.fetch("current_track_info") or {}),
@@ -269,6 +286,7 @@ class Music(commands.Cog):
                 nowcmd=True,
                 lang=(await ctx.get_lang(cog=True)).now,
                 current_lang=(await ctx.get_lang(cog=True)).current,
+                vincystreaming=vincystreaming
             )
         )
 
@@ -287,7 +305,12 @@ class Music(commands.Cog):
         )
         lang = (await ctx.get_lang(cog=True)).ensure_voice
 
-        should_connect = ctx.command.name in ("play", "playfromlist", "summon")
+        should_connect = ctx.command.name in (
+            "play",
+            "playfromlist",
+            "summon",
+            "vincystream",
+        )
 
         if not ctx.author.voice or not ctx.author.voice.channel:
             # Our cog_command_error handler catches this and sends it to the voicechannel.
@@ -310,6 +333,26 @@ class Music(commands.Cog):
             if int(player.channel_id) != ctx.author.voice.channel.id:
                 raise MusicError(lang.samevc)
 
+    @tasks.loop()
+    async def meta_loop(self):
+        await self.bot.wait_until_ready()
+        url = "https://vincystream.online/info"
+        async with self.bot.session.get(url) as response:
+            response: ClientResponse
+            data = await response.json()
+            title = data["title"]
+
+            if self.guilds_data["global"].vincystream_current != title:
+                self.guilds_data["global"].vincystream_current = title
+
+            response.close()
+
+        await asyncio.sleep(1)
+
+    @commands.command(name="vincystream")
+    async def play_vincystream(self, ctx):
+        await self.play_song(ctx, query="vincystream")
+
     @commands.command(name="play")
     @is_one_in_vc()
     async def play_song(self, ctx, *, query=None):
@@ -322,6 +365,9 @@ class Music(commands.Cog):
             raise commands.MissingRequiredArgument(
                 type("testù" + ("ù" * 100), (object,), {"name": "query"})()
             )
+        
+        if query == "vincystream":
+            query = self.VINCYSTREAM_URL
 
         volume = (await self.db.find_one({"_id": "volumes"}) or {}).get(
             str(ctx.guild.id), 100
@@ -338,7 +384,7 @@ class Music(commands.Cog):
         # Results could be None if Lavalink returns an invalid response (non-JSON/non-200 (OK)).
         # ALternatively, resullts['tracks'] could be an empty array if the query yielded no tracks.
         if not results or not results["tracks"]:
-            return await ctx.send(ctx.lang.noresults)
+            return await ctx.send(ctx.lang.noresults.format(oquery))
 
         self.guilds_data[ctx.guild.id].is_first = is_first = (
             len(player.queue) == 0 and not player.current
@@ -602,6 +648,8 @@ class Music(commands.Cog):
         while not player.is_playing:
             await asyncio.sleep(0)
 
+        vincystreaming = bool(self.guilds_data[int(player.guild_id)].vincystreaming)
+
         def create_embed():
             return self.create_nowplaying_embed(
                 YTDLData(player.fetch("current_track_info") or {}),
@@ -612,6 +660,7 @@ class Music(commands.Cog):
                 is_first=is_first,
                 lang=lang,
                 current_lang=current_lang,
+                vincystreaming=vincystreaming
             )
 
         m = await channel.send(embed=create_embed())
@@ -626,11 +675,14 @@ class Music(commands.Cog):
     async def track_hook(self, event):
 
         if isinstance(event, lavalink.events.TrackStartEvent):
+            self.guilds_data[int(event.player.guild_id)].vincystreaming = (
+                event.player.current.uri == self.VINCYSTREAM_URL
+            )
             cls = self.__class__.__name__
             db = self.bot.db.db["Config"]
             guilds = await db.find_one({"_id": "guilds"})
-            if str(event.player.guild_id) in guilds:
-                current_lang = guilds[str(event.player.guild_id)].get(
+            if event.player.guild_id in guilds:
+                current_lang = guilds[event.player.guild_id].get(
                     "language", self.bot.lang.default
                 )
             else:
