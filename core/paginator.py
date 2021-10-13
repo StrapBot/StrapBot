@@ -304,10 +304,9 @@ class MessagePaginatorSession(PaginatorSession):
             self.embed.set_footer(text=footer_text, icon_url=self.embed.footer.icon_url)
 
     async def _create_base(self, item: str) -> None:
-        self._set_footer()
-        self.base = await self.ctx.send(
-            content=item, embed=self.embed if len(self.pages) != 1 else None
-        )
+        if len(self.pages) != 1:
+            self._set_footer()
+        self.base = await self.ctx.send(content=item, embed=self.embed)
 
     async def _show_page(self, page) -> None:
         self._set_footer()

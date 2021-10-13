@@ -1,14 +1,9 @@
-import secrets
-import sys
 import os
-from datetime import datetime
-from json import JSONDecodeError
-from typing import Union, Optional
-
-from discord import Member, DMChannel, TextChannel, Message
-
-from aiohttp import ClientResponseError, ClientResponse
 from motor.motor_asyncio import AsyncIOMotorClient
+from motor.core import (
+    AgnosticClient,
+    AgnosticCollection,
+)  # to have colored syntax at least on vscode
 from pymongo.errors import ConfigurationError
 
 
@@ -21,7 +16,7 @@ class MongoDB:
             raise RuntimeError
 
         try:
-            self.db = AsyncIOMotorClient(mongo_uri).strapbot
+            self.db: AgnosticClient = AsyncIOMotorClient(mongo_uri).strapbot
         except ConfigurationError as e:
             self.bot.logger.critical(
                 "Your MondoDB connection string might be copied wrong, try copying it again. "
@@ -32,9 +27,8 @@ class MongoDB:
 
             raise
 
-    async def setup_indexes(self):
-        """Setup text indexes so we can use the $search operator"""
-        ...
+    def __getattr__(self, *args, **kwargs) -> AgnosticCollection:
+        return self.db.__getattr__(*args, **kwargs)
 
     async def validate_database_connection(self):
         try:

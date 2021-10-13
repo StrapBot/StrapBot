@@ -3,6 +3,7 @@ import discord
 import inspect
 import random
 import traceback
+import string
 from io import StringIO
 from textwrap import indent
 from contextlib import redirect_stdout
@@ -43,6 +44,20 @@ class OwnerOnly(commands.Cog):
     async def get(self, ctx):
         """ok"""
         return await ctx.send_help(ctx.command)
+
+    @commands.command()
+    async def raise_error(self, ctx):
+        """raise an error"""
+        gibberish = list(
+            (
+                string.ascii_letters
+                + string.digits
+                + "\\!|\"£$%&/()=?^><;:_,.-ç°§òàùé*è+'ìÀÈÌÒÙÁÉÍÓÚ\n\N{neutral face}\N{fish}\N{waffle}"
+            )
+            * 20
+        )
+        random.shuffle(gibberish)
+        raise Exception("".join(gibberish))
 
     @commands.group(invoke_without_command=True)
     async def set(self, ctx):
@@ -91,6 +106,25 @@ class OwnerOnly(commands.Cog):
                 f"```json\n{json.dumps(await self.bot.lang.get_user(member), indent=4)}\n```"
             )
 
+    @commands.command()
+    async def error(self, ctx, id):
+        data = await self.bot.db.Errors.find_one({"_id": id})
+        if data == None:
+            return
+
+        pages = []
+        embed = discord.Embed(
+            description=f"Viewing traceback from `{data['command']}`.",
+            color=discord.Color.lighter_gray(),
+        )
+        paginated_text = self.paginate(data["traceback"])
+        for page in paginated_text:
+            pages.append(
+                f"```haskell\n{page}\n```"
+            )  # using haskell because it formats tracebacks better than py
+        session = MessagePaginatorSession(ctx, *pages, embed=embed)
+        await session.run()
+
     @commands.command(hidden=True, name="eval", aliases=["exec"])
     async def eval_(self, ctx, *, body: str):
         """Avvia un codice Python."""
@@ -112,23 +146,11 @@ class OwnerOnly(commands.Cog):
         env.update(globals())
 
         stdout = StringIO()
-        embed = discord.Embed(color=discord.Color.lighter_grey())
+        embed = discord.Embed(
+            description="Viewing evaluation result.", color=discord.Color.lighter_grey()
+        )
 
         to_compile = f'async def func():\n{indent(body, "  ")}'
-
-        def paginate(text: str):
-            """Simple generator that paginates text."""
-            last = 0
-            pages = []
-            appd_index = curr = None
-            for curr in range(0, len(text)):
-                if curr % 1980 == 0:
-                    pages.append(text[last:curr])
-                    last = curr
-                    appd_index = curr
-            if appd_index != len(text) - 1:
-                pages.append(text[last:curr])
-            return list(filter(lambda a: a != "", pages))
 
         try:
             exec(to_compile, env)
@@ -145,7 +167,7 @@ class OwnerOnly(commands.Cog):
                 ret = await run_eval()
         except Exception:
             value = stdout.getvalue()
-            paginated_text = paginate(f"{value}{traceback.format_exc()}")
+            paginated_text = self.paginate(f"{value}{traceback.format_exc()}")
             pages = []
             try:
                 await ctx.message.add_reaction("⁉️")
@@ -172,7 +194,7 @@ class OwnerOnly(commands.Cog):
             pages = []
             if ret is None:
                 if value:
-                    paginated_text = paginate(value)
+                    paginated_text = self.paginate(value)
                     for page in paginated_text:
                         pages.append(f"```py\n{page}\n```")
                     session = MessagePaginatorSession(ctx, *pages, embed=embed)
@@ -181,7 +203,7 @@ class OwnerOnly(commands.Cog):
                 try:
                     await ctx.send(f"```py\n{value}{ret}\n```")
                 except Exception:
-                    paginated_text = paginate(f"{value}{ret}")
+                    paginated_text = self.paginate(f"{value}{ret}")
                     for page in paginated_text:
                         pages.append(f"```py\n{page}\n```")
                     session = MessagePaginatorSession(ctx, *pages, embed=embed)
@@ -200,6 +222,21 @@ class OwnerOnly(commands.Cog):
             await ctx.send("testù" + ("ù" * random.randint(20, 50)))
             raise
         await ctx.send(f"Reloaded `{ext}`.")
+
+    @staticmethod
+    def paginate(text: str):
+        """Simple generator that paginates text."""
+        last = 0
+        pages = []
+        appd_index = curr = None
+        for curr in range(0, len(text)):
+            if curr % 1970 == 0:
+                pages.append(text[last:curr])
+                last = curr
+                appd_index = curr
+        if appd_index != len(text) - 1:
+            pages.append(text[last:curr])
+        return list(filter(lambda a: a != "", pages))
 
 
 def setup(bot):

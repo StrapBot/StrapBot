@@ -91,7 +91,8 @@ def is_one_in_vc():
 
 class Music(commands.Cog):
 
-    VINCYSTREAM_URL = "http://alphabet.ergastolator.website/vincystream"
+    VINCYSTREAM_URL = "http://vincystream.online/stream"
+
     def __init__(self, bot):
         self.bot = bot
         self.db = bot.db.get_cog_partition(self)
@@ -100,11 +101,11 @@ class Music(commands.Cog):
         lavalink.add_event_hook(self.track_hook)
 
     def cog_unload(self):
-        """ Cog unload handler. This removes any event hooks that were registered. """
+        """Cog unload handler. This removes any event hooks that were registered."""
         self.bot.lavalink._event_hooks.clear()
 
     async def cog_check(self, ctx):
-        """ Command before-invoke handler. """
+        """Command before-invoke handler."""
         guild_check = ctx.guild is not None
         #  This is essentially the same as `@commands.guild_only()`
         #  except it saves us repeating ourselves (and also a few lines).
@@ -133,14 +134,18 @@ class Music(commands.Cog):
         is_first=False,
         lang=None,
         current_lang=None,
-        vincystreaming=False
+        vincystreaming=False,
     ):
         current = current or player.current
         if not current:
             return
 
         titolo = current.title
-        np = (lang.started if is_first and not nowcmd else lang.playing) if not queued else lang.enqueued
+        np = (
+            (lang.started if is_first and not nowcmd else lang.playing)
+            if not queued
+            else lang.enqueued
+        )
         npurl = discord.Embed.Empty
         url = source.webpage_url or current.uri
 
@@ -148,7 +153,6 @@ class Music(commands.Cog):
             titolo = self.guilds_data["global"].vincystream_current
             np = lang.onvs
             npurl = self.VINCYSTREAM_URL
-
 
         titolo = discord.utils.escape_markdown(titolo)
 
@@ -290,7 +294,7 @@ class Music(commands.Cog):
                 nowcmd=True,
                 lang=(await ctx.get_lang(cog=True)).now,
                 current_lang=(await ctx.get_lang(cog=True)).current,
-                vincystreaming=vincystreaming
+                vincystreaming=vincystreaming,
             )
         )
 
@@ -303,7 +307,7 @@ class Music(commands.Cog):
         await ctx.message.add_reaction("🆗")
 
     async def ensure_voice(self, ctx):
-        """ This check ensures that the bot and command author are in the same voicechannel. """
+        """This check ensures that the bot and command author are in the same voicechannel."""
         player: DefaultPlayer = self.bot.lavalink.player_manager.create(
             ctx.guild.id, endpoint=str(ctx.guild.region)
         )
@@ -360,7 +364,17 @@ class Music(commands.Cog):
                     if not player:
                         continue
 
-                    await asyncio.gather(self.get_info(player, title, True), self.send_msg(player, data.bound, player.current, False, data.lang.now, data.lang.current))
+                    await asyncio.gather(
+                        self.get_info(player, title, True),
+                        self.send_msg(
+                            player,
+                            data.bound,
+                            player.current,
+                            False,
+                            data.lang.now,
+                            data.lang.current,
+                        ),
+                    )
 
             response.close()
 
@@ -382,7 +396,7 @@ class Music(commands.Cog):
             raise commands.MissingRequiredArgument(
                 type("testù" + ("ù" * 100), (object,), {"name": "query"})()
             )
-        
+
         if query == "vincystream":
             query = self.VINCYSTREAM_URL
 
@@ -678,7 +692,7 @@ class Music(commands.Cog):
                 is_first=is_first,
                 lang=lang,
                 current_lang=current_lang,
-                vincystreaming=vincystreaming
+                vincystreaming=vincystreaming,
             )
 
         m = await channel.send(embed=create_embed())
@@ -707,14 +721,17 @@ class Music(commands.Cog):
             )
             if curr != player.current:
                 return
-        
+
         if vincystreaming:
             info = None
             if not "entries" in data:
                 info = data
             else:
                 for entry in data["entries"]:
-                    if entry and entry["uploader"] in ["NoCopyrightSounds", "NCS Lyrics"]:
+                    if entry and entry["uploader"] in [
+                        "NoCopyrightSounds",
+                        "NCS Lyrics",
+                    ]:
                         info = entry
                         break
         else:
@@ -727,10 +744,16 @@ class Music(commands.Cog):
 
         if isinstance(event, lavalink.events.TrackStartEvent):
             self.guilds_data[int(event.player.guild_id)].player = event.player
-            self.guilds_data[int(event.player.guild_id)].vincystreaming = vincystreaming = (
+            self.guilds_data[
+                int(event.player.guild_id)
+            ].vincystreaming = vincystreaming = (
                 event.player.current.uri == self.VINCYSTREAM_URL
             )
-            search = event.player.current.uri if not vincystreaming else self.guilds_data["global"].vincystream_current
+            search = (
+                event.player.current.uri
+                if not vincystreaming
+                else self.guilds_data["global"].vincystream_current
+            )
             cls = self.__class__.__name__
             db = self.bot.db.db["Config"]
             guilds = await db.find_one({"_id": "guilds"})

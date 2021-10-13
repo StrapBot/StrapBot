@@ -1,8 +1,12 @@
 import os
 import asyncio
+from async_timeout import sys
 import discord
 import logging
 import lavalink
+import string
+import random
+import traceback
 from youtube_dl import YoutubeDL
 from pkg_resources import parse_version
 from aiohttp import ClientSession
@@ -36,7 +40,6 @@ class StrapBot(commands.Bot):
         self._loops = Loops(self)
         self._version = None
         self._imgen = None
-        self.voice_states = {}
         self.startup()
 
     @property
@@ -188,7 +191,6 @@ class StrapBot(commands.Bot):
             else "Connesso all'API di Discord."
         )
         self.add_listener(self.lavalink.voice_update_handler, "on_socket_response")
-        await self.db.setup_indexes()
         self._connected.set()
 
     async def on_ready(self):
@@ -205,26 +207,24 @@ class StrapBot(commands.Bot):
 
     async def on_command_error(self, ctx, error):
         error = getattr(error, "original", error)
+        solved = False
         if isinstance(error, commands.CommandNotFound):
             self.logger.warning(str(error))
-            return
-        if isinstance(error, commands.MissingPermissions):
-            return await ctx.send(
+        elif isinstance(error, commands.MissingPermissions):
+            await ctx.send(
                 embed=discord.Embed(
                     title="Error", description=str(error), color=discord.Color.red()
                 ).set_footer(text="You can try this on another server, though.")
             )
-
-        if isinstance(error, commands.MissingRequiredArgument):
-            return await ctx.send(
+        elif isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send(
                 embed=discord.Embed(
                     title=f"Error: {ctx.prefix}{ctx.command} {ctx.command.signature}",
                     description=str(error),
                     color=discord.Color.red(),
                 )
             )
-
-        if (
+        elif (
             isinstance(error, commands.NotOwner)
             or isinstance(error, commands.CheckFailure)
         ) and ctx.command.cog.__class__.__name__.lower() != "music":
@@ -239,8 +239,7 @@ class StrapBot(commands.Bot):
                     color=discord.Color.red(),
                 )
             )
-
-        if ctx.command.cog.__class__.__name__.lower() == "music" and not isinstance(
+        elif ctx.command.cog.__class__.__name__.lower() == "music" and not isinstance(
             error, commands.CheckFailure
         ):
             await ctx.send(
@@ -251,7 +250,65 @@ class StrapBot(commands.Bot):
                 )
             )
 
-        return await super().on_command_error(ctx, error)
+        else:
+            if os.getenv("ERRORS_WEBHOOK_URL"):
+                await self.send_error(error, ctx.prefix, str(ctx.command))
+
+            return await super().on_command_error(ctx, error)
+
+    async def send_error(self, error, pfix=None, command=None, func=None):
+        db = self.db.Errors
+        _id = self.gen_error_id()
+        while await db.find_one({"_id": _id}):
+            _id = self.gen_error_id()
+            await asyncio.sleep(0)
+
+        exc_info = (error.__class__, error, error.__traceback__)
+        data = "".join(traceback.format_exception(*exc_info, limit=None, chain=True))
+        wh = discord.Webhook.from_url(
+            os.getenv("ERRORS_WEBHOOK_URL"),
+            adapter=discord.AsyncWebhookAdapter(self.session),
+        )
+        args = "\n - " + "\n - ".join([f"`{a}`" for a in error.args])
+        mainmsg = f"An unknown error occurred"
+        if func and not (pfix and command):
+            pfix = "method:"
+            command = func
+
+        if pfix and command:
+            mainmsg += f" running `{pfix}{command}`."
+        else:
+            mainmsg += "."
+
+        mainmsg += "\n"
+
+        if len(args) > 1000:
+            args = "Too long, can't send."
+        await db.insert_one(
+            {
+                "_id": _id,
+                "traceback": data,
+                "class": error.__class__.__name__,
+                "args": list(error.args),
+                "command": (pfix or "") + (command or ""),
+            }
+        )
+        await wh.send(
+            mainmsg
+            + f"Error ID: `{_id}`\n"
+            + f"Error class: `{error.__class__.__name__}`\n"
+            + f"Error args: {args}\n"
+        )
+
+    def gen_error_id(self, length: int = 10):
+        syms = list(string.ascii_letters + string.digits)
+        return "".join([random.choice(syms) for i in range(length)])
+
+    async def on_error(self, event_method, *args, **kwargs):
+
+        if os.getenv("ERRORS_WEBHOOK_URL"):
+            await self.send_error(sys.exc_info()[1], func=event_method)
+        return await super().on_error(event_method, *args, **kwargs)
 
     @property
     def db(self) -> MongoDB:
@@ -285,8 +342,6 @@ class StrapBot(commands.Bot):
             except asyncio.CancelledError:
                 pass
             finally:
-                for state in self.voice_states.values():
-                    self.loop.run_until_complete(state.stop())
                 self.loop.run_until_complete(self.session.close())
                 print()
                 self.logger.warning("Shutting down...")

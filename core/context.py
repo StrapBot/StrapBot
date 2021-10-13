@@ -1,8 +1,8 @@
-from logging import setLogRecordFactory
 import json
 import discord
+import typing
 from discord.ext import commands
-from core.voice import VoiceState
+from lavalink.models import BasePlayer, DefaultPlayer
 from core.paginator import EmbedPaginatorSession, MessagePaginatorSession
 from core.languages import Language
 
@@ -34,13 +34,10 @@ class StrapContext(commands.Context):
         return ret
 
     @property
-    def voice_state(self) -> VoiceState:
-        state = self.bot.voice_states.get(self.guild.id)
-        if not state:
-            state = VoiceState(self.bot, self)
-            self.bot.voice_states[self.guild.id] = state
+    def player(self) -> typing.Union[BasePlayer, DefaultPlayer]:
+        ret = self.bot.lavalink.player_manager.get(self.guild.id)
 
-        return state
+        return ret
 
     async def get_lang(self, cls=None, *, cogs=False, cog=False, all=False) -> Language:
         if cls == None:
