@@ -52,7 +52,7 @@ class OwnerOnly(commands.Cog):
             (
                 string.ascii_letters
                 + string.digits
-                + "\\!|\"£$%&/()=?^><;:_,.-ç°§òàùé*è+'ìÀÈÌÒÙÁÉÍÓÚ\n\N{neutral face}\N{fish}\N{waffle}"
+                + "\\!|\"£$%&/()=?^><;:_,.-ç°§òàùé*è+'ìÀÈÌÒÙÁÉÍÓÚ\n😐🐟🧇"
             )
             * 20
         )
