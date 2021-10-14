@@ -141,6 +141,10 @@
                 },
                 "award": {
                     "description": "Award yourself"
+                },
+                "fuckup": {
+                    "description": "Make some text unreadable.",
+                    "examples": ["Hello World!", "testù"]
                 }
             }
         },

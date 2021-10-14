@@ -8,6 +8,7 @@ import box
 import json
 import string
 import typing
+import asyncio
 from io import BytesIO
 
 
@@ -507,6 +508,19 @@ class Fun(commands.Cog):
         await ctx.message.remove_reaction("⌛", ctx.me)
         await ctx.message.add_reaction("🏅")
 
+    @commands.command()
+    async def fuckup(self, ctx, *, phrase: str):
+        words = list(phrase)
+        news = []
+        for _ in range(5):
+            new = ""
+            for i in words:
+                new += choice(words)
+            
+            news.append(new)
+            await asyncio.sleep(0) #avoid blocking
+        
+        await ctx.send(choice(news))
 
 def setup(bot):
     bot.add_cog(Fun(bot))
