@@ -138,6 +138,10 @@
                 },
                 "award": {
                     "description": "Dai un premio a te stesso"
+                },
+                "fuckup": {
+                    "description": "Rendi illeggibile del testo.",
+                    "examples": ["Hello World!", "testù"]
                 }
             }
         },

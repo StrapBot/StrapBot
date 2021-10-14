@@ -207,7 +207,6 @@ class StrapBot(commands.Bot):
 
     async def on_command_error(self, ctx, error):
         error = getattr(error, "original", error)
-        solved = False
         if isinstance(error, commands.CommandNotFound):
             self.logger.warning(str(error))
         elif isinstance(error, commands.MissingPermissions):
