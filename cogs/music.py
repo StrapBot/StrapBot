@@ -343,7 +343,6 @@ class Music(commands.Cog):
 
     @tasks.loop()
     async def meta_loop(self):
-        print("lop")
         await self.bot.wait_until_ready()
         url = "https://vincystream.online/info"
         async with self.bot.session.get(url) as response:
@@ -351,12 +350,9 @@ class Music(commands.Cog):
             data = await response.json()
             title = data["title"]
 
-            print("1")
             if self.guilds_data["global"].vincystream_current != title:
-                print("2")
                 self.guilds_data["global"].vincystream_current = title
                 for guild_id, data in self.guilds_data.items():
-                    print("3")
                     if guild_id == "global":
                         continue
 
@@ -366,8 +362,7 @@ class Music(commands.Cog):
                     player = data.player
                     if not player:
                         continue
-                
-                    print("4")
+
 
                     player.delete("current_track_info")
 
@@ -382,13 +377,10 @@ class Music(commands.Cog):
                             data.lang.current,
                         ),
                     )
-                    print(5)
-
             response.close()
-            print(6)
 
         await asyncio.sleep(1)
-        print("done")
+        self.meta_loop.restart()
 
     @commands.command(name="vincystream")
     async def play_vincystream(self, ctx):
