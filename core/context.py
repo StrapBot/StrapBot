@@ -51,9 +51,9 @@ class StrapContext(commands.Context):
         members = await db.find_one({"_id": "members"})
         guilds = await db.find_one({"_id": "guilds"})
         if str(self.author.id) in members:
-            current = members[str(self.author.id)]["language"]
+            current = members[str(self.author.id)].get("language", self.bot.lang.default)
         elif str(self.guild.id) in guilds:
-            current = guilds[str(self.guild.id)]["language"]
+            current = guilds[str(self.guild.id)].get("language", self.bot.lang.default)
         else:
             current = self.bot.lang.default
 
