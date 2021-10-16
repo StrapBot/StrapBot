@@ -9,6 +9,7 @@ import json
 import string
 import typing
 import asyncio
+import os
 from io import BytesIO
 
 
@@ -286,6 +287,7 @@ class Fun(commands.Cog):
         for letter in exact:
             if letter in alpha:
                 index = alpha.index(letter)
+                lp
                 new += converter[index]
             else:
                 new += letter
@@ -516,11 +518,31 @@ class Fun(commands.Cog):
             new = ""
             for i in words:
                 new += choice(words)
-            
+
             news.append(new)
-            await asyncio.sleep(0) #avoid blocking
-        
+            await asyncio.sleep(0)  # avoid blocking
+
         await ctx.send(choice(news))
+
+    @commands.command(usage="<text>")
+    async def story(
+        self, ctx, *, text: str = "text is a required argument that is missing.\n\n"
+    ):
+        token = os.getenv("DEEPAI_API_TOKEN")
+        if not token:
+            return
+
+        resp = await self.bot.session.post(
+            "https://api.deepai.org/api/text-generator",
+            data={"text": text},
+            headers={"api-key": token},
+        )
+        ret = await resp.json()
+        await ctx.send(
+            embed=discord.Embed(
+                description=ret["output"], color=discord.Color.lighter_grey()
+            ).set_author(name="Generated text", icon_url=ctx.me.avatar_url)
+        )
 
 
 def setup(bot):

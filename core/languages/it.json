@@ -142,6 +142,9 @@
                 "fuckup": {
                     "description": "Rendi illeggibile del testo.",
                     "examples": ["Hello World!", "testù"]
+                },
+                "story": {
+                	"description": "Un intelligenza artificiale crea una storia da un po'di testo.\nPowered by DeepAI."
                 }
             }
         },

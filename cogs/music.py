@@ -363,7 +363,6 @@ class Music(commands.Cog):
                     if not player:
                         continue
 
-
                     player.delete("current_track_info")
 
                     await asyncio.gather(
