@@ -145,6 +145,9 @@
                 "fuckup": {
                     "description": "Make some text unreadable.",
                     "examples": ["Hello World!", "testù"]
+                },
+                "story": {
+                    "description": "An AI creates a story from a piece of text\nPowered by DeepAI."
                 }
             }
         },
