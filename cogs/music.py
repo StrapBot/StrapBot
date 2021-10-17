@@ -737,9 +737,9 @@ class Music(commands.Cog):
                         ]:
                             info = entry
                             break
-
             else:
                 info = data
+                break
 
         player.store("current_track_info", info)
         return info
