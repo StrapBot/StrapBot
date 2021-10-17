@@ -378,7 +378,6 @@ class Music(commands.Cog):
             response.close()
 
         await asyncio.sleep(1)
-        self.meta_loop.restart()
 
     @commands.command(name="vincystream")
     async def play_vincystream(self, ctx):
@@ -723,7 +722,7 @@ class Music(commands.Cog):
                     )
                     if curr != player.current:
                         return
-            except asyncio.TimeoutError:
+            except Exception: # lets handle all the exceptions, so if ytdl raises anything it wont parse data, but this time it wont block the whole loop
                 return
 
         if vincystreaming:
