@@ -342,7 +342,7 @@ class StrapBot(commands.Bot):
 
         if getattr(ctx.cog, "beta", False):
             beta = (
-                (await self.lang.db.find_one({"_id": "members"})).get(
+                (await self.lang.db.find_one({"_id": "users"})).get(
                     str(ctx.author.id)
                 )
                 or {"beta": False}

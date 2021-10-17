@@ -57,7 +57,7 @@ class Config(commands.Cog):
         """
         ctx.lang = await ctx.get_lang()
 
-        data = (await self.db.find_one({"_id": "members"})).get(
+        data = (await self.db.find_one({"_id": "users"})).get(
             str(ctx.author.id)
         ) or {}
         beta = True
@@ -66,7 +66,7 @@ class Config(commands.Cog):
 
         data["beta"] = beta
         await self.db.find_one_and_update(
-            {"_id": "members"},
+            {"_id": "users"},
             {"$set": {str(ctx.author.id): data}},
             upsert=True,
         )

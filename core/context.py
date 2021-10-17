@@ -48,7 +48,7 @@ class StrapContext(commands.Context):
 
         cls = cls.__class__.__name__
         db = self.bot.db.db["Config"]
-        members = await db.find_one({"_id": "members"})
+        members = await db.find_one({"_id": "users"})
         guilds = await db.find_one({"_id": "guilds"})
         if str(self.author.id) in members:
             current = members[str(self.author.id)].get(
