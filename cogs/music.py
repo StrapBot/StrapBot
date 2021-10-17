@@ -1,5 +1,3 @@
-from doctest import ELLIPSIS_MARKER
-import os
 import json
 import re
 import random
@@ -12,6 +10,7 @@ from box import Box, BoxKeyError
 from functools import partial
 from lavalink.models import DefaultPlayer
 from core.languages import Language
+from async_timeout import timeout
 
 
 class MusicError(Exception):
@@ -711,16 +710,20 @@ class Music(commands.Cog):
         player.delete("current_track_info")
         old = player.fetch("current_track_info")
         while data == None or data == old and curr == player.current:
-            data = await self.bot.loop.run_in_executor(
-                None,
-                partial(
-                    self.bot.ytdl.extract_info,
-                    search,
-                    download=False,
-                    process=vincystreaming,
-                ),
-            )
-            if curr != player.current:
+            try:
+                async with timeout(60):
+                    data = await self.bot.loop.run_in_executor(
+                        None,
+                        partial(
+                            self.bot.ytdl.extract_info,
+                            search,
+                            download=False,
+                            process=vincystreaming,
+                        ),
+                    )
+                    if curr != player.current:
+                        return
+            except asyncio.TimeoutError:
                 return
 
         if vincystreaming:
