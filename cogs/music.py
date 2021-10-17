@@ -697,9 +697,13 @@ class Music(commands.Cog):
         m = await channel.send(embed=create_embed())
 
         data = player.fetch("current_track_info", None)
-        while data == None:
-            data = player.fetch("current_track_info", None)
-            await asyncio.sleep(1)
+        try:
+            async with timeout(60):
+                while data == None:
+                    data = player.fetch("current_track_info", None)
+                    await asyncio.sleep(1)
+        except asyncio.TimeoutError:
+            return
 
         await m.edit(embed=create_embed())
 
