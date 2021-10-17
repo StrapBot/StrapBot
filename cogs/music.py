@@ -725,20 +725,20 @@ class Music(commands.Cog):
             except Exception: # lets handle all the exceptions, so if ytdl raises anything it wont parse data, but this time it wont block the whole loop
                 return
 
-        if vincystreaming:
-            info = None
-            if not "entries" in data:
-                info = data
+            if vincystreaming:
+                info = None
+                if not "entries" in data:
+                    info = data
+                else:
+                    for entry in data["entries"]:
+                        if entry and entry["uploader"] in [
+                            "NoCopyrightSounds",
+                            "NCS Lyrics",
+                        ]:
+                            info = entry
+                            break
             else:
-                for entry in data["entries"]:
-                    if entry and entry["uploader"] in [
-                        "NoCopyrightSounds",
-                        "NCS Lyrics",
-                    ]:
-                        info = entry
-                        break
-        else:
-            info = data
+                info = data
 
         player.store("current_track_info", info)
         return info
