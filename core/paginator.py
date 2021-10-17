@@ -166,10 +166,6 @@ class PaginatorSession:
             else:
                 action = self.reaction_map.get(reaction.emoji)
                 await action()
-            try:
-                await self.base.remove_reaction(reaction, user)
-            except (HTTPException, InvalidArgument):
-                pass
         else:
             return self.base
 
