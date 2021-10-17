@@ -737,6 +737,7 @@ class Music(commands.Cog):
                         ]:
                             info = entry
                             break
+
             else:
                 info = data
 
