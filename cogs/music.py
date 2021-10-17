@@ -724,6 +724,7 @@ class Music(commands.Cog):
                             process=vincystreaming,
                         ),
                     )
+
                     if curr != player.current:
                         return
             except Exception: # lets handle all the exceptions, so if ytdl raises anything it wont parse data, but this time it wont block the whole loop
