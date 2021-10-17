@@ -147,7 +147,7 @@
                     "examples": ["Hello World!", "testù"]
                 },
                 "story": {
-                    "description": "An AI creates a story from a piece of text\nPowered by DeepAI."
+                	"description": "An AI creates a story from a piece of text\nPowered by [DeepAI](https://deepai.org/machine-learning-model/text-generator)."
                 }
             }
         },

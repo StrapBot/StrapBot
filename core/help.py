@@ -63,14 +63,13 @@ class HelpCommand(commands.HelpCommand):
                         command.qualified_name, {"description": command.short_doc}
                     )
                     if command.qualified_name != "help":
-                        desc = cmd["description"].split("\n")[0]
                         commands.append(
-                            f"**{prefix + command.qualified_name}** " + f"- {desc}\n"
+                            f"**`{prefix + command.qualified_name}`**"
                         )
 
                 cog_name = lang_["name"] if "name" in lang else cog.qualified_name
 
-                embed.add_field(name=cog_name, value="".join(commands), inline=True)
+                embed.add_field(name=cog_name, value="; ".join(commands), inline=True)
             embeds.append(embed)
 
         session = EPS(self.context, *embeds, destination=self.get_destination())
