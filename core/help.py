@@ -63,9 +63,7 @@ class HelpCommand(commands.HelpCommand):
                         command.qualified_name, {"description": command.short_doc}
                     )
                     if command.qualified_name != "help":
-                        commands.append(
-                            f"**`{prefix + command.qualified_name}`**"
-                        )
+                        commands.append(f"**`{prefix + command.qualified_name}`**")
 
                 cog_name = lang_["name"] if "name" in lang else cog.qualified_name
 
