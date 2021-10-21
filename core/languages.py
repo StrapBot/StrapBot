@@ -62,7 +62,7 @@ class Languages:
 
         await self.unset_user(member.id)
         data = (await self.db.find_one({"_id": "users"})).get(str(guild.id)) or {}
-        data["language"] = lang
+        data["lang"] = lang
 
         return await self.db.find_one_and_update(
             {"_id": "guilds"},
@@ -92,7 +92,7 @@ class Languages:
             raise TypeError("Invalid user ID")
 
         data = (await self.db.find_one({"_id": "users"})).get(str(member.id)) or {}
-        data["language"] = lang
+        data["lang"] = lang
 
         return await self.db.find_one_and_update(
             {"_id": "users"},
@@ -125,13 +125,13 @@ class Languages:
             current = members[str(user)]
         except KeyError:
             try:
-                current = guilds[str(ctx.guild.id)]
+                current = guilds.get(str(ctx.guild.id), self.default)
             except KeyError:
                 current = self.default
             else:
-                current = current["language"]
+                current = current.get("lang", self.default)
         else:
-            current = current["language"]
+            current = current.get("lang", self.default)
         ret = json.load(open(f"core/languages/{current}.json"))
         ret = ret["cogs"][ctx.command.cog.__class__.__name__]["commands"][
             ctx.command.qualified_name
@@ -154,7 +154,7 @@ class Languages:
         except KeyError:
             current = self.default
         else:
-            current = current["language"]
+            current = current.get("lang", self.default)
         ret = json.load(open(f"core/languages/{current}.json"))
         ret = ret["cogs"][ctx.command.cog.__class__.__name__]["commands"][
             ctx.command.qualified_name
