@@ -35,7 +35,7 @@ class Config(commands.Cog):
             for k, v in base.items():
                 cls = v.__name__ if isinstance(v, type_) else type_(v).__name__
                 requirement = f"{requires} {ctx.lang.types[cls]}"
-                if ctx.lang.types[cls].startswith("Can"):
+                if cls in ["bool"]: # made it a list so if I need more I can add it.
                     requirement = ctx.lang.types[cls]
                 
                 if k == "logchannel":
