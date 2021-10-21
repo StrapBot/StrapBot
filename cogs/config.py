@@ -2,6 +2,7 @@ import os
 import discord
 from discord.ext import commands
 
+type_ = type
 
 class Config(commands.Cog):
     """Configure StrapBot!"""
@@ -10,92 +11,59 @@ class Config(commands.Cog):
         self.bot = bot
         self.db = bot.lang.db
 
-    @commands.group(invoke_without_command=True, aliases=["settings", "cfg"])
-    async def config(self, ctx):
+    @commands.command(aliases=["settings", "cfg"])
+    async def config(self, ctx, type: str, key: str, value: str=None):
         """Configure StrapBot with your favorite settings."""
-        return await ctx.send_help(ctx.command)
+        if type == "server":
+            type = "guild"
+        elif type == "user":
+            type = "author"
 
-    @config.group(invoke_without_command=True, aliases=["u"])
-    async def user(self, ctx):
-        """Configure StrapBot only for you."""
-        return await ctx.send_help(ctx.command)
+        embed = discord.Embed(color=discord.Color.red(), title=ctx.lang.error)
 
-    @config.group(invoke_without_command=True, aliases=["guild", "s", "g"])
-    @commands.has_guild_permissions(manage_guild=True)
-    async def server(self, ctx):
-        """
-        Configure StrapBot for the entire server.
-        **NOTE:** You will need the "Manage Server"
-        permission to run this command.
-        """
-        return await ctx.send_help(ctx.command)
+        if type not in ["author", "guild"]:
+            embed.description = ctx.lang.errors.type
+            await ctx.send(embed=embed)
+            return
+        
 
-    @user.command(name="lang", aliases=["language", "l"], usage="<language>")
-    async def _lang(self, ctx, lang="default"):
-        """
-        Change your language.
-        **NOTE:** The only valid languages
-        are only `en` and `it` for now.
-        """
-        if lang == "default":
-            lang = self.bot.lang.default
-        if not os.path.exists(f"core/languages/{lang}.json"):
-            return await ctx.send_help(ctx.command)
+        id = getattr(ctx, type).id
+        base = self.bot.config.get_base(self.bot.config.get_idtype(id))
+        if key not in base:
+            keys = []
+            requires = ctx.lang.requires
+            for k, v in base.items():
+                cls = v.__name__ if isinstance(v, type_) else type_(v).__name__
+                requirement = f"{requires} {ctx.lang.types[cls]}"
+                if ctx.lang.types[cls].startswith("Can"):
+                    requirement = ctx.lang.types[cls]
+                
+                if k == "logchannel":
+                    requirement += f" or {ctx.lang.types['channel']}"
 
-        await self.bot.lang.set_user(ctx.author.id, lang=lang)
+                keys.append(f"**`{k}`**: {requirement}.")
 
-        ctx.lang = await ctx.get_lang()
-        embed = discord.Embed.from_dict(ctx.lang["embed"])
-        embed.color = discord.Color.lighter_grey()
+            embed.description = (ctx.lang.errors.key.format(key=key, keys="\n".join(keys)))
+            await ctx.send(embed=embed)
+            return
 
-        return await ctx.send(embed=embed)
+        if base[key] == bool:
+            value = not await self.bot.config.get(id, key)
 
-    @user.command(name="beta")
-    async def _beta(self, ctx):
-        """
-        Configure beta commands.
-        """
-        ctx.lang = await ctx.get_lang()
+        try:
+            await self.bot.config.set(id, ctx.lang.current, **{key: value})
+        except Exception as exc:
+            embed.description = str(exc)
+        else:
+            ctx.lang = await ctx.get_lang()
+            embed.color = discord.Color.lighter_grey()
+            embed.title = ctx.lang.success
+            embed.description = ctx.lang.set.format(key=key, value=value)
+            if base[key] == bool:
+                embed.title = ctx.lang.configurations[key].title
+                embed.description = ctx.lang.enabled if value else ctx.lang.disabled
 
-        data = (await self.db.find_one({"_id": "members"})).get(
-            str(ctx.author.id)
-        ) or {}
-        beta = True
-        if "beta" in data:
-            beta = not data["beta"]
-
-        data["beta"] = beta
-        await self.db.find_one_and_update(
-            {"_id": "members"},
-            {"$set": {str(ctx.author.id): data}},
-            upsert=True,
-        )
-
-        embed = discord.Embed.from_dict(ctx.lang["eembed" if beta else "dembed"])
-        embed.color = discord.Color.lighter_grey()
-
-        return await ctx.send(embed=embed)
-
-    @server.command(name="lang", aliases=["language", "l"], usage="<language>")
-    @commands.has_guild_permissions(manage_guild=True)
-    async def lang_(self, ctx, lang="default"):
-        """
-        Change the server's language.
-        **NOTE:** The only valid languages
-        are only `en` and `it` for now.
-        """
-        if lang == "default":
-            lang = self.bot.lang.default
-        if not os.path.exists(f"core/languages/{lang}.json"):
-            return await ctx.send_help(ctx.command)
-
-        await self.bot.lang.set_guild(ctx.guild.id, ctx.author.id, lang=lang)
-
-        ctx.lang = await ctx.get_lang()
-        embed = discord.Embed.from_dict(ctx.lang["embed"])
-        embed.color = discord.Color.lighter_grey()
-
-        return await ctx.send(embed=embed)
+        await ctx.send(embed=embed)
 
 
 def setup(bot):

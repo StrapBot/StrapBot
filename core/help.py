@@ -27,7 +27,7 @@ class HelpCommand(commands.HelpCommand):
             list_ = []
             for _cog in cog_:
                 beta = (
-                    (await bot.lang.db.find_one({"_id": "members"})).get(
+                    (await bot.lang.db.find_one({"_id": "users"})).get(
                         str(ctx.author.id)
                     )
                     or {"beta": False}
@@ -63,9 +63,7 @@ class HelpCommand(commands.HelpCommand):
                         command.qualified_name, {"description": command.short_doc}
                     )
                     if command.qualified_name != "help":
-                        commands.append(
-                            f"**`{prefix + command.qualified_name}`**"
-                        )
+                        commands.append(f"**`{prefix + command.qualified_name}`**")
 
                 cog_name = lang_["name"] if "name" in lang else cog.qualified_name
 
@@ -80,7 +78,7 @@ class HelpCommand(commands.HelpCommand):
             return
 
         db = self.context.bot.db.db["Config"]
-        members = await db.find_one({"_id": "members"})
+        members = await db.find_one({"_id": "users"})
         guilds = await db.find_one({"_id": "guilds"})
         if str(self.context.author.id) in members:
             member = members[str(self.context.author.id)]

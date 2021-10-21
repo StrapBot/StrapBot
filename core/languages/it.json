@@ -258,31 +258,30 @@
             "commands": {
                 "config": {
                     "description": "Configura StrapBot!",
-                    "examples": ["server lang it", "user lang en"]
-                },
-                "config user lang": {
-                    "description": "Configura la tua lingua.\n**NOTA:** le uniche lingue valide\nsono solo `en` e `it` per ora.",
-                    "embed": {
-                        "title": "Lingua cambiata!",
-                        "description": "Hai impostato la tua lingua a italiano!"
-                    }
-                },
-                "config user beta": {
-                    "description": "Gestisci i comandi beta.",
-                    "eembed": {
-                        "title": "Comandi beta",
-                        "description": "Attivati!"
+                    "examples": ["server lang it", "user lang en", "user beta", "server logchannel #example-channel"],
+                    "error": "Errore",
+                    "success": "Fatto",
+                    "requires": "Richiede",
+                    "enabled": "Attivato!",
+                    "disabled": "Disattivato!",
+                    "set": "**`{key}`** è stato impostato a {value}.",
+                    "errors": {
+                        "type": "Type deve essere uno tra \"server\", \"guild\" or \"user\".",
+                        "key": "\"`{key}`\" non esiste. Le opzioni possono essere una di queste:\n\n{keys}",
+                        "lang": "Lang deve essere uno tra {}.",
+                        "logch": "Logchannel deve essere un canale o il suo ID."
                     },
-                    "dembed": {
-                        "title": "Comandi beta",
-                        "description": "Disattivati!"
-                    }
-                },
-                "config server lang": {
-                    "description": "Configura la lingua del server.\n**NOTA:** le uniche lingue valide\nsono solo `en` e `it` per ora.",
-                    "embed": {
-                        "title": "Lingua cambiata!",
-                        "description": "Hai impostato la lingua del server a italiano!"
+                    "types": {
+                        "int": "un numero",
+                        "channel": "un canale",
+                        "bool": "Può essere gestito senza usare parametri in più",
+                        "str": "una stringa"
+                    },
+                    "configurations": {
+                        "beta": {
+                            "description": "Gestisci i comandi beta.",
+                            "title": "Comandi beta"
+                        }
                     }
                 }
             }

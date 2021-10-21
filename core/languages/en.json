@@ -261,31 +261,30 @@
             "commands": {
                 "config": {
                     "description": "Configure StrapBot!",
-                    "examples": ["server lang it", "user lang en"]
-                },
-                "config user lang": {
-                    "description": "Configure your language.\n**NOTE:** the only valid languages\nare `en` and `it` for now.",
-                    "embed": {
-                        "title": "Language changed!",
-                        "description": "You set your language to English!"
-                    }
-                },
-                "config user beta": {
-                    "description": "Toggle beta commands.",
-                    "eembed": {
-                        "title": "Beta commands",
-                        "description": "Enabled!"
+                    "examples": ["server lang it", "user lang en", "user beta", "server logchannel #example-channel"],
+                    "error": "Error",
+                    "success": "Success",
+                    "requires": "Requires",
+                    "enabled": "Enabled!",
+                    "disabled": "Disabled!",
+                    "set": "**`{key}`** has been set to {value}.",
+                    "errors": {
+                        "type": "Type must be one between \"server\", \"guild\" or \"user\".",
+                        "key": "\"`{key}`\" does not exist. Keys can be one of these:\n\n{keys}",
+                        "lang": "Lang must be one of {}.",
+                        "logch": "Logchannel must be a channel or channel ID."
                     },
-                    "dembed": {
-                        "title": "Beta commands",
-                        "description": "Disabled!"
-                    }
-                },
-                "config server lang": {
-                    "description": "Configure server's language.\n**NOTE:** the only valid languages\nare `en` and `it` for now.",
-                    "embed": {
-                        "title": "Language changed!",
-                        "description": "You set the server's language to English!"
+                    "types": {
+                        "int": "a number",
+                        "channel": "a channel",
+                        "bool": "Can be toggled, requires no additional arguments",
+                        "str": "a string"
+                    },
+                    "configurations": {
+                        "beta": {
+                            "description": "Toggle beta commands.",
+                            "title": "Beta commands"
+                        }
                     }
                 }
             }

@@ -22,7 +22,7 @@ class Languages:
         return await self.db.find_one({"_id": "guilds"})
 
     async def get_members(self):
-        return await self.db.find_one({"_id": "members"})
+        return await self.db.find_one({"_id": "users"})
 
     async def get_guild(self, guild: int = None):
         if guild == None:
@@ -61,7 +61,7 @@ class Languages:
             raise TypeError("Invalid guild ID.")
 
         await self.unset_user(member.id)
-        data = (await self.db.find_one({"_id": "members"})).get(str(guild.id)) or {}
+        data = (await self.db.find_one({"_id": "users"})).get(str(guild.id)) or {}
         data["language"] = lang
 
         return await self.db.find_one_and_update(
@@ -78,7 +78,7 @@ class Languages:
         if member == None:
             raise TypeError("Invalid user ID")
 
-        return await self.db.find_one({"_id": "members"})
+        return await self.db.find_one({"_id": "users"})
 
     async def set_user(self, member: int = None, *, lang: str = default_language):
         if lang != "en" and lang != "it" and not "testù" in lang:
@@ -91,11 +91,11 @@ class Languages:
         if member == None:
             raise TypeError("Invalid user ID")
 
-        data = (await self.db.find_one({"_id": "members"})).get(str(member.id)) or {}
+        data = (await self.db.find_one({"_id": "users"})).get(str(member.id)) or {}
         data["language"] = lang
 
         return await self.db.find_one_and_update(
-            {"_id": "members"},
+            {"_id": "users"},
             {"$set": {str(member.id): data}},
             upsert=True,
         )
@@ -109,7 +109,7 @@ class Languages:
             raise TypeError("Invalid user ID")
 
         return await self.db.find_one_and_update(
-            {"_id": "members"}, {"$unset": {str(member.id): {}}}, upsert=True
+            {"_id": "users"}, {"$unset": {str(member.id): {}}}, upsert=True
         )
 
     async def fetch_user_lang(self, ctx, user: int = None):
@@ -119,7 +119,7 @@ class Languages:
         if member == None:
             raise TypeError("Invalid user ID")
 
-        members = await self.db.find_one({"_id": "members"})
+        members = await self.db.find_one({"_id": "users"})
         guilds = await self.db.find_one({"_id": "guilds"})
         try:
             current = members[str(user)]

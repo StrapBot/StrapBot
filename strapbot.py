@@ -18,7 +18,7 @@ from core.loops import Loops
 from core.context import StrapContext
 from core.logs import StrapLog
 from core.imgen import DankMemerImgen
-from functools import partial
+from core.config import Config
 
 import_dotenv()
 
@@ -40,7 +40,15 @@ class StrapBot(commands.Bot):
         self._loops = Loops(self)
         self._version = None
         self._imgen = None
+        self._config = None
         self.startup()
+
+    @property
+    def config(self):
+        if self._config == None:
+            self._config = Config(self)
+
+        return self._config
 
     @property
     def lavalink(self):
@@ -438,9 +446,7 @@ class StrapBot(commands.Bot):
 
         if getattr(ctx.cog, "beta", False):
             beta = (
-                (await self.lang.db.find_one({"_id": "members"})).get(
-                    str(ctx.author.id)
-                )
+                (await self.lang.db.find_one({"_id": "users"})).get(str(ctx.author.id))
                 or {"beta": False}
             ).get("beta", False)
             if not beta:
@@ -458,6 +464,7 @@ class StrapBot(commands.Bot):
         await self.invoke(ctx)
 
 
-bot = StrapBot()
+if __name__ == "__main__":
+    bot = StrapBot()
 
-bot.run()
+    bot.run()
