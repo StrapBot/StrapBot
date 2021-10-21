@@ -340,6 +340,9 @@ class Music(commands.Cog):
             if int(player.channel_id) != ctx.author.voice.channel.id:
                 raise MusicError(lang.samevc)
 
+            if isinstance(ctx.voice_client.channel, discord.StageChannel):
+                await ctx.guild.me.edit(suppress=False)
+
     @tasks.loop()
     async def meta_loop(self):
         await self.bot.wait_until_ready()
