@@ -314,7 +314,6 @@ class Music(commands.Cog):
 
         should_connect = ctx.command.name in (
             "play",
-            "playfromlist",
             "summon",
             "vincystream",
         )
@@ -340,8 +339,8 @@ class Music(commands.Cog):
             if int(player.channel_id) != ctx.author.voice.channel.id:
                 raise MusicError(lang.samevc)
 
-            if isinstance(ctx.voice_client.channel, discord.StageChannel):
-                await ctx.guild.me.edit(suppress=False)
+            if isinstance(self.bot.get_channel(player.channel_id), discord.StageChannel):
+                await ctx.me.edit(suppress=False)
 
     @tasks.loop()
     async def meta_loop(self):
