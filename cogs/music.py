@@ -333,14 +333,18 @@ class Music(commands.Cog):
             if not permissions.connect or not permissions.speak:
                 raise MusicError(lang.perms)
 
-            player.store("channel", ctx.channel.id)
-            await ctx.guild.change_voice_state(channel=ctx.author.voice.channel)
+            player.store("channel", ctx.channel)
+            await ctx.guild.change_voice_state(channel=ctx.author.voice.channel, self_deaf=True)
+            await asyncio.sleep(0.2) # we need to slow this down, else the stage unsuppress will not work
+            if isinstance(ctx.author.voice.channel, discord.StageChannel):
+                try:
+                    await ctx.me.edit(suppress=False)
+                except AttributeError:
+                    await asyncio.sleep(0.2)
+                    await ctx.me.edit(suppress=False)
         else:
             if int(player.channel_id) != ctx.author.voice.channel.id:
                 raise MusicError(lang.samevc)
-
-            if isinstance(self.bot.get_channel(player.channel_id), discord.StageChannel):
-                await ctx.me.edit(suppress=False)
 
     @tasks.loop()
     async def meta_loop(self):
