@@ -365,7 +365,7 @@ class Fun(commands.Cog):
         await ctx.message.add_reaction("🦀")
 
     @commands.command(aliases=["yt"])
-    async def youtube(
+    async def comment(
         self, ctx, author: typing.Optional[discord.Member] = None, *, text: str
     ):
         if author == None:

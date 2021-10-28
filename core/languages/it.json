@@ -121,7 +121,7 @@
                 "crab": {
                     "description": "🦀🦀🦀"
                 },
-                "youtube": {
+                "comment": {
                     "description": "Crea un commento"
                 },
                 "whodidthis": {
@@ -293,6 +293,7 @@
                 "help": {
                     "description": "Mostra questo messaggio.",
                     "example": "Esempi",
+                    "beta": "**ATTENZIONE:** Stai usando la versione instabile del bot. Questo significa che potrebbero esserci dei bug/funzioni malfunzionanti nel bot. La tua segnalazione, in questo caso, è molto importante. Se riscontri qualsiasi bug, per favore, avvia {prefix}report.",
                     "embed": {
                         "description": "Questa è una lista di comandi in questo bot.\n\n**`{prefix}help`**; **`{prefix}config`**; **`{prefix}report`**\n**Tip:** Puoi abilitare dei comandi beta eseguendo `{prefix}config user beta`",
                         "footer": {

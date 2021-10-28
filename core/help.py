@@ -47,6 +47,10 @@ class HelpCommand(commands.HelpCommand):
         for cog_group in cogs:
             embed = discord.Embed.from_dict(lang["embed"])
             embed.color = discord.Color.lighter_grey()
+
+            if self.context.me.id in [779286377514139669, 903372493316821104]:
+                embed.description += "\n" + lang.beta
+
             embed.description = embed.description.format(prefix=prefix)
             embed.set_footer(
                 text=embed.footer.text.format(vincy=vincy, ergastolator=ergastolator),

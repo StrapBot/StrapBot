@@ -124,7 +124,7 @@
                 "crab": {
                     "description": "🦀🦀🦀"
                 },
-                "youtube": {
+                "comment": {
                     "description": "Make a comment"
                 },
                 "whodidthis": {
@@ -296,6 +296,7 @@
                 "help": {
                     "description": "Shows this message.",
                     "example": "Examples",
+                    "beta": "**WARNING:** You are using the unstable version of the bot. This means there are some bugs/broken features in the bot. Your report, in this case, is very important. If you encounter any bug, please, run {prefix}report.",
                     "embed": {
                         "description": "This is a list of commands in this bot.\n\n**`{prefix}help`**; **`{prefix}config`**; **`{prefix}report`**\n**Tip:** You can enable some hidden beta commands by running `{prefix}config user beta`",
                         "footer": {

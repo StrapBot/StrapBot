@@ -3,3 +3,4 @@ __pycache__/
 .env
 .vscode/
 testù.json
+client_secret_*.json

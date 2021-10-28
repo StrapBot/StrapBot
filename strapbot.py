@@ -204,13 +204,23 @@ class StrapBot(commands.Bot):
     async def on_ready(self):
         await self.wait_for_connected()
         guild = self.get_guild(int(os.getenv("MAIN_GUILD_ID", 1)))
+
         if guild == None:
             self.logger.fatal("Invalid main guild ID.")
             return await self.close()
+
         if self.lang.default == "en":
             self.logger.info("StrapBot is logged in as {0.user}!".format(self))
         elif self.lang.default == "it":
             self.logger.info("StrapBot loggato come {0.user}!".format(self))
+
+        self.logger.debug("Updating user configurations...")
+        for guild in self.guilds:
+            config = await self.config.find(guild.id)
+            if not config:
+                await self.config.create_base(guild.id)
+                self.logger.debug(f"Created configurations for guild `{guild.name}`.")
+
         await self.change_presence(activity=self.activity)
 
     async def on_command_error(self, ctx, error):
@@ -316,6 +326,20 @@ class StrapBot(commands.Bot):
         if os.getenv("ERRORS_WEBHOOK_URL"):
             await self.send_error(sys.exc_info()[1], func=event_method)
         return await super().on_error(event_method, *args, **kwargs)
+
+    async def on_command(self, ctx):
+        data = await self.config.find(ctx.author.id)
+        if not data:
+            await self.config.create_base(ctx.author.id, ctx.guild.id)
+            self.logger.debug(f"Created configurations for user `{ctx.author}`.")
+            data = await self.config.find(ctx.author.id)
+
+    async def on_guild_join(self, guild):
+        data = await self.config.find(guild)
+        if not data:
+            await self.config.create_base(guild.id)
+            self.logger.debug(f"Created configurations for guild `{guild.name}`.")
+            data = await self.config.find(guild.id)
 
     @property
     def db(self) -> MongoDB:

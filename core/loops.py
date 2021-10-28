@@ -105,3 +105,34 @@ class Loops:
         await self.bot.change_presence(activity=presence)
 
         self.time += 1
+
+    @tasks.loop(seconds=5)
+    async def send_youtube_msg(self):
+        await self.bot.wait_until_ready()
+        channels = await self.bot.config.db.find_one({"_id": "youtube"}) or {}
+        internal = await self.bot.config.db.find_one({"_id": "youtube_internal"}) or {}
+        vids = await self.bot.config.db.find_one({"_id": "youtube_sent"}) or {}
+        messages = await self.bot.config.db.find_one({"_id": "youtube_messages"}) or {}
+
+        ls = channels.keys()
+        for id_ in ls:
+
+            if id_ == "_id":
+                continue
+
+            if internal.get(id_, None) != vids.get(id_, None):
+                for chid in channels[id_]:
+                    channel = self.bot.get_channel(chid)
+                    if channel == None:
+                        continue
+
+                    await channel.send(
+                        messages.get(f"{id_}_{channel.id}", "<link>").replace(
+                            "<link>", internal[id_]
+                        )
+                    )
+                    await self.bot.config.db.find_one_and_update(
+                        {"_id": "youtube_sent"},
+                        {"$set": {id_: internal[id_]}},
+                        upsert=True,
+                    )

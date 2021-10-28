@@ -334,8 +334,12 @@ class Music(commands.Cog):
                 raise MusicError(lang.perms)
 
             player.store("channel", ctx.channel)
-            await ctx.guild.change_voice_state(channel=ctx.author.voice.channel, self_deaf=True)
-            await asyncio.sleep(0.2) # we need to slow this down, else the stage unsuppress will not work
+            await ctx.guild.change_voice_state(
+                channel=ctx.author.voice.channel, self_deaf=True
+            )
+            await asyncio.sleep(
+                0.2
+            )  # we need to slow this down, else the stage unsuppress will not work
             if isinstance(ctx.author.voice.channel, discord.StageChannel):
                 try:
                     await ctx.me.edit(suppress=False)

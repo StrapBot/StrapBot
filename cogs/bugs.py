@@ -58,10 +58,11 @@ class BugReport(commands.Cog):
             return
 
         webhook = discord.utils.get(
-            await channel.webhooks(), name="StrapBot bug report"
+            await channel.webhooks(), name=f"{ctx.me.name} bug report"
         )
-        if webhook == None:
-            webhook = await channel.create_webhook(name="StrapBot bug report")
+
+        if webhook == None or not webhook.token:
+            webhook = await channel.create_webhook(name=f"{ctx.me.name} bug report")
 
         if msg != None:
             await msg.delete()

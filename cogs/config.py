@@ -4,6 +4,7 @@ from discord.ext import commands
 
 type_ = type
 
+
 class Config(commands.Cog):
     """Configure StrapBot!"""
 
@@ -12,7 +13,7 @@ class Config(commands.Cog):
         self.db = bot.lang.db
 
     @commands.command(aliases=["settings", "cfg"])
-    async def config(self, ctx, type: str, key: str, value: str=None):
+    async def config(self, ctx, type: str, key: str, *, value: str = None):
         """Configure StrapBot with your favorite settings."""
         if type == "server":
             type = "guild"
@@ -25,25 +26,33 @@ class Config(commands.Cog):
             embed.description = ctx.lang.errors.type
             await ctx.send(embed=embed)
             return
-        
 
         id = getattr(ctx, type).id
         base = self.bot.config.get_base(self.bot.config.get_idtype(id))
-        if key not in base:
+        if key.lower() == "youtube" and type == "guild":
+            await self.bot.get_command("youtube")(ctx, *(value or "").split())
+            return
+
+        if key.lower() not in base:
             keys = []
             requires = ctx.lang.requires
             for k, v in base.items():
+                if v == None:
+                    continue
+
                 cls = v.__name__ if isinstance(v, type_) else type_(v).__name__
                 requirement = f"{requires} {ctx.lang.types[cls]}"
-                if cls in ["bool"]: # made it a list so if I need more I can add it.
+                if cls in ["bool"]:  # made it a list so if I need more I can add it.
                     requirement = ctx.lang.types[cls]
-                
+
                 if k == "logchannel":
                     requirement += f" or {ctx.lang.types['channel']}"
 
                 keys.append(f"**`{k}`**: {requirement}.")
 
-            embed.description = (ctx.lang.errors.key.format(key=key, keys="\n".join(keys)))
+            embed.description = ctx.lang.errors.key.format(
+                key=key, keys="\n".join(keys)
+            )
             await ctx.send(embed=embed)
             return
 

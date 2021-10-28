@@ -49,6 +49,7 @@ class PaginatorSession:
         self.current = 0
         self.pages = list(pages)
         self.destination = options.get("destination", ctx)
+        custom_reaction_map = options.get("reactions", {})
         self.reaction_map = {
             "⏮": self.first_page,
             "◀": self.previous_page,
@@ -57,6 +58,7 @@ class PaginatorSession:
             "▶": self.next_page,
             "⏭": self.last_page,
         }
+        self.reaction_map.update(custom_reaction_map)
 
     def add_page(self, item) -> None:
         """
@@ -165,23 +167,23 @@ class PaginatorSession:
                 return await self.close(delete=False)
             else:
                 action = self.reaction_map.get(reaction.emoji)
-                await action()
+                await action(session=self)
         else:
             return self.base
 
-    async def previous_page(self) -> None:
+    async def previous_page(self, session=None) -> None:
         """
         Go to the previous page.
         """
         await self.show_page(self.current - 1)
 
-    async def next_page(self) -> None:
+    async def next_page(self, session=None) -> None:
         """
         Go to the next page.
         """
         await self.show_page(self.current + 1)
 
-    async def specific_page(self) -> None:
+    async def specific_page(self, session=None) -> None:
         """
         Go to a specific page.
         """
@@ -213,7 +215,9 @@ class PaginatorSession:
                 continue
             await self.base.add_reaction(reaction)
 
-    async def close(self, delete: bool = True) -> typing.Optional[Message]:
+    async def close(
+        self, delete: bool = True, session=None
+    ) -> typing.Optional[Message]:
         """
         Closes the pagination session.
 
@@ -242,13 +246,13 @@ class PaginatorSession:
         except (HTTPException, InvalidArgument):
             pass
 
-    async def first_page(self) -> None:
+    async def first_page(self, session=None) -> None:
         """
         Go to the first page.
         """
         await self.show_page(0)
 
-    async def last_page(self) -> None:
+    async def last_page(self, session=None) -> None:
         """
         Go to the last page.
         """
