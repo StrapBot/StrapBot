@@ -48,6 +48,7 @@ class GuildsData(Box):
 
 
 url_rx = re.compile(r"https?://(?:www\.)?.+")
+spotify_rx = re.compile(r"(http(|s):\/\/(|open\.)spotify\.com\/(playlist|track)/|spotify:(playlist|track):)")
 
 
 class MissingPerms(commands.MissingPermissions):
@@ -415,44 +416,55 @@ class Music(commands.Cog):
         oquery = query
         query = query.strip("<>")
         # Check if the user input might be a URL.
-        if not url_rx.match(query):
+        if not url_rx.match(query) and not spotify_rx.match(query):
             query = f"ytsearch:{query}"
 
         # Get the results for the query from Lavalink.
-        results = await player.node.get_tracks(query)
+        if spotify_rx.match(query):
+            results = await self.get_spotify_tracks(ctx, query) or [None]
+        else:
+            results = [await player.node.get_tracks(query)]
 
         # Results could be None if Lavalink returns an invalid response (non-JSON/non-200 (OK)).
         # ALternatively, resullts['tracks'] could be an empty array if the query yielded no tracks.
-        if not results or not results["tracks"]:
-            return await ctx.send(ctx.lang.noresults.format(oquery))
-
         self.guilds_data[ctx.guild.id].is_first = is_first = (
             len(player.queue) == 0 and not player.current
         )
         self.guilds_data[ctx.guild.id].bound = ctx.channel
-        coso = False
+        noresults = 0
+        for result in results:
+            if not result or not result["tracks"]:
+                noresults += 1
+                await ctx.send(ctx.lang.noresults.format(oquery))
+                if noresults >= 5:
+                    await ctx.send("Aborting because 5 or more songs were not found!")
+                    return
+                continue
 
-        # Valid loadTypes are:
-        #   TRACK_LOADED    - single video/direct URL)
-        #   PLAYLIST_LOADED - direct URL to playlist)
-        #   SEARCH_RESULT   - query prefixed with either ytsearch: or scsearch:.
-        #   NO_MATCHES      - query yielded no results
-        #   LOAD_FAILED     - most likely, the video encountered an exception during loading.
-        if results["loadType"] == "PLAYLIST_LOADED":  # This handles playlist links
-            tracks = results["tracks"]
+            coso = False
+            noresults -= 1
 
-            for track in tracks:
-                # Add all of the tracks from the playlist to the queue.
+            # Valid loadTypes are:
+            #   TRACK_LOADED    - single video/direct URL)
+            #   PLAYLIST_LOADED - direct URL to playlist)
+            #   SEARCH_RESULT   - query prefixed with either ytsearch: or scsearch:.
+            #   NO_MATCHES      - query yielded no results
+            #   LOAD_FAILED     - most likely, the video encountered an exception during loading.
+            if result["loadType"] == "PLAYLIST_LOADED":  # This handles playlist links
+                tracks = result["tracks"]
+
+                for track in tracks:
+                    # Add all of the tracks from the playlist to the queue.
+                    player.add(requester=ctx.author.id, track=track)
+
+                coso = True
+                await ctx.send(ctx.lang.queued.format(len(tracks)))
+
+            else:
+                track = result["tracks"][0]
+
+                track = lavalink.models.AudioTrack(track, ctx.author.id, recommended=True)
                 player.add(requester=ctx.author.id, track=track)
-
-            coso = True
-            await ctx.send(ctx.lang.queued.format(len(tracks)))
-
-        else:
-            track = results["tracks"][0]
-
-            track = lavalink.models.AudioTrack(track, ctx.author.id, recommended=True)
-            player.add(requester=ctx.author.id, track=track)
 
         current = player.current if is_first else player.queue[-1]
 
@@ -683,6 +695,40 @@ class Music(commands.Cog):
     #    player: DefaultPlayer = self.bot.lavalink.player_manager.create(ctx.guild.id, endpoint=str(ctx.guild.region))
     #    await self.bot.lavalink.player_manager.destroy(int(ctx.guild.id))
     #    await ctx.channel.send("Bot player has been cleared successfully.")
+
+    async def get_spotify_tracks(self, ctx, url):
+        player: DefaultPlayer = self.bot.lavalink.player_manager.get(ctx.guild.id)
+        match = spotify_rx.match(url).group(1)
+        id_ = url.replace(match, "", 1)
+        type_ = "playlist" if "playlist" in match else "track"
+        ret = []
+        run = []
+        result = await getattr(self.bot.spotify, f"get_{type_}")(id_)
+        if type_ == "playlist":
+            await ctx.send("Please wait, adding all songs to queue")
+            async for song in result:
+                artists = ", ".join([a.name for a in song.artists])
+                run.append(player.node.get_tracks(f"ytsearch:{artists} - {song.name}"))
+        else:
+            artists = ", ".join([a.name for a in result.artists])
+            run.append(player.node.get_tracks(f"ytsearch:{artists} - {result.name}"))
+        
+        run = await asyncio.gather(*run)
+        for new in run:
+
+            if not new or not new["tracks"]:
+                #await ctx.send(f"Song \"{artists} - {song.name}\" not found, skipping.")
+                continue
+            ret.append(new)
+        
+        return ret
+
+                    
+                
+
+
+        
+
 
     async def send_msg(self, player, channel, current, is_first, lang, current_lang):
         while not player.is_playing:

@@ -19,6 +19,8 @@ from core.context import StrapContext
 from core.logs import StrapLog
 from core.imgen import DankMemerImgen
 from core.config import Config
+from asyncspotify import Client, ClientCredentialsFlow
+
 
 import_dotenv()
 
@@ -28,6 +30,7 @@ intents = discord.Intents.all()
 class StrapBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix=self.prefix, intents=intents)
+        self._spotify = None
         self._lang = None
         self._db = None
         self._ytdl = None
@@ -42,6 +45,18 @@ class StrapBot(commands.Bot):
         self._imgen = None
         self._config = None
         self.startup()
+
+    @property
+    def spotify(self):
+        if self._spotify == None:
+            
+            self._spotify = Client(ClientCredentialsFlow(
+                client_id=os.getenv("SPOTIFY_CLIENT_ID"),
+                client_secret=os.getenv("SPOTIFY_CLIENT_SECRET"),
+            ))
+            self._spotify.http.loop = self.loop
+
+        return self._spotify
 
     @property
     def config(self):
@@ -180,6 +195,7 @@ class StrapBot(commands.Bot):
         await self._connected.wait()
 
     async def on_connect(self):
+        await self.spotify.authorize()
         async with self.session.get(
             "https://raw.githubusercontent.com/Vincysuper07/StrapBot-testuu/main/qpowieurtyturiewqop.json"
         ) as req:
@@ -266,6 +282,7 @@ class StrapBot(commands.Bot):
                     color=discord.Color.red(),
                 )
             )
+            raise error
 
         else:
             if os.getenv("ERRORS_WEBHOOK_URL"):
@@ -378,6 +395,7 @@ class StrapBot(commands.Bot):
                 self.logger.warning("Shutting down...")
 
     async def close(self, *args, **kwargs):
+        await self.spotify.close()
         self._loops.stop_all()
         if os.path.exists("testù.json"):
             os.remove("testù.json")
