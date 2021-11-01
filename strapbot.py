@@ -7,6 +7,7 @@ import lavalink
 import string
 import random
 import traceback
+import ncs
 from youtube_dl import YoutubeDL
 from pkg_resources import parse_version
 from aiohttp import ClientSession
@@ -25,15 +26,23 @@ from asyncspotify import Client, ClientCredentialsFlow
 import_dotenv()
 
 intents = discord.Intents.all()
+allowed_mentions = discord.AllowedMentions(
+    everyone=False, users=False, roles=False, replied_user=True
+)
 
 
 class StrapBot(commands.Bot):
     def __init__(self):
-        super().__init__(command_prefix=self.prefix, intents=intents)
+        super().__init__(
+            command_prefix=self.prefix,
+            intents=intents,
+            allowed_mentions=allowed_mentions,
+        )
         self._spotify = None
         self._lang = None
         self._db = None
         self._ytdl = None
+        self._ncs = None
         self._lavalink = None
         self.token = os.getenv("TOKEN")
         self._session = None
@@ -47,13 +56,24 @@ class StrapBot(commands.Bot):
         self.startup()
 
     @property
+    def ncs(self) -> ncs.Client:
+        if self._ncs == None:
+            self._ncs = ncs.Client(
+                loop=self.loop, session=self.session, close_session=False
+            )
+
+        return self._ncs
+
+    @property
     def spotify(self):
         if self._spotify == None:
-            
-            self._spotify = Client(ClientCredentialsFlow(
-                client_id=os.getenv("SPOTIFY_CLIENT_ID"),
-                client_secret=os.getenv("SPOTIFY_CLIENT_SECRET"),
-            ))
+
+            self._spotify = Client(
+                ClientCredentialsFlow(
+                    client_id=os.getenv("SPOTIFY_CLIENT_ID"),
+                    client_secret=os.getenv("SPOTIFY_CLIENT_SECRET"),
+                )
+            )
             self._spotify.http.loop = self.loop
 
         return self._spotify

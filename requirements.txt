@@ -10,3 +10,4 @@ dnspython
 motor
 colorama
 asyncspotify
+ncspy

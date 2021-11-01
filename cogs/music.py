@@ -1,11 +1,13 @@
 import json
 import re
 import random
-from aiohttp import ClientResponse
 import discord
 import lavalink
-from discord.ext import commands, tasks
 import asyncio
+from base64 import b64decode
+from strapbot import StrapBot
+from discord.ext import commands, tasks
+from aiohttp import ClientResponse
 from box import Box, BoxKeyError
 from functools import partial
 from lavalink.models import DefaultPlayer
@@ -47,8 +49,13 @@ class GuildsData(Box):
             return self[item]
 
 
-url_rx = re.compile(r"https?://(?:www\.)?.+")
-spotify_rx = re.compile(r"(http(|s):\/\/(|open\.)spotify\.com\/(playlist|track)/|spotify:(playlist|track):)")
+url_rx = re.compile(r"http(|s)?://(?:www\.)?.+")
+ncs_rx = re.compile(r"(http(|s)?://ncs.io/|ncs:).*")
+ncsr_rx = re.compile(r"(\[NCS(|10) (Release|Lyric(s| Video)|Official Video)\])")
+feat_rx = re.compile(r"(\((ft|Ft|feat|Feat)(|\.) .*\))")
+spotify_rx = re.compile(
+    r"(http(|s):\/\/(|open\.)spotify\.com\/(playlist|track)/|spotify:(playlist|track):)"
+)
 
 
 class MissingPerms(commands.MissingPermissions):
@@ -93,7 +100,7 @@ class Music(commands.Cog):
 
     VINCYSTREAM_URL = "http://vincystream.online/stream"
 
-    def __init__(self, bot):
+    def __init__(self, bot: StrapBot):
         self.bot = bot
         self.db = bot.db.get_cog_partition(self)
         self.guilds_data = GuildsData()
@@ -140,7 +147,9 @@ class Music(commands.Cog):
         if not current:
             return
 
-        titolo = current.title
+
+        data = self.guilds_data[channel.guild.id]
+        titolo = data.custom_title if "custom_title" in data else current.title
         np = (
             (lang.started if is_first and not nowcmd else lang.playing)
             if not queued
@@ -165,7 +174,6 @@ class Music(commands.Cog):
             icon_url=self.bot.user.avatar_url,
         )
         if source.duration or player.current.duration:
-            data = self.guilds_data[channel.guild.id]
             entire_duration = self.parse_duration(current.duration / 1000, current_lang)
             watched = self.parse_duration(data.watched, current_lang)
             unwatched = self.parse_duration(data.unwatched, current_lang)
@@ -195,6 +203,9 @@ class Music(commands.Cog):
 
         requester = channel.guild.get_member(current.requester)
         embed.add_field(name=lang.requester, value=requester.mention)
+        if "artists" in data:
+            if data.artists:
+                embed.add_field(name="Artists", value=", ".join(data.artists))
         if source.uploader:
             embed.add_field(
                 name="Uploader",
@@ -209,6 +220,9 @@ class Music(commands.Cog):
             embed.add_field(name=lang.views, value=str(source.view_count))
 
         thumbs = source.thumbnails
+        if "custom_artwork" in data:
+            thumbs = [type("thumbthing", (object,), {"url": data.custom_artwork})()]
+
         if thumbs:
             embed.set_thumbnail(url=thumbs[-1].url)
 
@@ -416,7 +430,29 @@ class Music(commands.Cog):
         oquery = query
         query = query.strip("<>")
         # Check if the user input might be a URL.
-        if not url_rx.match(query) and not spotify_rx.match(query):
+        ncs_match = ncs_rx.match(query)
+        if ncs_match:
+            if query.startswith("http"):
+                try:
+                    track = await self.bot.ncs.get_song(query.replace(ncs_match.group(1), ""))
+                except Exception:
+                    track = None
+                ncsdata = type("data", (object,), {"items": []})()
+                if track:
+                    ncsdata.items.append(track)
+            else:
+                ncsdata = await self.bot.ncs.search(query.replace(ncs_match.group(1), ""))
+
+            await ctx.send(ncsdata)
+            if not ncsdata.items:
+                return await ctx.send(
+                    "Couldn't find any song on NCS that matches",
+                    query.replace(ncs_match.group(1), ""),
+                )
+
+            track = ncsdata.items[0]
+            query = "ytsearch:" + (", ".join(track.artists) + " - " + track.title)
+        elif not url_rx.match(query) and not spotify_rx.match(query):
             query = f"ytsearch:{query}"
 
         # Get the results for the query from Lavalink.
@@ -432,14 +468,17 @@ class Music(commands.Cog):
         )
         self.guilds_data[ctx.guild.id].bound = ctx.channel
         noresults = 0
+
         for result in results:
+            if noresults >= 5:
+                await ctx.send("Aborting because 5 or more songs were not found!")
+                return
+
             if not result or not result["tracks"]:
                 noresults += 1
                 await ctx.send(ctx.lang.noresults.format(oquery))
-                if noresults >= 5:
-                    await ctx.send("Aborting because 5 or more songs were not found!")
-                    return
                 continue
+        
 
             coso = False
             noresults -= 1
@@ -462,8 +501,20 @@ class Music(commands.Cog):
 
             else:
                 track = result["tracks"][0]
+                if ncs_match:
+                    t = b64decode(track["track"]).decode("UTF-8", "ignore")
+                    if not any(u in t for u in ["NoCopyrightSounds", "NCS Lyrics"]):
+                        a = query.replace(ncs_match.group(1), "")
+                        await ctx.send(
+                            f"Skipping `{a}` because it hasn't been found in NCS' YouTube channel. "
+                            "That song may be private."
+                        )
+                        noresults += 1
+                        continue
 
-                track = lavalink.models.AudioTrack(track, ctx.author.id, recommended=True)
+                track = lavalink.models.AudioTrack(
+                    track, ctx.author.id, recommended=True
+                )
                 player.add(requester=ctx.author.id, track=track)
 
         current = player.current if is_first else player.queue[-1]
@@ -712,23 +763,16 @@ class Music(commands.Cog):
         else:
             artists = ", ".join([a.name for a in result.artists])
             run.append(player.node.get_tracks(f"ytsearch:{artists} - {result.name}"))
-        
+
         run = await asyncio.gather(*run)
         for new in run:
 
             if not new or not new["tracks"]:
-                #await ctx.send(f"Song \"{artists} - {song.name}\" not found, skipping.")
+                # await ctx.send(f"Song \"{artists} - {song.name}\" not found, skipping.")
                 continue
             ret.append(new)
-        
+
         return ret
-
-                    
-                
-
-
-        
-
 
     async def send_msg(self, player, channel, current, is_first, lang, current_lang):
         while not player.is_playing:
@@ -808,6 +852,29 @@ class Music(commands.Cog):
     async def track_hook(self, event):
 
         if isinstance(event, lavalink.events.TrackStartEvent):
+            if event.player.current.author in ["NoCopyrightSounds", "NCS Lyrics"]:
+                name = event.player.current.title
+                ncsr = ncsr_rx.findall(name)
+                if ncsr and ncsr[0] and ncsr[0][0]:
+                    name = name.replace(ncsr[0][0], "")
+                feat = feat_rx.findall(name)
+                if feat:
+                    name = name.replace(feat[0][0], "")
+
+                artists, name = tuple(name.split(" - "))
+                artists = artists.split(", ")
+                for i, a in enumerate(artists):
+                    if " & " in a:
+                        artists[i] = a.split(" & ")[0] # when there's an & the artist after that isn't in the site
+
+                q = await self.bot.ncs.search(name, artists=artists)
+
+                if q.items:
+                    song = q.items[0]
+                    self.guilds_data[int(event.player.guild_id)].custom_title = song.title
+                    self.guilds_data[int(event.player.guild_id)].custom_artwork = song.artwork
+                    self.guilds_data[int(event.player.guild_id)].artists = song.artists
+
             self.guilds_data[int(event.player.guild_id)].player = event.player
             self.guilds_data[
                 int(event.player.guild_id)

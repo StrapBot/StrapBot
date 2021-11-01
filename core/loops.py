@@ -129,7 +129,8 @@ class Loops:
                     await channel.send(
                         messages.get(f"{id_}_{channel.id}", "<link>").replace(
                             "<link>", internal[id_]
-                        )
+                        ),
+                        allowed_mentions=discord.AllowedMentions.all()
                     )
                     await self.bot.config.db.find_one_and_update(
                         {"_id": "youtube_sent"},
