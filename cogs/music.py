@@ -32,6 +32,12 @@ class YTDLData(Box):
         except BoxKeyError:
             pass
 
+    def __delitem__(self, *args, **kwargs):
+        try:
+            return super().__delitem__(*args, **kwargs)
+        except BoxKeyError:
+            pass
+
 
 class GuildsData(Box):
     def __getattr__(self, item, *args, **kwargs):
@@ -48,6 +54,11 @@ class GuildsData(Box):
             self[item] = {}
             return self[item]
 
+    def __delitem__(self, *args, **kwargs):
+        try:
+            return super().__delitem__(*args, **kwargs)
+        except BoxKeyError:
+            pass
 
 url_rx = re.compile(r"http(|s)?://(?:www\.)?.+")
 ncs_rx = re.compile(r"(http(|s)?://ncs.io/|ncs:).*")
@@ -851,6 +862,10 @@ class Music(commands.Cog):
     async def track_hook(self, event):
 
         if isinstance(event, lavalink.events.TrackStartEvent):
+            del self.guilds_data[int(event.player.guild_id)].custom_title
+            del self.guilds_data[int(event.player.guild_id)].custom_artwork
+            del self.guilds_data[int(event.player.guild_id)].artists
+
             if event.player.current.author in ["NoCopyrightSounds", "NCS Lyrics"]:
                 name = event.player.current.title
                 ncsr = ncsr_rx.findall(name)
