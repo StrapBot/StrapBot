@@ -443,7 +443,6 @@ class Music(commands.Cog):
             else:
                 ncsdata = await self.bot.ncs.search(query.replace(ncs_match.group(1), ""))
 
-            await ctx.send(ncsdata)
             if not ncsdata.items:
                 return await ctx.send(
                     "Couldn't find any song on NCS that matches",
@@ -865,7 +864,7 @@ class Music(commands.Cog):
                 artists = artists.split(", ")
                 for i, a in enumerate(artists):
                     if " & " in a:
-                        artists[i] = a.split(" & ")[0] # when there's an & the artist after that isn't in the site
+                        artists[i] = a.split(" & ")[0] # when there's an & the artist after that molt likely isn't in the site
 
                 q = await self.bot.ncs.search(name, artists=artists)
 
