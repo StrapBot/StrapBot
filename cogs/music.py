@@ -60,6 +60,7 @@ class GuildsData(Box):
         except BoxKeyError:
             pass
 
+
 url_rx = re.compile(r"http(|s)?://(?:www\.)?.+")
 ncs_rx = re.compile(r"(http(|s)?://ncs.io/|ncs:).*")
 ncsr_rx = re.compile(r"(\[NCS(|10) (Release|Lyric(s| Video)|Official Video)\])")
@@ -158,9 +159,8 @@ class Music(commands.Cog):
         if not current:
             return
 
-
         data = self.guilds_data[channel.guild.id]
-        titolo = data.custom_title if "custom_title" in data else current.title
+        titolo = current.title
         np = (
             (lang.started if is_first and not nowcmd else lang.playing)
             if not queued
@@ -174,7 +174,9 @@ class Music(commands.Cog):
             np = lang.onvs
             npurl = self.VINCYSTREAM_URL
 
-        titolo = discord.utils.escape_markdown(titolo)
+        titolo = discord.utils.escape_markdown(
+            data.custom_title if "custom_title" in data else titolo
+        )
 
         embed = discord.Embed(
             description=f"**[{titolo}]({url})**",
@@ -387,18 +389,41 @@ class Music(commands.Cog):
 
             if self.guilds_data["global"].vincystream_current != title:
                 self.guilds_data["global"].vincystream_current = title
-                for guild_id, data in self.guilds_data.items():
+                for guild_id, data in list(self.guilds_data.items()):
                     if guild_id == "global":
                         continue
 
                     if not bool(data.vincystreaming):
                         continue
+                    print("Mona")
 
                     player = data.player
                     if not player:
                         continue
 
                     player.delete("current_track_info")
+
+                    feat = feat_rx.findall(title)
+                    if feat:
+                        title = title.replace(feat[0][0], "")
+
+                    artists, title = tuple(title.split(" - "))
+                    artists = artists.split(", ")
+                    for i, a in enumerate(artists):
+                        if " & " in a:
+                            artists[i] = a.split(" & ")[
+                                0
+                            ]  # when there's an & the artist after that molt likely isn't in the site
+
+                    q = await self.bot.ncs.search(title, artists=artists)
+
+                    if q.items:
+                        song = q.items[0]
+                        self.guilds_data[int(player.guild_id)].custom_title = song.title
+                        self.guilds_data[
+                            int(player.guild_id)
+                        ].custom_artwork = song.artwork
+                        self.guilds_data[int(player.guild_id)].artists = song.artists
 
                     await asyncio.gather(
                         self.get_info(player, title, True),
@@ -445,14 +470,18 @@ class Music(commands.Cog):
         if ncs_match:
             if query.startswith("http"):
                 try:
-                    track = await self.bot.ncs.get_song(query.replace(ncs_match.group(1), ""))
+                    track = await self.bot.ncs.get_song(
+                        query.replace(ncs_match.group(1), "")
+                    )
                 except Exception:
                     track = None
                 ncsdata = type("data", (object,), {"items": []})()
                 if track:
                     ncsdata.items.append(track)
             else:
-                ncsdata = await self.bot.ncs.search(query.replace(ncs_match.group(1), ""))
+                ncsdata = await self.bot.ncs.search(
+                    query.replace(ncs_match.group(1), "")
+                )
 
             if not ncsdata.items:
                 return await ctx.send(
@@ -488,7 +517,6 @@ class Music(commands.Cog):
                 noresults += 1
                 await ctx.send(ctx.lang.noresults.format(oquery))
                 continue
-        
 
             coso = False
             noresults -= 1
@@ -865,9 +893,22 @@ class Music(commands.Cog):
             del self.guilds_data[int(event.player.guild_id)].custom_title
             del self.guilds_data[int(event.player.guild_id)].custom_artwork
             del self.guilds_data[int(event.player.guild_id)].artists
+            self.guilds_data[int(event.player.guild_id)].player = event.player
+            self.guilds_data[
+                int(event.player.guild_id)
+            ].vincystreaming = vincystreaming = (
+                event.player.current.uri == self.VINCYSTREAM_URL
+            )
 
-            if event.player.current.author in ["NoCopyrightSounds", "NCS Lyrics"]:
-                name = event.player.current.title
+            if (
+                event.player.current.author in ["NoCopyrightSounds", "NCS Lyrics"]
+                or vincystreaming
+            ):
+                name = (
+                    self.guilds_data["global"].vincystream_current
+                    if vincystreaming
+                    else event.player.current.title
+                )
                 ncsr = ncsr_rx.findall(name)
                 if ncsr and ncsr[0] and ncsr[0][0]:
                     name = name.replace(ncsr[0][0], "")
@@ -879,22 +920,22 @@ class Music(commands.Cog):
                 artists = artists.split(", ")
                 for i, a in enumerate(artists):
                     if " & " in a:
-                        artists[i] = a.split(" & ")[0] # when there's an & the artist after that molt likely isn't in the site
+                        artists[i] = a.split(" & ")[
+                            0
+                        ]  # when there's an & the artist after that molt likely isn't in the site
 
                 q = await self.bot.ncs.search(name, artists=artists)
 
                 if q.items:
                     song = q.items[0]
-                    self.guilds_data[int(event.player.guild_id)].custom_title = song.title
-                    self.guilds_data[int(event.player.guild_id)].custom_artwork = song.artwork
+                    self.guilds_data[
+                        int(event.player.guild_id)
+                    ].custom_title = song.title
+                    self.guilds_data[
+                        int(event.player.guild_id)
+                    ].custom_artwork = song.artwork
                     self.guilds_data[int(event.player.guild_id)].artists = song.artists
 
-            self.guilds_data[int(event.player.guild_id)].player = event.player
-            self.guilds_data[
-                int(event.player.guild_id)
-            ].vincystreaming = vincystreaming = (
-                event.player.current.uri == self.VINCYSTREAM_URL
-            )
             search = (
                 event.player.current.uri
                 if not vincystreaming
