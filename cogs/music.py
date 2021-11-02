@@ -403,6 +403,9 @@ class Music(commands.Cog):
 
                     player.delete("current_track_info")
 
+                    del self.guilds_data[int(player.guild_id)].custom_title
+                    del self.guilds_data[int(player.guild_id)].custom_artwork
+                    del self.guilds_data[int(player.guild_id)].artists
                     feat = feat_rx.findall(title)
                     if feat:
                         title = title.replace(feat[0][0], "")
@@ -416,6 +419,9 @@ class Music(commands.Cog):
                             ]  # when there's an & the artist after that molt likely isn't in the site
 
                     q = await self.bot.ncs.search(title, artists=artists)
+                    print(artists)
+                    print(title)
+                    print(q.items)
 
                     if q.items:
                         song = q.items[0]
@@ -424,6 +430,7 @@ class Music(commands.Cog):
                             int(player.guild_id)
                         ].custom_artwork = song.artwork
                         self.guilds_data[int(player.guild_id)].artists = song.artists
+                        print("marso")
 
                     await asyncio.gather(
                         self.get_info(player, title, True),
@@ -924,7 +931,16 @@ class Music(commands.Cog):
                             0
                         ]  # when there's an & the artist after that molt likely isn't in the site
 
+                for i, a in enumerate(artists):
+                    if " x " in a:
+                        artists[i] = a.split(" x ")[
+                            0
+                        ]  # when there's an & the artist after that molt likely isn't in the site
+
                 q = await self.bot.ncs.search(name, artists=artists)
+                print(artists)
+                print(name)
+                print(q.items)
 
                 if q.items:
                     song = q.items[0]
