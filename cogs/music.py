@@ -418,6 +418,14 @@ class Music(commands.Cog):
                                 0
                             ]  # when there's an & the artist after that molt likely isn't in the site
 
+                    for i, a in enumerate(artists):
+                        if " x " in a:
+                            artists += a.split(" x ")
+
+                    for i, a in enumerate(artists):
+                        if " ft. " in a:
+                            artists += a.split(" ft. ")
+
                     q = await self.bot.ncs.search(title, artists=artists)
                     print(artists)
                     print(title)
@@ -933,9 +941,7 @@ class Music(commands.Cog):
 
                 for i, a in enumerate(artists):
                     if " x " in a:
-                        artists[i] = a.split(" x ")[
-                            0
-                        ]  # when there's an & the artist after that molt likely isn't in the site
+                        artists += a.split(" x ")
 
                 q = await self.bot.ncs.search(name, artists=artists)
                 print(artists)
