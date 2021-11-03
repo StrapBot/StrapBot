@@ -395,7 +395,6 @@ class Music(commands.Cog):
 
                     if not bool(data.vincystreaming):
                         continue
-                    print("Mona")
 
                     player = data.player
                     if not player:
@@ -427,9 +426,6 @@ class Music(commands.Cog):
                             artists += a.split(" ft. ")
 
                     q = await self.bot.ncs.search(title, artists=artists)
-                    print(artists)
-                    print(title)
-                    print(q.items)
 
                     if q.items:
                         song = q.items[0]
@@ -438,7 +434,6 @@ class Music(commands.Cog):
                             int(player.guild_id)
                         ].custom_artwork = song.artwork
                         self.guilds_data[int(player.guild_id)].artists = song.artists
-                        print("marso")
 
                     await asyncio.gather(
                         self.get_info(player, title, True),
@@ -944,9 +939,6 @@ class Music(commands.Cog):
                         artists += a.split(" x ")
 
                 q = await self.bot.ncs.search(name, artists=artists)
-                print(artists)
-                print(name)
-                print(q.items)
 
                 if q.items:
                     song = q.items[0]
