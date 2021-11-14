@@ -7,6 +7,7 @@ from core import commands
 # from discord_slash.cog_ext import cog_slash
 
 
+# testing command in a testing cog for a testing guild
 class TestingCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot

@@ -90,7 +90,6 @@ class YouTube(commands.Cog):
         else:
             if action in ["add", "remove"]:
                 youtubers = await self.fetch_channels(youtuber)
-                print(youtubers)
                 if not youtubers:
                     error = "No YouTubers found."
 
