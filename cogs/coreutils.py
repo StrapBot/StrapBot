@@ -1,10 +1,10 @@
 import discord
 import random
-from discord.ext import commands
+from core import commands
 from asyncio import TimeoutError
 
 
-class FileExplorer(commands.Cog, name="File Explorer (beta)"):
+class coreutils(commands.Cog, name="Coreutils Simulation (beta)"):
     def __init__(self, bot):
         self.bot = bot
         self.beta = True
@@ -84,8 +84,9 @@ class FileExplorer(commands.Cog, name="File Explorer (beta)"):
         )
 
     @commands.command(usage="<file1> [file2] [file3] ...")
-    async def touch(self, ctx, *files):
+    async def touch(self, ctx, *, files):
         """Create a file"""
+        files = files.split()
         _files = await self.get_dirs(ctx.author.id)
         paths = []
         if not files:
@@ -127,9 +128,9 @@ class FileExplorer(commands.Cog, name="File Explorer (beta)"):
         await ctx.send(msg)
 
     @commands.command(usage="<file1> [file2] [file3] ...")
-    async def rm(self, ctx, *files):
+    async def rm(self, ctx, files):
         """Delete a file"""
-        files = list(files)
+        files = files.split()
         _files = await self.get_dirs(ctx.author.id)
         _dirs = "-r" in files or "-rf" in files or "-fr" in files
         _force = "-f" in files or "-rf" in files or "-fr" in files
@@ -239,8 +240,9 @@ class FileExplorer(commands.Cog, name="File Explorer (beta)"):
         await ctx.send("Coming late®!")
 
     @commands.command(usage="<dir1> [dir2] [dir3] ...")
-    async def mkdir(self, ctx, *files):
+    async def mkdir(self, ctx, files):
         """Create a file"""
+        files = files.split()
         _files = await self.get_dirs(ctx.author.id)
         paths = []
         if not files:
@@ -299,4 +301,4 @@ class FileExplorer(commands.Cog, name="File Explorer (beta)"):
 
 
 def setup(bot):
-    bot.add_cog(FileExplorer(bot))
+    bot.add_cog(coreutils(bot))

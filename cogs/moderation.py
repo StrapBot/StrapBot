@@ -1,7 +1,8 @@
 import asyncio
 import discord
 import random
-from discord.ext import commands
+from core import commands
+from collections import Counter
 
 
 class Moderation(commands.Cog):
@@ -11,7 +12,7 @@ class Moderation(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.ee = {}
+        self.ee = Counter()
         self.db = bot.db.get_cog_partition(self)
 
     @commands.Cog.listener()
@@ -31,10 +32,8 @@ class Moderation(commands.Cog):
 
     @commands.command(usage="<channel>")
     @commands.has_permissions(manage_channels=True)
-    async def setlog(self, ctx, channel: discord.TextChannel = None):
+    async def setlog(self, ctx, channel: discord.TextChannel):
         """Sets up a log channel."""
-        if channel == None:
-            return await ctx.send_help(ctx.command)
 
         try:
             await channel.send(
@@ -46,7 +45,7 @@ class Moderation(commands.Cog):
         except discord.errors.HTTPException:
             embed = discord.Embed.from_dict(ctx.lang.embeds.error)
             embed.color = discord.Color.red()
-            await ctx.send(embed=embed)
+            await ctx.send(embed=embed, hidden=ctx.is_slash)
         else:
             await self.db.find_one_and_update(
                 {"_id": "logging"},
@@ -75,7 +74,8 @@ class Moderation(commands.Cog):
                             title="Error" + ("e" if ctx.lang.current == "it" else ""),
                             description=ctx.lang.error,
                             color=discord.Color.red(),
-                        ).set_footer(text=ctx.lang.error_footer)
+                        ).set_footer(text=ctx.lang.error_footer),
+                        hidden=ctx.is_slash,
                     )
             role = await ctx.guild.create_role(name=ctx.lang.name)
 
@@ -93,14 +93,12 @@ class Moderation(commands.Cog):
 
     @commands.command(usage="<member> [reason]")
     @commands.has_permissions(manage_guild=True)
-    async def warn(self, ctx, member: discord.Member = None, *, reason=None):
+    async def warn(self, ctx, member: discord.Member, *, reason=None):
         """
         Warns the specified member.
         """
         user_lang = await self.bot.lang.fetch_user_lang(ctx, member.id)
         guild_lang = await self.bot.lang.fetch_guild_lang(ctx)
-        if member == None:
-            return await ctx.send_help(ctx.command)
 
         if reason != None:
             if not (
@@ -152,10 +150,8 @@ class Moderation(commands.Cog):
 
     @commands.command(usage="<member> [reason]")
     @commands.has_permissions(kick_members=True)
-    async def kick(self, ctx, member: discord.Member = None, *, reason=None):
+    async def kick(self, ctx, member: discord.Member, *, reason=None):
         """Kicks the specified member."""
-        if member == None:
-            return await ctx.send_help(ctx.command)
 
         if reason != None:
             if not (
@@ -189,7 +185,8 @@ class Moderation(commands.Cog):
                     title="Error" + ("e" if ctx.lang.current == "it" else ""),
                     description=ctx.lang.error,
                     color=discord.Color.red(),
-                ).set_footer(text=ctx.lang.fix)
+                ).set_footer(text=ctx.lang.fix),
+                hidden=ctx.is_slash,
             )
 
         case = await self.get_case(ctx)
@@ -217,10 +214,8 @@ class Moderation(commands.Cog):
 
     @commands.command(usage="<member> [reason]")
     @commands.has_permissions(ban_members=True)
-    async def ban(self, ctx, member: discord.Member = None, *, reason=None):
+    async def ban(self, ctx, member: discord.Member, *, reason=None):
         """Bans the specified member."""
-        if member == None:
-            return await ctx.send_help(ctx.command)
 
         if reason != None:
             if not (
@@ -254,7 +249,8 @@ class Moderation(commands.Cog):
                     title="Error" + ("e" if ctx.lang.current == "it" else ""),
                     description=ctx.lang.error,
                     color=discord.Color.red(),
-                ).set_footer(text=ctx.lang.fix)
+                ).set_footer(text=ctx.lang.fix),
+                hidden=ctx.is_slash,
             )
 
         case = await self.get_case(ctx)
@@ -282,10 +278,8 @@ class Moderation(commands.Cog):
 
     @commands.command(usage="<member> [reason]")
     @commands.has_permissions(manage_roles=True)
-    async def mute(self, ctx, member: discord.Member = None, *, reason=None):
+    async def mute(self, ctx, member: discord.Member, *, reason=None):
         """Mutes the specified member."""
-        if member == None:
-            return await ctx.send_help(ctx.command)
         role = await self.db.find_one({"_id": "muterole"})
         no_role = False
         if role == None:
@@ -310,7 +304,8 @@ class Moderation(commands.Cog):
                     title="Error" + ("e" if ctx.lang.current == "it" else ""),
                     description=ctx.lang.notset.format(ctx.prefix),
                     color=discord.Color.red(),
-                )
+                ),
+                hidden=ctx.is_slash,
             )
 
         user_lang = await self.bot.lang.fetch_user_lang(ctx, member.id)
@@ -336,7 +331,8 @@ class Moderation(commands.Cog):
                     title="Error" + ("e" if ctx.lang.current == "it" else ""),
                     description=ctx.lang.error,
                     color=discord.Color.red(),
-                ).set_footer(text=ctx.lang.fix)
+                ).set_footer(text=ctx.lang.fix),
+                hidden=ctx.is_slash,
             )
 
         case = await self.get_case(ctx)
@@ -364,11 +360,9 @@ class Moderation(commands.Cog):
 
     @commands.command(usage="<member> [reason]")
     @commands.has_permissions(manage_roles=True)
-    async def unmute(self, ctx, member: discord.Member = None, *, reason=None):
+    async def unmute(self, ctx, member: discord.Member, *, reason=None):
         """Unmutes the specified member."""
         guild_lang = await self.bot.lang.fetch_guild_lang(ctx)
-        if member == None:
-            return await ctx.send_help(ctx.command)
         role = await self.db.find_one({"_id": "muterole"})
         no_role = False
         if role == None:
@@ -391,9 +385,10 @@ class Moderation(commands.Cog):
             return await ctx.send(
                 embed=discord.Embed(
                     title="Error" + ("e" if ctx.lang.current == "it" else ""),
-                    description=ctx.lang.notset(),
+                    description=ctx.lang.notset,
                     color=discord.Color.red(),
-                )
+                ),
+                hidden=ctx.is_slash,
             )
 
         try:
@@ -404,7 +399,8 @@ class Moderation(commands.Cog):
                     title="Error" + ("e" if ctx.lang.current == "it" else ""),
                     description=ctx.lang.error,
                     color=discord.Color.red(),
-                ).set_footer(text=ctx.lang.fix)
+                ).set_footer(text=ctx.lang.fix),
+                hidden=ctx.is_slash,
             )
 
         case = await self.get_case(ctx)
@@ -439,8 +435,7 @@ class Moderation(commands.Cog):
         You can mention a channel to nuke that one instead.
         """
         guild_lang = await self.bot.lang.fetch_guild_lang(ctx)
-        if channel == None:
-            channel = ctx.channel
+        channel = channel or ctx.channel
         tot = ctx.lang.this if channel.id == ctx.channel.id else ctx.lang.that
         embed = discord.Embed.from_dict(ctx.lang.embeds.confirm)
         embed.description = embed.description.format(tot)
@@ -481,14 +476,17 @@ class Moderation(commands.Cog):
 
                 await new_channel.edit(position=channel_position)
                 await channel.delete()
-            except discord.errors.HTTPException:
-                return await ctx.send(
-                    embed=discord.Embed(
-                        title="Error" + ("e" if ctx.lang.current == "it" else ""),
-                        description=ctx.lang.error.format(tot),
-                        color=discord.Color.red(),
-                    ).set_footer(text=ctx.lang.fix)
-                )
+            except discord.errors.HTTPException as e:
+                if e.status == 500:
+                    return await ctx.send(
+                        embed=discord.Embed(
+                            title="Error" + ("e" if ctx.lang.current == "it" else ""),
+                            description=ctx.lang.error.format(tot),
+                            color=discord.Color.red(),
+                        ).set_footer(text=ctx.lang.fix),
+                        hidden=ctx.is_slash,
+                    )
+                raise
 
             await new_channel.send(
                 embed=discord.Embed(
@@ -513,17 +511,15 @@ class Moderation(commands.Cog):
 
     @commands.command(usage="<amount>", aliases=["clear"])
     @commands.has_permissions(manage_messages=True)
-    async def purge(self, ctx, amount: int = 1):
+    async def purge(self, ctx, amount: int):
         """Purge the specified amount of messages."""
+        await ctx.defer()
         guild_lang = await self.bot.lang.fetch_guild_lang(ctx)
         max = 2000
         if amount <= 0:
-            if not str(ctx.author.id) in self.ee:
-                self.ee[str(ctx.author.id)] = 0
-            else:
-                self.ee[str(ctx.author.id)] += 1
+            self.ee[str(ctx.author.id)] += 1
 
-            if self.ee[str(ctx.author.id)] == 4:
+            if self.ee[str(ctx.author.id)] >= 4:
                 self.ee[str(ctx.author.id)] = 0
                 return await ctx.send(random.choice(["lol no", "bruh"]))
 
@@ -532,7 +528,8 @@ class Moderation(commands.Cog):
                     title="Error" + ("e" if ctx.lang.current == "it" else ""),
                     description=ctx.lang.lt1,
                     color=discord.Color.red(),
-                )
+                ),
+                hidden=ctx.is_slash,
             )
         if amount > max:
             return await ctx.send(
@@ -540,11 +537,17 @@ class Moderation(commands.Cog):
                     title="Error" + ("e" if ctx.lang.current == "it" else ""),
                     description=ctx.lang.ut2,
                     color=discord.Color.red(),
-                ).set_footer(text=ctx.lang.use_nuke.format(ctx.prefix))
+                ).set_footer(
+                    text=ctx.lang.use_nuke.format(
+                        ctx.prefix if not ctx.is_slash else "/"
+                    )
+                ),
+                hidden=ctx.is_slash,
             )
 
         try:
-            await ctx.message.delete()
+            if not ctx.is_slash:
+                await ctx.message.delete()
             await ctx.channel.purge(limit=amount)
         except discord.errors.HTTPException:
             return await ctx.send(
@@ -552,7 +555,8 @@ class Moderation(commands.Cog):
                     title="Error" + ("e" if ctx.lang.current == "it" else ""),
                     description=ctx.lang.error,
                     color=discord.Color.red(),
-                ).set_footer(text=ctx.lang.fix)
+                ).set_footer(text=ctx.lang.fix),
+                hidden=ctx.is_slash,
             )
 
         case = await self.get_case(ctx)

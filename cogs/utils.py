@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands
+from core import commands
 from core.help import HelpCommand
 
 

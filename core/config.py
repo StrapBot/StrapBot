@@ -24,6 +24,12 @@ class Config:
         )
 
     def get_base(self, type_: str) -> dict:
+        if type_ == "author":
+            type_ = "user"
+
+        if not type_.endswith("s"):
+            type_ += "s"
+
         ret = dict(self.base)  # create another instance
         ret.update(getattr(self, f"{type_}_base", {}))
         return ret

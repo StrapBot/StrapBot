@@ -6,6 +6,12 @@ from googleapiclient import discovery
 
 from core.paginator import EmbedPaginatorSession
 from functools import partial
+
+# this isnt going to be rewritten for slash because
+# I wanted to make it like /config but Discrod devs
+# haven't implemented channel select menus yet, and
+# it looks bad if I only change the commands module
+# so I'm not rewriting this until they implement it
 from discord.ext import commands
 
 

@@ -6,7 +6,8 @@ import lavalink
 import asyncio
 from base64 import b64decode
 from strapbot import StrapBot
-from discord.ext import commands, tasks
+from core import commands
+from discord.ext import tasks
 from aiohttp import ClientResponse
 from box import Box, BoxKeyError
 from functools import partial
@@ -327,11 +328,10 @@ class Music(commands.Cog):
 
     @commands.command(name="summon", aliases=["join"])
     async def summon_bot(self, ctx):
-        player: DefaultPlayer = self.bot.lavalink.player_manager.get(ctx.guild.id)
-        if player.is_connected:
-            return await ctx.send(ctx.lang.alr)
-
-        await ctx.message.add_reaction("🆗")
+        if ctx.is_slash:
+            await ctx.send("Joined your voice channel.")
+        else:
+            await ctx.message.add_reaction("🆗")
 
     async def ensure_voice(self, ctx):
         """This check ensures that the bot and command author are in the same voicechannel."""
@@ -339,8 +339,9 @@ class Music(commands.Cog):
             ctx.guild.id, endpoint=str(ctx.guild.region)
         )
         lang = (await ctx.get_lang(cog=True)).ensure_voice
-
-        should_connect = ctx.command.name in (
+        print("marso")
+        cmd_name = (ctx.command if ctx.is_slash else ctx.command.name)
+        should_connect = cmd_name in (
             "play",
             "summon",
             "vincystream",
@@ -351,6 +352,11 @@ class Music(commands.Cog):
             # Exceptions allow us to "short-circuit" command invocation via checks so the
             # execution state of the command goes no further.
             raise MusicError(lang.join)
+        
+
+        if player.is_connected and cmd_name == "summon":
+
+            raise MusicError(ctx.lang.alr)
 
         if not player.is_connected:
             if not should_connect:
@@ -425,7 +431,10 @@ class Music(commands.Cog):
                         if " ft. " in a:
                             artists += a.split(" ft. ")
 
-                    q = await self.bot.ncs.search(title, artists=artists)
+                    try:
+                        q = await self.bot.ncs.search(title, artists=artists)
+                    except Exception:
+                        q = type("testù", (object,), {"items": []})
 
                     if q.items:
                         song = q.items[0]
@@ -458,6 +467,7 @@ class Music(commands.Cog):
     @is_one_in_vc()
     async def play_song(self, ctx, *, query=None):
         # Get the player for this guild from cache.
+        await ctx.defer()
         player: DefaultPlayer = self.bot.lavalink.player_manager.get(ctx.guild.id)
         if player.is_playing and player.paused and query == None:
             return await ctx.invoke(self.pause_bot)
@@ -489,9 +499,12 @@ class Music(commands.Cog):
                 if track:
                     ncsdata.items.append(track)
             else:
-                ncsdata = await self.bot.ncs.search(
-                    query.replace(ncs_match.group(1), "")
-                )
+                try:
+                    ncsdata = await self.bot.ncs.search(
+                        query.replace(ncs_match.group(1), "")
+                    )
+                except Exception:
+                    ncsdata = type("testù", (object,), {"items": []})
 
             if not ncsdata.items:
                 return await ctx.send(
@@ -568,8 +581,21 @@ class Music(commands.Cog):
         current = player.current if is_first else player.queue[-1]
 
         if not player.is_playing:
+            cl = await ctx.get_lang(cog=True)
+            self.guilds_data[ctx.guild.id].first_play_event = asyncio.Event()
             await player.set_volume(volume)
-            await player.play()
+            await asyncio.gather(
+                player.play(),
+                self.send_msg(
+                    player,
+                    ctx.channel,
+                    player.current,
+                    is_first,
+                    cl.now,
+                    cl.current,
+                    ctx=ctx,
+                ),
+            )
         elif not coso:
             await ctx.send(ctx.lang.onequeued.format(current.title, current.author))
 
@@ -599,7 +625,10 @@ class Music(commands.Cog):
 
             async def do_skip():
                 self.guilds_data[ctx.guild.id].skip_votes.clear()
-                await ctx.message.add_reaction("⏭")
+                if ctx.is_slash:
+                    await ctx.send("Song skipped.")
+                else:
+                    await ctx.message.add_reaction("⏭")
                 await player.skip()
 
             if ctx.channel.permissions_for(ctx.author).manage_channels:
@@ -632,9 +661,13 @@ class Music(commands.Cog):
             player.queue.clear()
             await player.stop()
             await ctx.guild.change_voice_state(channel=None)
-            await ctx.message.add_reaction("👋🏻")
+            if ctx.is_slash:
+                await ctx.send("Cleared queue and left voice channel.")
+            else:
+                await ctx.message.add_reaction("👋🏻")
         else:
-            await ctx.message.add_reaction("❌")
+            if not ctx.is_slash:
+                await ctx.message.add_reaction("❌")
 
     @commands.command(name="stop")
     @is_one_in_vc()
@@ -647,9 +680,13 @@ class Music(commands.Cog):
         ):
             player.queue.clear()
             await player.stop()
-            await ctx.message.add_reaction("⏹")
+            if ctx.is_slash:
+                await ctx.send("Cleared queue and stopped playing.")
+            else:
+                await ctx.message.add_reaction("⏹")
         else:
-            await ctx.message.add_reaction("❌")
+            if not ctx.is_slash:
+                await ctx.message.add_reaction("❌")
 
     @commands.command(name="sotp", hidden=True)
     @is_one_in_vc()
@@ -667,16 +704,20 @@ class Music(commands.Cog):
 
     @commands.command(name="volume")
     async def _volume(self, ctx, *, volume: int = None):
-        """Sets the player's volume."""
+        """Get/Set the player's volume."""
         player: DefaultPlayer = self.bot.lavalink.player_manager.get(ctx.guild.id)
         if not player:
-            return await ctx.message.add_reaction("❌")
+            if not ctx.is_slash:
+                await ctx.message.add_reaction("❌")
+            return
 
         if not player.is_playing:
             return await ctx.send(ctx.lang["nothing"])
 
         if volume == None:
             return await ctx.send(ctx.lang["info"].format(round(player.volume)))
+        
+        await ctx.defer()
 
         if volume < 1 or volume > 100:
             return await ctx.send(ctx.lang["error"])
@@ -710,7 +751,15 @@ class Music(commands.Cog):
 
         toggle = not player.paused
         await player.set_pause(toggle)
-        await ctx.message.add_reaction("⏯")
+        if ctx.is_slash:
+            toggled = "Paused" if toggle else "Resumed"
+            await ctx.send(toggled)
+        else:
+            await ctx.message.add_reaction("⏯")
+
+    @commands.command(name="resume", slash_only=True)
+    async def resume_slashonly(self, ctx):
+        return await self.pause_bot(ctx)
 
     # except:
     #    await ctx.channel.send("Nothing playing.")
@@ -725,7 +774,7 @@ class Music(commands.Cog):
             return
 
         if len(player.queue) == 0:
-            raise ValueError(ctx.lang["error"])
+            await ctx.send(ctx.lang["error"])
 
         items_per_page = 10
         current_title = discord.utils.escape_markdown(player.current.title)
@@ -783,7 +832,10 @@ class Music(commands.Cog):
             )  # This breaks my bot at times.. Custom shuffle to slow this down.
             player.queue = songlist
             await asyncio.sleep(0.1)
-            await ctx.message.add_reaction("🔀")
+            if ctx.is_slash:
+                await ctx.send("Shuffled the queue.")
+            else:
+                await ctx.message.add_reaction("🔀")
         else:
             await ctx.channel.send(ctx.lang.notplaying)
 
@@ -822,9 +874,13 @@ class Music(commands.Cog):
 
         return ret
 
-    async def send_msg(self, player, channel, current, is_first, lang, current_lang):
+    async def send_msg(
+        self, player, channel, current, is_first, lang, current_lang, ctx=None
+    ):
         while not player.is_playing:
             await asyncio.sleep(0)
+
+        await self.guilds_data[channel.guild.id].first_play_event.wait()
 
         vincystreaming = bool(self.guilds_data[int(player.guild_id)].vincystreaming)
         player.delete("current_track_info")
@@ -842,7 +898,7 @@ class Music(commands.Cog):
                 vincystreaming=vincystreaming,
             )
 
-        m = await channel.send(embed=create_embed())
+        m = await (ctx or channel).send(embed=create_embed())
 
         data = player.fetch("current_track_info", None)
         try:
@@ -938,7 +994,10 @@ class Music(commands.Cog):
                     if " x " in a:
                         artists += a.split(" x ")
 
-                q = await self.bot.ncs.search(name, artists=artists)
+                try:
+                    q = await self.bot.ncs.search(name, artists=artists)
+                except Exception:
+                    q = type("testù", (object,), {"items": []})
 
                 if q.items:
                     song = q.items[0]
@@ -960,7 +1019,7 @@ class Music(commands.Cog):
             guilds = await db.find_one({"_id": "guilds"})
             if event.player.guild_id in guilds:
                 current_lang = guilds[event.player.guild_id].get(
-                    "language", self.bot.lang.default
+                    "lang", self.bot.lang.default
                 )
             else:
                 current_lang = self.bot.lang.default
@@ -992,19 +1051,28 @@ class Music(commands.Cog):
                 event.player.store("is_utw", True)
                 upd = self._update_time_watched(guild, event.player)
             is_first = self.guilds_data[guild.id].is_first
+            async def set_first_play_event():
+                """made it a coroutine so I can gather it"""
+                self.guilds_data[int(event.player.guild_id)].first_play_event.set()
 
-            await asyncio.gather(
+            tasks = [
                 self.get_info(event.player, search, vincystreaming),
                 upd,
-                self.send_msg(
-                    event.player,
-                    channel,
-                    event.player.current,
-                    is_first,
-                    lang.now,
-                    lang.current,
-                ),
-            )
+                set_first_play_event()
+            ]
+            if not is_first:
+
+                tasks.append(
+                    self.send_msg(
+                        event.player,
+                        channel,
+                        event.player.current,
+                        is_first,
+                        lang.now,
+                        lang.current,
+                    )
+                )
+            await asyncio.gather(*tasks)
         elif isinstance(event, lavalink.events.QueueEndEvent):
             # When this track_hook receives a "QueueEndEvent" from lavalink.py
             # it indicates that there are no tracks left in the player's queue.

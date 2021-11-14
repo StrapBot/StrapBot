@@ -5,20 +5,24 @@ from discord.ext import commands
 from lavalink.models import BasePlayer, DefaultPlayer
 from core.paginator import EmbedPaginatorSession, MessagePaginatorSession
 from core.languages import Language
+from discord_slash import SlashContext
 
 
-class StrapContext(commands.Context):
+class StrapCTX:
     message: discord.Message
     guild: discord.Guild
     author: discord.Member
     lang: Language = None
 
     async def send(self, *msgs, **kwargs) -> discord.Message:
-        reference = self.message.reference or self.message.to_reference()
+        reference = None
+        if not self.is_slash:
+            reference = self.message.reference or self.message.to_reference()
         reference = kwargs.pop("reference", reference)
         message = kwargs.pop("content", " ".join(str(msg) for msg in msgs))
         embeds = kwargs.pop("embeds", None)
         messages = kwargs.pop("messages", None)
+        hidden = kwargs.get("hidden", False)
         if embeds:
             session = EmbedPaginatorSession(self, *embeds)
             return await session.run()
@@ -26,9 +30,23 @@ class StrapContext(commands.Context):
             embed = kwargs.pop("embed", None)
             session = MessagePaginatorSession(self, *messages, embed=embed)
             return await session.run()
-        try:
-            ret = await super().send(message, reference=reference, **kwargs)
-        except discord.errors.HTTPException:
+        if hidden and not self.is_slash:
+            try:
+                ret = await self.author.send(message, **kwargs)
+            except (discord.errors.HTTPException, discord.errors.Forbidden):
+                await super().send(
+                    embed=discord.Embed(
+                        description="Please make sure you have DMs enabled.",
+                        color=discord.Color.red(),
+                    ).set_author(name="Error", icon_url=self.me.avatar_url),
+                    **kwargs,
+                )
+                raise
+        elif reference:
+            ret = await self.channel.send(message, reference=reference, **kwargs)
+        else:
+            if not self.is_slash:
+                kwargs.pop("hidden", False)
             ret = await super().send(message, **kwargs)
 
         return ret
@@ -41,7 +59,12 @@ class StrapContext(commands.Context):
 
     async def get_lang(self, cls=None, *, cogs=False, cog=False, all=False) -> Language:
         if cls == None:
-            cls = self.command.cog
+            cls = self.cog
+
+        if self.is_slash:
+            command_name = self.command
+        else:
+            command_name = self.command.qualified_name
 
         cls = cls.__class__.__name__
         db = self.bot.db.db["Config"]
@@ -78,9 +101,21 @@ class StrapContext(commands.Context):
                 ret.get("cogs", {})
                 .get(cls, {})
                 .get("commands", {})
-                .get(self.command.qualified_name, {})
+                .get(command_name, {})
             )
 
         ret["current"] = current
+        ret["_default_"] = self.bot.lang.default
         ret = Language(ret)
         return ret
+
+
+class StrapContext(StrapCTX, commands.Context):
+    is_slash = False
+
+    async def defer(self):
+        pass
+
+
+class StrapSlashContext(StrapCTX, SlashContext):
+    is_slash = True

@@ -1,18 +1,33 @@
+import os
 import discord
 import random
+import asyncio
 from discord.ext import tasks
+from discord_slash.model import BaseCommandObject
 
+
+# NEVER USE THIS ENVIRONMENT VARIABLE.
+# It's used by me for the private testing bot.
+testing = os.getenv("SB_ENVIRONMENT") == "dev"
 
 class Loops:
     def __init__(self, bot):
         self.bot = bot
         self.time = 0
+        ed = "Testing" if testing else "Beta"
         self.activities = {
             "en": [
                 {"name": "{guilds} servers.", "type": "competing"},
                 {"name": "{members} total users.", "type": "watching"},
+                {"name": "new slash commands.", "type": "watching"},
+                {"name": "music with the music BETA with my friends.", "type": "listening"},
                 {
                     "name": "Use {prefix}help for help.",
+                    "type": "streaming",
+                    "twitch_url": "https://twitch.tv/vincysuper07",
+                },
+                {
+                    "name": f"{ed} Edition! This bot might not be as stable as the stable one.",
                     "type": "streaming",
                     "twitch_url": "https://twitch.tv/vincysuper07",
                 },
@@ -25,10 +40,17 @@ class Loops:
             "it": [
                 {"name": "{guilds} server.", "type": "competing"},
                 {"name": "{members} utenti totali.", "type": "watching"},
+                {"name": "i nuovi comandi slash.", "type": "watching"},
+                {"name": "la musica con il nuovo music BETA con i miei amici.", "type": "listening"},
                 {
                     "name": "Usa {prefix}help per i comandi.",
                     "type": "streaming",
                     "twitch_url": "https://twitch.tv/ergstream1",
+                },
+                {
+                    "name": f"Edizione {ed}! Questo bot potrebbe essere meno stabile di quello stabile.",
+                    "type": "streaming",
+                    "twitch_url": "https://twitch.tv/vincysuper07",
                 },
                 {
                     "name": "Fatto da {ergastolator} e {vincy}.",
@@ -105,6 +127,17 @@ class Loops:
         await self.bot.change_presence(activity=presence)
 
         self.time += 1
+
+    @tasks.loop()
+    async def update_slashes(self):
+        await self.bot.wait_until_ready()
+        await asyncio.sleep(
+            5
+        )  # I need it to wait 5 seconds *before* running, not after.
+        for name, command in list(self.bot.slash.commands.items()):
+            if not name in self.bot.slashes and isinstance(command, BaseCommandObject):
+                self.bot.logger.info(command)
+                await self.bot.remove_slash(name)
 
     @tasks.loop(seconds=5)
     async def send_youtube_msg(self):

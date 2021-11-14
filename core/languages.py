@@ -12,6 +12,8 @@ class Language(box.Box):
 
 
 class Languages:
+    """deprecated, but this will stay for a while"""
+
     def __init__(self, bot):
         self.bot = bot
         self.db = bot.db.db["Config"]
@@ -62,7 +64,7 @@ class Languages:
 
         await self.unset_user(member.id)
         data = (await self.db.find_one({"_id": "users"})).get(str(guild.id)) or {}
-        data["language"] = lang
+        data["lang"] = lang
 
         return await self.db.find_one_and_update(
             {"_id": "guilds"},
@@ -92,7 +94,7 @@ class Languages:
             raise TypeError("Invalid user ID")
 
         data = (await self.db.find_one({"_id": "users"})).get(str(member.id)) or {}
-        data["language"] = lang
+        data["lang"] = lang
 
         return await self.db.find_one_and_update(
             {"_id": "users"},
@@ -129,16 +131,16 @@ class Languages:
             except KeyError:
                 current = self.default
             else:
-                current = current["language"]
+                current = current["lang"]
         else:
-            current = current["language"]
+            current = current["lang"]
         ret = json.load(open(f"core/languages/{current}.json"))
-        ret = ret["cogs"][ctx.command.cog.__class__.__name__]["commands"][
-            ctx.command.qualified_name
+        ret = ret["cogs"][ctx.cog.__class__.__name__]["commands"][
+            ctx.command.qualified_name if not ctx.is_slash else ctx.command
         ]
 
         ret["current"] = current
-        ret = Language(ret)
+        ret = Language(ret, ctx=ctx)
         return ret
 
     async def fetch_guild_lang(self, ctx, *, guild: int = None):
@@ -154,12 +156,12 @@ class Languages:
         except KeyError:
             current = self.default
         else:
-            current = current["language"]
+            current = current["lang"]
         ret = json.load(open(f"core/languages/{current}.json"))
-        ret = ret["cogs"][ctx.command.cog.__class__.__name__]["commands"][
-            ctx.command.qualified_name
+        ret = ret["cogs"][ctx.cog.__class__.__name__]["commands"][
+            ctx.command.qualified_name if not ctx.is_slash else ctx.command
         ]
 
         ret["current"] = current
-        ret = Language(ret)
+        ret = Language(ret, ctx=ctx)
         return ret

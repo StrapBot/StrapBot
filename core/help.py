@@ -18,7 +18,7 @@ class HelpCommand(commands.HelpCommand):
             bot.get_cog("Fun"),
             bot.get_cog("Moderation"),
             bot.get_cog("Music"),
-            bot.get_cog("File Explorer (beta)"),
+            bot.get_cog("Coreutils Simulation (beta)"),
         ]
         random.shuffle(cogs_)
         cogs_ = [cogs_[i : i + 2] for i in range(0, len(cogs_), 2)]
@@ -27,7 +27,7 @@ class HelpCommand(commands.HelpCommand):
             list_ = []
             for _cog in cog_:
                 beta = (
-                    (await bot.lang.db.find_one({"_id": "users"})).get(
+                    (await bot.config.db.find_one({"_id": "users"})).get(
                         str(ctx.author.id)
                     )
                     or {"beta": False}
@@ -86,10 +86,10 @@ class HelpCommand(commands.HelpCommand):
         guilds = await db.find_one({"_id": "guilds"})
         if str(self.context.author.id) in members:
             member = members[str(self.context.author.id)]
-            ret = json.load(open(f"core/languages/{member['language']}.json"))
+            ret = json.load(open(f"core/languages/{member['lang']}.json"))
         elif str(self.context.guild.id) in guilds:
             guild = guilds[str(self.context.guild.id)]
-            ret = json.load(open(f"core/languages/{guild['language']}.json"))
+            ret = json.load(open(f"core/languages/{guild['lang']}.json"))
         else:
             ret = json.load(open(f"core/languages/{self.bot.lang.default}.json"))
 

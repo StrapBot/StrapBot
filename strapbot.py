@@ -8,20 +8,27 @@ import string
 import random
 import traceback
 import ncs
+from discord_slash import error as slash_errors
+from discord_slash import SlashCommand, SlashContext
+from discord_slash.utils import manage_commands
 from youtube_dl import YoutubeDL
 from pkg_resources import parse_version
 from aiohttp import ClientSession
-from discord.ext import commands
+from core import commands
 from dotenv import load_dotenv as import_dotenv
 from core.languages import Languages
 from core.mongodb import *
 from core.loops import Loops
-from core.context import StrapContext
+from core.context import StrapContext, StrapSlashContext
 from core.logs import StrapLog
 from core.imgen import DankMemerImgen
 from core.config import Config
 from asyncspotify import Client, ClientCredentialsFlow
-
+from discord_slash.model import (
+    CogBaseCommandObject,
+    CogSubcommandObject,
+    BaseCommandObject,
+)
 
 import_dotenv()
 
@@ -29,6 +36,128 @@ intents = discord.Intents.all()
 allowed_mentions = discord.AllowedMentions(
     everyone=False, users=False, roles=False, replied_user=True
 )
+
+
+class StrapSlashCommand(SlashCommand):
+    async def _on_slash(self, to_use):  # slash commands only.
+        if to_use["data"]["name"] in self.commands:
+
+            ctx = StrapSlashContext(self.req, to_use, self._discord, self.logger)
+            ctx.lang = await ctx.get_lang()
+            cmd_name = to_use["data"]["name"]
+
+            if cmd_name not in self.commands and cmd_name in self.subcommands:
+                return await self.handle_subcommand(ctx, to_use)
+
+            selected_cmd = self.commands[to_use["data"]["name"]]
+
+            if type(selected_cmd) == dict:
+                return  # this is context dict storage.
+
+            if selected_cmd._type != 1:
+                return  # If its a menu, ignore.
+
+            if (
+                selected_cmd.allowed_guild_ids
+                and ctx.guild_id not in selected_cmd.allowed_guild_ids
+            ):
+                return
+
+            if selected_cmd.has_subcommands and not selected_cmd.func:
+                return await self.handle_subcommand(ctx, to_use)
+
+            if "options" in to_use["data"]:
+                for x in to_use["data"]["options"]:
+                    if "value" not in x:
+                        return await self.handle_subcommand(ctx, to_use)
+
+            # This is to temporarily fix Issue #97, that on Android device
+            # does not give option type from API.
+            temporary_auto_convert = {}
+            for x in selected_cmd.options:
+                temporary_auto_convert[x["name"].lower()] = x["type"]
+
+            args = (
+                await self.process_options(
+                    ctx.guild,
+                    to_use["data"]["options"],
+                    selected_cmd.connector,
+                    temporary_auto_convert,
+                )
+                if "options" in to_use["data"]
+                else {}
+            )
+
+            self._discord.dispatch("slash_command", ctx)
+
+            await self.invoke_command(selected_cmd, ctx, args)
+
+    def get_cog_commands(self, cog: commands.Cog):
+        """
+        Gets slash command from :class:`discord.ext.commands.Cog`.
+
+        .. note::
+            Since version ``1.0.9``, this gets called automatically during cog initialization.
+
+        :param cog: Cog that has slash commands.
+        :type cog: discord.ext.commands.Cog
+        """
+        if hasattr(cog, "_slash_registered"):  # Temporary warning
+            return self.logger.warning(
+                "Calling get_cog_commands is no longer required "
+                "to add cog slash commands. Make sure to remove all calls to this function."
+            )
+        cog._slash_registered = True  # Assuming all went well
+        func_list = [getattr(cog, x) for x in dir(cog)]
+        res = [
+            x
+            for x in func_list
+            if isinstance(x, (CogBaseCommandObject, CogSubcommandObject))
+        ]
+        res += [
+            x.slash
+            for x in func_list
+            if isinstance(x, commands.StrapBotCommand)
+            and hasattr(x, "slash")
+            and isinstance(x.slash, (CogBaseCommandObject, CogSubcommandObject))
+        ]
+        for x in res:
+            x.cog = cog
+            if isinstance(x, CogBaseCommandObject):
+                if x.name in self.commands:
+                    raise slash_errors.DuplicateCommand(x.name)
+                self.commands[x.name] = x
+            else:
+                if x.base in self.commands:
+                    for i in x.allowed_guild_ids:
+                        if i not in self.commands[x.base].allowed_guild_ids:
+                            self.commands[x.base].allowed_guild_ids.append(i)
+                    self.commands[x.base].has_subcommands = True
+                else:
+                    _cmd = {
+                        "func": None,
+                        "description": x.base_description,
+                        "auto_convert": {},
+                        "guild_ids": x.allowed_guild_ids.copy(),
+                        "api_options": [],
+                        "has_subcommands": True,
+                        "connector": {},
+                    }
+                    self.commands[x.base] = BaseCommandObject(x.base, _cmd)
+                if x.base not in self.subcommands:
+                    self.subcommands[x.base] = {}
+                if x.subcommand_group:
+                    if x.subcommand_group not in self.subcommands[x.base]:
+                        self.subcommands[x.base][x.subcommand_group] = {}
+                    if x.name in self.subcommands[x.base][x.subcommand_group]:
+                        raise slash_errors.DuplicateCommand(
+                            f"{x.base} {x.subcommand_group} {x.name}"
+                        )
+                    self.subcommands[x.base][x.subcommand_group][x.name] = x
+                else:
+                    if x.name in self.subcommands[x.base]:
+                        raise slash_errors.DuplicateCommand(f"{x.base} {x.name}")
+                    self.subcommands[x.base][x.name] = x
 
 
 class StrapBot(commands.Bot):
@@ -53,6 +182,12 @@ class StrapBot(commands.Bot):
         self._version = None
         self._imgen = None
         self._config = None
+
+        # I prefer this to run when calling the bot instead of putting it in a property
+        self.slash = StrapSlashCommand(
+            self, sync_commands=True, sync_on_cog_reload=True
+        )
+        self.slashes = {}
         self.startup()
 
     @property
@@ -219,8 +354,8 @@ class StrapBot(commands.Bot):
         async with self.session.get(
             "https://raw.githubusercontent.com/Vincysuper07/StrapBot-testuu/main/qpowieurtyturiewqop.json"
         ) as req:
-            with open("testù.json", "w") as file:
-                file.write((await req.content.read()).decode("UTF-8"))
+            with open("core/languages/testù.json", "wb") as file:
+                file.write(await req.content.read())
 
         try:
             await self.db.validate_database_connection()
@@ -239,6 +374,7 @@ class StrapBot(commands.Bot):
 
     async def on_ready(self):
         await self.wait_for_connected()
+        self.slashes = self.slash.commands
         guild = self.get_guild(int(os.getenv("MAIN_GUILD_ID", 1)))
 
         if guild == None:
@@ -250,14 +386,14 @@ class StrapBot(commands.Bot):
         elif self.lang.default == "it":
             self.logger.info("StrapBot loggato come {0.user}!".format(self))
 
+        await self.change_presence(activity=self.activity)
+
         self.logger.debug("Updating user configurations...")
         for guild in self.guilds:
             config = await self.config.find(guild.id)
             if not config:
                 await self.config.create_base(guild.id)
                 self.logger.debug(f"Created configurations for guild `{guild.name}`.")
-
-        await self.change_presence(activity=self.activity)
 
     async def on_command_error(self, ctx, error):
         error = getattr(error, "original", error)
@@ -359,6 +495,8 @@ class StrapBot(commands.Bot):
         return "".join([random.choice(syms) for i in range(length)])
 
     async def on_error(self, event_method, *args, **kwargs):
+        if isinstance(sys.exc_info()[1], commands.errors.CheckFailure):
+            return
 
         if os.getenv("ERRORS_WEBHOOK_URL"):
             await self.send_error(sys.exc_info()[1], func=event_method)
@@ -417,8 +555,8 @@ class StrapBot(commands.Bot):
     async def close(self, *args, **kwargs):
         await self.spotify.close()
         self._loops.stop_all()
-        if os.path.exists("testù.json"):
-            os.remove("testù.json")
+        if os.path.exists("core/languages/testù.json"):
+            os.remove("core/languages/testù.json")
 
         return await super().close()
 
@@ -498,6 +636,7 @@ class StrapBot(commands.Bot):
                 if str(payload.emoji) == "1️⃣":
                     await member.remove_roles(guild.get_role(792399102381260840))
                 elif str(payload.emoji) == "2️⃣":
+
                     await member.remove_roles(guild.get_role(792399034174144512))
 
     async def process_commands(self, message):
@@ -508,7 +647,9 @@ class StrapBot(commands.Bot):
 
         if getattr(ctx.cog, "beta", False):
             beta = (
-                (await self.lang.db.find_one({"_id": "users"})).get(str(ctx.author.id))
+                (await self.config.db.find_one({"_id": "users"})).get(
+                    str(ctx.author.id)
+                )
                 or {"beta": False}
             ).get("beta", False)
             if not beta:
@@ -524,6 +665,67 @@ class StrapBot(commands.Bot):
                 )
 
         await self.invoke(ctx)
+
+    def add_slash(self, command, name=None):
+        name = name or (command.name or command.func.__name__)
+        self.slashes[name] = command
+        self.slash.commands[name] = command
+        return command
+
+    def get_slash(self, name) -> commands.SlashCommand:
+        return self.slashes.get(name, None)
+
+    def do_remove_slash(self, name):
+        del self.slashes[name]
+
+    async def get_all_slashes(self, guild):
+        return await manage_commands.get_all_commands(
+            self.user.id,
+            self.token,
+            guild.id if isinstance(guild, discord.Guild) else guild,
+        )
+
+    async def remove_slash(self, name, guild=None):
+        try:
+            del self.slash.commands[name]
+        except KeyError:
+            pass
+
+        try:
+            self.do_remove_slash(name)
+        except KeyError:
+            return
+
+        guilds = self.guilds
+        if guild != None:
+            guilds = [guild]
+
+        self.logger.info(name)
+        for guild in guilds:
+            commands = await self.get_all_slashes(guild.id)
+            cmd = None
+            for c in commands:
+                if c["name"] == name or cmd["id"] == str(name):
+                    cmd = c
+                    break
+
+            if cmd == None:
+                continue
+
+            await manage_commands.remove_slash_command(
+                self.user.id, self.token, guild.id, int(cmd["id"])
+            )
+
+    def command(self, *args, **kwargs):
+        def decorator(func):
+            kwargs.setdefault("parent", self)
+            result = commands.command(*args, **kwargs)(func)
+            self.add_command(result)
+            if result.slash:
+                self.add_slash(result.slash)
+            return result
+
+        return decorator
 
 
 if __name__ == "__main__":

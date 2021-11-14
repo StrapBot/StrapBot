@@ -36,13 +36,15 @@ class StrapLog(logging.Logger):
 
     @staticmethod
     def _info_(*messages):
-        return f'{Fore.BLUE}Info{Style.RESET_ALL}\t{" ".join(messages)}'.replace(
+        return f'{Fore.BLUE}Info{Style.RESET_ALL}\t{" ".join([str(m) for m in messages])}'.replace(
             "\n\n", f"\n\n{Fore.BLUE}Info{Style.RESET_ALL}\t"
-        ).replace("\n", f"\n{Fore.BLUE}Info{Style.RESET_ALL}\t")
+        ).replace(
+            "\n", f"\n{Fore.BLUE}Info{Style.RESET_ALL}\t"
+        )
 
     @staticmethod
     def _debug_(*messages):
-        return f'{Fore.LIGHTMAGENTA_EX}Debug{Style.RESET_ALL}\t{" ".join(messages)}'.replace(
+        return f'{Fore.LIGHTMAGENTA_EX}Debug{Style.RESET_ALL}\t{" ".join([str(m) for m in messages])}'.replace(
             "\n\n", f"\n\n{Fore.LIGHTMAGENTA_EX}Debug{Style.RESET_ALL}\t"
         ).replace(
             "\n", f"\n{Fore.LIGHTMAGENTA_EX}Debug{Style.RESET_ALL}\t"
@@ -50,18 +52,23 @@ class StrapLog(logging.Logger):
 
     @staticmethod
     def _warning_(*messages):
-        return f'{Fore.YELLOW}Warn{Style.RESET_ALL}\t{" ".join(messages)}'.replace(
+        return f'{Fore.YELLOW}Warn{Style.RESET_ALL}\t{" ".join([str(m) for m in messages])}'.replace(
             "\n\n", f"\n\n{Fore.YELLOW}Warn{Style.RESET_ALL}\t"
-        ).replace("\n", f"\n{Fore.YELLOW}Warn{Style.RESET_ALL}\t")
+        ).replace(
+            "\n", f"\n{Fore.YELLOW}Warn{Style.RESET_ALL}\t"
+        )
 
     @staticmethod
     def _error_(*messages):
-        return f'{Fore.RED}Error{Style.RESET_ALL}\t{" ".join(messages)}'.replace(
+        return f'{Fore.RED}Error{Style.RESET_ALL}\t{" ".join([str(m) for m in messages])}'.replace(
             "\n\n", f"\n\n{Fore.RED}Error{Style.RESET_ALL}\t"
-        ).replace("\n", f"\n{Fore.RED}Error{Style.RESET_ALL}\t")
+        ).replace(
+            "\n", f"\n{Fore.RED}Error{Style.RESET_ALL}\t"
+        )
 
     @staticmethod
     def _critical_(*messages):
+        messages = [str(m) for m in messages]
         if len(messages) == 1 and messages[0].lower() == "exception":
             message = "Fatal exception:"
         else:

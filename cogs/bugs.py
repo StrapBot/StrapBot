@@ -11,9 +11,7 @@ class BugReport(commands.Cog):
     @commands.command()
     async def report(self, ctx, *, bug: str = None):
         """
-        Report a bug.
-        Attachments are not supported for now,
-        though, you can put an image link in the message.
+        Report a bug to StrapBot developers.
         """
         msg = None
         message = None
