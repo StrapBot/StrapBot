@@ -1,6 +1,6 @@
 import os
 import asyncio
-from async_timeout import sys
+import sys
 import discord
 import logging
 import lavalink
