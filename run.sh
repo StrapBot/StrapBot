@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-exec python3 strapbot.py
+exec python3.7 strapbot.py
