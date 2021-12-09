@@ -57,9 +57,7 @@ class Config(commands.Cog):
         """
         ctx.lang = await ctx.get_lang()
 
-        data = (await self.db.find_one({"_id": "users"})).get(
-            str(ctx.author.id)
-        ) or {}
+        data = (await self.db.find_one({"_id": "users"})).get(str(ctx.author.id)) or {}
         beta = True
         if "beta" in data:
             beta = not data["beta"]

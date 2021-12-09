@@ -13,34 +13,6 @@ import os
 from io import BytesIO
 
 
-def escape(text: str, *, mass_mentions: bool = False, formatting: bool = False) -> str:
-    """Get text with all mass mentions or markdown escaped.
-    Parameters
-    ----------
-    text : str
-        The text to be escaped.
-    mass_mentions : `bool`, optional
-        Set to :code:`True` to escape mass mentions in the text.
-    formatting : `bool`, optional
-        Set to :code:`True` to escpae any markdown formatting in the text.
-    Returns
-    -------
-    str
-        The escaped text.
-    """
-    if mass_mentions:
-        text = text.replace("@everyone", "@\u200beveryone")
-        text = text.replace("@here", "@\u200bhere")
-    if formatting:
-        text = (
-            text.replace("`", "\\`")
-            .replace("*", "\\*")
-            .replace("_", "\\_")
-            .replace("~", "\\~")
-        )
-    return text
-
-
 class RPS(Enum):
     rock = "\N{MOYAI}"
     paper = "\N{PAGE FACING UP}"
@@ -104,7 +76,6 @@ class Fun(commands.Cog):
         `choose Go to school, Do onlime school`
         """
         choices = choices.split(",")
-        choices = [escape(c, mass_mentions=True) for c in choices]
         if len(choices) < 2:
             await ctx.send_help(ctx.command)
         else:
@@ -183,21 +154,18 @@ class Fun(commands.Cog):
     @commands.command()
     async def lmgtfy(self, ctx, *, search_terms: str):
         """Create a lmgtfy link."""
-        search_terms = escape(
-            search_terms.replace("+", "%2B").replace(" ", "+"), mass_mentions=True
-        )
+        search_terms = search_terms.replace("+", "%2B").replace(" ", "+")
         await ctx.send("<https://lmgtfy.com/?q={}>".format(search_terms))
 
     @commands.command()
     async def say(self, ctx, *, message):
         """Make the bot say something"""
-        msg = escape(message, mass_mentions=True)
-        await ctx.send(msg)
+        await ctx.send(message)
 
     @commands.command()
     async def reverse(self, ctx, *, text):
         """!txeT ruoY esreveR"""
-        text = escape("".join(list(reversed(str(text)))), mass_mentions=True)
+        text = "".join(list(reversed(str(text))))
         await ctx.send(text)
 
     @commands.command()

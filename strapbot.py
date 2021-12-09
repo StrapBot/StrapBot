@@ -18,11 +18,18 @@ from core.imgen import DankMemerImgen
 import_dotenv()
 
 intents = discord.Intents.all()
+allowed_mentions = discord.AllowedMentions(
+    everyone=False, users=False, roles=False, replied_user=True
+)
 
 
 class StrapBot(commands.Bot):
     def __init__(self):
-        super().__init__(command_prefix=self.prefix, intents=intents)
+        super().__init__(
+            command_prefix=self.prefix,
+            intents=intents,
+            allowed_mentions=allowed_mentions,
+        )
         self._lang = None
         self._db = None
         self.token = os.getenv("TOKEN")
@@ -342,9 +349,7 @@ class StrapBot(commands.Bot):
 
         if getattr(ctx.cog, "beta", False):
             beta = (
-                (await self.lang.db.find_one({"_id": "users"})).get(
-                    str(ctx.author.id)
-                )
+                (await self.lang.db.find_one({"_id": "users"})).get(str(ctx.author.id))
                 or {"beta": False}
             ).get("beta", False)
             if not beta:
