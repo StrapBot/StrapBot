@@ -339,7 +339,6 @@ class Music(commands.Cog):
             ctx.guild.id, endpoint=str(ctx.guild.region)
         )
         lang = (await ctx.get_lang(cog=True)).ensure_voice
-        print("marso")
         cmd_name = (ctx.command if ctx.is_slash else ctx.command.name)
         should_connect = cmd_name in (
             "play",
