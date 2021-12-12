@@ -72,21 +72,12 @@ class StrapCTX:
             command_name = self.command.qualified_name
 
         cls = cls.__class__.__name__
-        db = self.bot.db.db["Config"]
-        members = await db.find_one({"_id": "users"})
-        guilds = await db.find_one({"_id": "guilds"})
-        if str(self.author.id) in members:
-            current = (
-                members[str(self.author.id)].get("lang", self.bot.lang.default)
-                or self.bot.lang.default
-            )
-        elif str(self.guild.id) in guilds:
-            current = (
-                guilds[str(self.guild.id)].get("lang", self.bot.lang.default)
-                or self.bot.lang.default
-            )
-        else:
-            current = self.bot.lang.default
+
+        current = await self.bot.config.get(
+            self.author.id,
+            "lang",
+            await self.bot.config.get(self.guild.id, "lang", self.bot.lang.default),
+        )
 
         ret = json.load(open(f"core/languages/{current}.json"))
 
@@ -122,12 +113,11 @@ class StrapContext(StrapCTX, commands.Context):
     async def defer(self, *args, **kwargs: dict):
         msg = kwargs.pop("message", "Please wait...")
         self.deferred = await self.send(msg)
-        
 
 
 class StrapSlashContext(StrapCTX, SlashContext):
     is_slash = True
-    
+
     async def defer(self, *args, **kwargs):
         kwargs.pop("message", "")
         return await super().defer(*args, **kwargs)

@@ -146,7 +146,9 @@ class Loops:
                 await self.bot.remove_slash(name)
 
         for name, command in list(self.bot.slashes.items()):
-            if not name in self.bot.slash.commands and isinstance(command, BaseCommandObject):
+            if not name in self.bot.slash.commands and isinstance(
+                command, BaseCommandObject
+            ):
                 await self.bot.add_slash(command, name, dslash=True)
 
     @tasks.loop(seconds=5)

@@ -66,7 +66,13 @@ class Config:
 
     async def get(self, id: int, key: str, default=None):
         _id = self.get_idtype(id)
-        data = (await self.db.find_one({"_id": _id}))[str(id)]
+        try:
+            data = (await self.db.find_one({"_id": _id}))[str(id)]
+        except Exception:
+            if key == "lang":
+                return default or self.bot.lang.default
+
+            raise
 
         return data.get(key, default)
 

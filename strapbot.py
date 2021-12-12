@@ -8,8 +8,9 @@ import string
 import random
 import traceback
 import ncs
+from pymongo.errors import ServerSelectionTimeoutError
 from discord_slash import error as slash_errors
-from discord_slash import SlashCommand, SlashContext
+from discord_slash import SlashCommand
 from discord_slash.utils import manage_commands
 from youtube_dl import YoutubeDL
 from pkg_resources import parse_version
@@ -230,7 +231,7 @@ class StrapBot(commands.Bot):
                 os.getenv("LAVALINK_PASS"),
                 os.getenv("LAVALINK_REGION"),
                 os.getenv("LAVALINK_NODE", "StrapBot"),
-                reconnect_attempts=100
+                reconnect_attempts=100,
             )  # Host, Port, Password, Region, Name
 
         return self._lavalink
@@ -361,10 +362,11 @@ class StrapBot(commands.Bot):
         try:
             await self.db.validate_database_connection()
         except Exception:
-            self.logger.critical(
-                "Shutting down due to a DB connection problem.", exc_info=True
+            self.logger.error(
+                "Couldn't connect to the MongoDB database, the bot might not work properly.",
+                exc_info=True,
             )
-            return await self.close()
+            # return await self.close()
         self.logger.info(
             "Connected to Discord API."
             if self.lang.default == "en"
@@ -446,6 +448,13 @@ class StrapBot(commands.Bot):
                 await asyncio.sleep(0)
 
             await self.process_commands(ctx.message)
+        elif isinstance(error, ServerSelectionTimeoutError):
+            await ctx.send(
+                embed=discord.Embed(
+                    color=discord.Color.red(),
+                    description="The bot is currently limited due to a problem with our database, so most of the commands don't work.\nSorry for the inconvenience. It will be fixed as soon as possible.",
+                ).set_author(name="Bot is limited", icon_url=ctx.me.avatar_url)
+            )
 
         else:
             if os.getenv("ERRORS_WEBHOOK_URL"):
@@ -456,9 +465,12 @@ class StrapBot(commands.Bot):
     async def send_error(self, error, pfix=None, command=None, func=None):
         db = self.db.Errors
         _id = self.gen_error_id()
-        while await db.find_one({"_id": _id}):
-            _id = self.gen_error_id()
-            await asyncio.sleep(0)
+        try:
+            while await db.find_one({"_id": _id}):
+                _id = self.gen_error_id()
+                await asyncio.sleep(0)
+        except ServerSelectionTimeoutError:
+            pass
 
         exc_info = (error.__class__, error, error.__traceback__)
         data = "".join(traceback.format_exception(*exc_info, limit=None, chain=True))
@@ -481,15 +493,19 @@ class StrapBot(commands.Bot):
 
         if len(args) > 1000:
             args = "Too long, can't send."
-        await db.insert_one(
-            {
-                "_id": _id,
-                "traceback": data,
-                "class": error.__class__.__name__,
-                "args": list(error.args),
-                "command": (pfix or "") + (command or ""),
-            }
-        )
+        
+        try:
+            await db.insert_one(
+                {
+                    "_id": _id,
+                    "traceback": data,
+                    "class": error.__class__.__name__,
+                    "args": list(error.args),
+                    "command": (pfix or "") + (command or ""),
+                }
+            )
+        except ServerSelectionTimeoutError:
+            _id = "Couldn't store error in DB."
         await wh.send(
             mainmsg
             + f"Error ID: `{_id}`\n"
@@ -690,7 +706,6 @@ class StrapBot(commands.Bot):
             await manage_commands.add_slash_command(
                 self.user.id, self.token, guild_id, name, description
             )
-
 
     def get_slash(self, name) -> commands.SlashCommand:
         return self.slashes.get(name, None)
