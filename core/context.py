@@ -46,13 +46,15 @@ class StrapCTX:
             send = super().send
             if not self.is_slash:
                 kwargs.pop("hidden", False)
+                _defercoso = False
                 if self.deferred != None and not self.defer_edited:
                     send = self.deferred.edit
                     kwargs.pop("reference", "")
                     self.defer_edited = True
+                    _defercoso = True
 
             ret = await send(content=message, **kwargs)
-            if not self.is_slash and self.deferred:
+            if not self.is_slash and self.deferred and _defercoso:
                 ret = self.deferred
 
         return ret
