@@ -927,7 +927,6 @@ class Music(commands.Cog):
         return info
 
     async def track_hook(self, event):
-        print(event.__class__.__name__)
         if isinstance(event, lavalink.events.TrackStartEvent):
             del self.guilds_data[int(event.player.guild_id)].custom_title
             del self.guilds_data[int(event.player.guild_id)].custom_artwork
