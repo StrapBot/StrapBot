@@ -52,7 +52,7 @@ class StrapCTX:
                     self.defer_edited = True
 
             ret = await send(content=message, **kwargs)
-            if not self.is_slash and self.deferred != None and not self.defer_edited:
+            if not self.is_slash and self.deferred:
                 ret = self.deferred
 
         return ret
