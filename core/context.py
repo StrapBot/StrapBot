@@ -13,8 +13,6 @@ class StrapCTX:
     guild: discord.Guild
     author: discord.Member
     lang: Language = None
-    defer_edited = False
-    deferred = None
 
     async def send(self, *msgs, **kwargs) -> discord.Message:
         reference = None
@@ -54,6 +52,8 @@ class StrapCTX:
                     self.defer_edited = True
 
             ret = await send(content=message, **kwargs)
+            if not self.is_slash and self.deferred != None and not self.defer_edited:
+                ret = self.deferred
 
         return ret
 
@@ -119,6 +119,8 @@ class StrapCTX:
 
 class StrapContext(StrapCTX, commands.Context):
     is_slash = False
+    defer_edited = False
+    deferred = None
 
 
 class StrapSlashContext(StrapCTX, SlashContext):
