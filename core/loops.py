@@ -10,6 +10,7 @@ from discord_slash.model import BaseCommandObject
 # It's used by me for the private testing bot.
 testing = os.getenv("SB_ENVIRONMENT") == "dev"
 
+
 class Loops:
     def __init__(self, bot):
         self.bot = bot
@@ -20,7 +21,10 @@ class Loops:
                 {"name": "{guilds} servers.", "type": "competing"},
                 {"name": "{members} total users.", "type": "watching"},
                 {"name": "new slash commands.", "type": "watching"},
-                {"name": "music with the music BETA with my friends.", "type": "listening"},
+                {
+                    "name": "music with the music BETA with my friends.",
+                    "type": "listening",
+                },
                 {
                     "name": "Use {prefix}help for help.",
                     "type": "streaming",
@@ -41,7 +45,10 @@ class Loops:
                 {"name": "{guilds} server.", "type": "competing"},
                 {"name": "{members} utenti totali.", "type": "watching"},
                 {"name": "i nuovi comandi slash.", "type": "watching"},
-                {"name": "la musica con il nuovo music BETA con i miei amici.", "type": "listening"},
+                {
+                    "name": "la musica con il nuovo music BETA con i miei amici.",
+                    "type": "listening",
+                },
                 {
                     "name": "Usa {prefix}help per i comandi.",
                     "type": "streaming",

@@ -277,11 +277,11 @@ class EmbedPaginatorSession(PaginatorSession):
             raise TypeError("Page must be an Embed object.")
 
     async def _create_base(self, item: Embed) -> None:
-        kwargs = {
-            "embed": item
-        }
+        kwargs = {"embed": item}
         if not self.ctx.is_slash:
-            kwargs["reference"] = self.ctx.message.reference or self.ctx.message.to_reference()
+            kwargs["reference"] = (
+                self.ctx.message.reference or self.ctx.message.to_reference()
+            )
 
         self.base = await self.destination.send(**kwargs)
 
