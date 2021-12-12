@@ -230,6 +230,7 @@ class StrapBot(commands.Bot):
                 os.getenv("LAVALINK_PASS"),
                 os.getenv("LAVALINK_REGION"),
                 os.getenv("LAVALINK_NODE", "StrapBot"),
+                reconnect_attempts=100
             )  # Host, Port, Password, Region, Name
 
         return self._lavalink
@@ -439,6 +440,12 @@ class StrapBot(commands.Bot):
                 )
             )
             raise error
+        elif isinstance(error, lavalink.exceptions.NodeException):
+            await ctx.defer()
+            while not self.lavalink.node_manager.nodes[0]._ws.connected:
+                await asyncio.sleep(0)
+
+            await self.process_commands(ctx.message)
 
         else:
             if os.getenv("ERRORS_WEBHOOK_URL"):
@@ -666,11 +673,24 @@ class StrapBot(commands.Bot):
 
         await self.invoke(ctx)
 
-    def add_slash(self, command, name=None):
+    def do_add_slash(self, command, name=None, *, dslash=False):
         name = name or (command.name or command.func.__name__)
         self.slashes[name] = command
-        self.slash.commands[name] = command
+        if dslash:
+            self.slash.commands[name] = command
         return command
+
+    async def add_slash(self, command, name=None, guild_ids=[], *, dslash=False):
+        self.do_add_slash(command, name, dslash=dslash)
+        name = name or (command.name or command.func.__name__)
+        description = command.description or "No description."
+        guild_ids = guild_ids if isinstance(guild_ids, list) else []
+        guild_ids = guild_ids or [g.id for g in bot.guilds]
+        for guild_id in guild_ids:
+            await manage_commands.add_slash_command(
+                self.user.id, self.token, guild_id, name, description
+            )
+
 
     def get_slash(self, name) -> commands.SlashCommand:
         return self.slashes.get(name, None)
@@ -718,11 +738,12 @@ class StrapBot(commands.Bot):
 
     def command(self, *args, **kwargs):
         def decorator(func):
+            guild_ids = kwargs.get("guild_ids", None)
+            kwargs["cog"] = kwargs.get("cog", False)
             kwargs.setdefault("parent", self)
             result = commands.command(*args, **kwargs)(func)
             self.add_command(result)
-            if result.slash:
-                self.add_slash(result.slash)
+            self.do_add_slash(result.slash, guild_ids=guild_ids)
             return result
 
         return decorator

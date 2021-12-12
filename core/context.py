@@ -47,7 +47,12 @@ class StrapCTX:
         else:
             if not self.is_slash:
                 kwargs.pop("hidden", False)
-            ret = await super().send(message, **kwargs)
+
+            send = super().send()
+            if self.deferred and not self.is_slash:
+                send = self.message.edit
+
+            ret = await send(content=message, **kwargs)
 
         return ret
 
@@ -112,10 +117,17 @@ class StrapCTX:
 
 class StrapContext(StrapCTX, commands.Context):
     is_slash = False
+    deferred = False
 
-    async def defer(self):
-        pass
+    async def defer(self, *args, **kwargs: dict):
+        msg = kwargs.pop("message", "Please wait...")
+        self.deferred = await self.send(msg)
+        
 
 
 class StrapSlashContext(StrapCTX, SlashContext):
     is_slash = True
+    
+    async def defer(self, *args, **kwargs):
+        kwargs.pop("message", "")
+        return await super().defer(*args, **kwargs)

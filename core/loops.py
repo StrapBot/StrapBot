@@ -143,8 +143,11 @@ class Loops:
         )  # I need it to wait 5 seconds *before* running, not after.
         for name, command in list(self.bot.slash.commands.items()):
             if not name in self.bot.slashes and isinstance(command, BaseCommandObject):
-                self.bot.logger.info(command)
                 await self.bot.remove_slash(name)
+
+        for name, command in list(self.bot.slashes.items()):
+            if not name in self.bot.slash.commands and isinstance(command, BaseCommandObject):
+                await self.bot.add_slash(command, name, dslash=True)
 
     @tasks.loop(seconds=5)
     async def send_youtube_msg(self):

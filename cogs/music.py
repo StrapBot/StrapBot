@@ -927,7 +927,7 @@ class Music(commands.Cog):
         return info
 
     async def track_hook(self, event):
-
+        print(event.__class__.__name__)
         if isinstance(event, lavalink.events.TrackStartEvent):
             del self.guilds_data[int(event.player.guild_id)].custom_title
             del self.guilds_data[int(event.player.guild_id)].custom_artwork
@@ -955,9 +955,8 @@ class Music(commands.Cog):
                 artists = artists.split(", ")
                 for i, a in enumerate(artists):
                     if " & " in a:
-                        artists[i] = a.split(" & ")[
-                            0
-                        ]  # when there's an & the artist after that molt likely isn't in the site
+                        artists[i] = a.split(" & ")[0]
+                        # when there's an & the artist after that molt likely isn't in the site
 
                 for i, a in enumerate(artists):
                     if " x " in a:
