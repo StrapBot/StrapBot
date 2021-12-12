@@ -13,12 +13,14 @@ class StrapCTX:
     guild: discord.Guild
     author: discord.Member
     lang: Language = None
+    defer_edited = False
+    deferred = None
 
     async def send(self, *msgs, **kwargs) -> discord.Message:
         reference = None
         if not self.is_slash:
             reference = self.message.reference or self.message.to_reference()
-        reference = kwargs.pop("reference", reference)
+        kwargs["reference"] = reference = kwargs.pop("reference", reference)
         message = kwargs.pop("content", " ".join(str(msg) for msg in msgs))
         embeds = kwargs.pop("embeds", None)
         messages = kwargs.pop("messages", None)
@@ -42,15 +44,14 @@ class StrapCTX:
                     **kwargs,
                 )
                 raise
-        elif reference:
-            ret = await self.channel.send(message, reference=reference, **kwargs)
         else:
+            send = super().send
             if not self.is_slash:
                 kwargs.pop("hidden", False)
-
-            send = super().send()
-            if self.deferred and not self.is_slash:
-                send = self.message.edit
+                if self.deferred != None and not self.defer_edited:
+                    send = self.deferred.edit
+                    kwargs.pop("reference", "")
+                    self.defer_edited = True
 
             ret = await send(content=message, **kwargs)
 
@@ -105,19 +106,20 @@ class StrapCTX:
         ret = Language(ret)
         return ret
 
+    async def defer(self, *args, **kwargs: dict):
+        msg = kwargs.pop("message", "Please wait...")
+        if self.is_slash:
+            return await super().defer(*args, **kwargs)
+        elif self.deferred:
+            raise RuntimeError("Can't defer more than once")
+        else:
+            self.deferred = await self.send(msg)
+            return self.deferred
+
 
 class StrapContext(StrapCTX, commands.Context):
     is_slash = False
-    deferred = False
-
-    async def defer(self, *args, **kwargs: dict):
-        msg = kwargs.pop("message", "Please wait...")
-        self.deferred = await self.send(msg)
 
 
 class StrapSlashContext(StrapCTX, SlashContext):
     is_slash = True
-
-    async def defer(self, *args, **kwargs):
-        kwargs.pop("message", "")
-        return await super().defer(*args, **kwargs)
