@@ -136,7 +136,6 @@ class Loops:
         )  # I need it to wait 5 seconds *before* running, not after.
         for name, command in list(self.bot.slash.commands.items()):
             if not name in self.bot.slashes and isinstance(command, BaseCommandObject):
-                self.bot.logger.info(command)
                 await self.bot.remove_slash(name)
 
     @tasks.loop(seconds=5)
