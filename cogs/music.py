@@ -14,6 +14,7 @@ from functools import partial
 from lavalink.models import DefaultPlayer
 from core.languages import Language
 from async_timeout import timeout
+from ncs.song import Song
 
 
 class MusicError(Exception):
@@ -171,7 +172,7 @@ class Music(commands.Cog):
         url = source.webpage_url or current.uri
 
         if vincystreaming:
-            titolo = self.guilds_data["global"].vincystream_current
+            titolo = self.guilds_data["global"].vincystream_current.title
             np = lang.onvs
             npurl = self.VINCYSTREAM_URL
 
@@ -339,8 +340,7 @@ class Music(commands.Cog):
             ctx.guild.id, endpoint=str(ctx.guild.region)
         )
         lang = (await ctx.get_lang(cog=True)).ensure_voice
-        print("marso")
-        cmd_name = (ctx.command if ctx.is_slash else ctx.command.name)
+        cmd_name = ctx.command if ctx.is_slash else ctx.command.name
         should_connect = cmd_name in (
             "play",
             "summon",
@@ -352,7 +352,6 @@ class Music(commands.Cog):
             # Exceptions allow us to "short-circuit" command invocation via checks so the
             # execution state of the command goes no further.
             raise MusicError(lang.join)
-        
 
         if player.is_connected and cmd_name == "summon":
 
@@ -390,11 +389,12 @@ class Music(commands.Cog):
         url = "https://vincystream.online/info"
         async with self.bot.session.get(url) as response:
             response: ClientResponse
-            data = await response.json()
-            title = data["title"]
+            datas = await response.json()
+            title = datas["title"]
+            artists = datas["artists"]
 
-            if self.guilds_data["global"].vincystream_current != title:
-                self.guilds_data["global"].vincystream_current = title
+            if self.guilds_data["global"].vincystream_current != datas:
+                self.guilds_data["global"].vincystream_current = datas
                 for guild_id, data in list(self.guilds_data.items()):
                     if guild_id == "global":
                         continue
@@ -408,41 +408,14 @@ class Music(commands.Cog):
 
                     player.delete("current_track_info")
 
-                    del self.guilds_data[int(player.guild_id)].custom_title
-                    del self.guilds_data[int(player.guild_id)].custom_artwork
-                    del self.guilds_data[int(player.guild_id)].artists
-                    feat = feat_rx.findall(title)
-                    if feat:
-                        title = title.replace(feat[0][0], "")
+                    del self.guilds_data[int(guild_id)].custom_title
+                    del self.guilds_data[int(guild_id)].custom_artwork
+                    del self.guilds_data[int(guild_id)].artists
+                    song = Song(**datas)
 
-                    artists, title = tuple(title.split(" - "))
-                    artists = artists.split(", ")
-                    for i, a in enumerate(artists):
-                        if " & " in a:
-                            artists[i] = a.split(" & ")[
-                                0
-                            ]  # when there's an & the artist after that molt likely isn't in the site
-
-                    for i, a in enumerate(artists):
-                        if " x " in a:
-                            artists += a.split(" x ")
-
-                    for i, a in enumerate(artists):
-                        if " ft. " in a:
-                            artists += a.split(" ft. ")
-
-                    try:
-                        q = await self.bot.ncs.search(title, artists=artists)
-                    except Exception:
-                        q = type("testù", (object,), {"items": []})
-
-                    if q.items:
-                        song = q.items[0]
-                        self.guilds_data[int(player.guild_id)].custom_title = song.title
-                        self.guilds_data[
-                            int(player.guild_id)
-                        ].custom_artwork = song.artwork
-                        self.guilds_data[int(player.guild_id)].artists = song.artists
+                    self.guilds_data[int(player.guild_id)].custom_title = song.title
+                    self.guilds_data[int(player.guild_id)].custom_artwork = song.artwork
+                    self.guilds_data[int(player.guild_id)].artists = song.artists
 
                     await asyncio.gather(
                         self.get_info(player, title, True),
@@ -716,7 +689,7 @@ class Music(commands.Cog):
 
         if volume == None:
             return await ctx.send(ctx.lang["info"].format(round(player.volume)))
-        
+
         await ctx.defer()
 
         if volume < 1 or volume > 100:
@@ -954,7 +927,6 @@ class Music(commands.Cog):
         return info
 
     async def track_hook(self, event):
-
         if isinstance(event, lavalink.events.TrackStartEvent):
             del self.guilds_data[int(event.player.guild_id)].custom_title
             del self.guilds_data[int(event.player.guild_id)].custom_artwork
@@ -965,16 +937,12 @@ class Music(commands.Cog):
             ].vincystreaming = vincystreaming = (
                 event.player.current.uri == self.VINCYSTREAM_URL
             )
-
-            if (
-                event.player.current.author in ["NoCopyrightSounds", "NCS Lyrics"]
-                or vincystreaming
-            ):
-                name = (
-                    self.guilds_data["global"].vincystream_current
-                    if vincystreaming
-                    else event.player.current.title
-                )
+            q = type("hoping this works", (), {"items": []})
+            if vincystreaming:
+                qq = Song(**self.guilds_data["global"].vincystream_current)
+                q.items.append(qq)
+            elif event.player.current.author in ["NoCopyrightSounds", "NCS Lyrics"]:
+                name = event.player.current.title
                 ncsr = ncsr_rx.findall(name)
                 if ncsr and ncsr[0] and ncsr[0][0]:
                     name = name.replace(ncsr[0][0], "")
@@ -986,9 +954,8 @@ class Music(commands.Cog):
                 artists = artists.split(", ")
                 for i, a in enumerate(artists):
                     if " & " in a:
-                        artists[i] = a.split(" & ")[
-                            0
-                        ]  # when there's an & the artist after that molt likely isn't in the site
+                        artists[i] = a.split(" & ")[0]
+                        # when there's an & the artist after that molt likely isn't in the site
 
                 for i, a in enumerate(artists):
                     if " x " in a:
@@ -999,20 +966,18 @@ class Music(commands.Cog):
                 except Exception:
                     q = type("testù", (object,), {"items": []})
 
-                if q.items:
-                    song = q.items[0]
-                    self.guilds_data[
-                        int(event.player.guild_id)
-                    ].custom_title = song.title
-                    self.guilds_data[
-                        int(event.player.guild_id)
-                    ].custom_artwork = song.artwork
-                    self.guilds_data[int(event.player.guild_id)].artists = song.artists
+            if q.items:
+                song = q.items[0]
+                self.guilds_data[int(event.player.guild_id)].custom_title = song.title
+                self.guilds_data[
+                    int(event.player.guild_id)
+                ].custom_artwork = song.artwork
+                self.guilds_data[int(event.player.guild_id)].artists = song.artists
 
             search = (
                 event.player.current.uri
                 if not vincystreaming
-                else self.guilds_data["global"].vincystream_current
+                else self.guilds_data["global"].vincystream_current.title
             )
             cls = self.__class__.__name__
             db = self.bot.db.db["Config"]
@@ -1051,6 +1016,7 @@ class Music(commands.Cog):
                 event.player.store("is_utw", True)
                 upd = self._update_time_watched(guild, event.player)
             is_first = self.guilds_data[guild.id].is_first
+
             async def set_first_play_event():
                 """made it a coroutine so I can gather it"""
                 self.guilds_data[int(event.player.guild_id)].first_play_event.set()
@@ -1058,7 +1024,7 @@ class Music(commands.Cog):
             tasks = [
                 self.get_info(event.player, search, vincystreaming),
                 upd,
-                set_first_play_event()
+                set_first_play_event(),
             ]
             if not is_first:
 

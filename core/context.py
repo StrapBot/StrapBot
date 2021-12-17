@@ -18,7 +18,7 @@ class StrapCTX:
         reference = None
         if not self.is_slash:
             reference = self.message.reference or self.message.to_reference()
-        reference = kwargs.pop("reference", reference)
+        kwargs["reference"] = reference = kwargs.pop("reference", reference)
         message = kwargs.pop("content", " ".join(str(msg) for msg in msgs))
         embeds = kwargs.pop("embeds", None)
         messages = kwargs.pop("messages", None)
@@ -42,12 +42,20 @@ class StrapCTX:
                     **kwargs,
                 )
                 raise
-        elif reference:
-            ret = await self.channel.send(message, reference=reference, **kwargs)
         else:
+            send = super().send
             if not self.is_slash:
                 kwargs.pop("hidden", False)
-            ret = await super().send(message, **kwargs)
+                _defercoso = False
+                if self.deferred != None and not self.defer_edited:
+                    send = self.deferred.edit
+                    kwargs.pop("reference", "")
+                    self.defer_edited = True
+                    _defercoso = True
+
+            ret = await send(content=message, **kwargs)
+            if not self.is_slash and self.deferred and _defercoso:
+                ret = self.deferred
 
         return ret
 
@@ -67,21 +75,12 @@ class StrapCTX:
             command_name = self.command.qualified_name
 
         cls = cls.__class__.__name__
-        db = self.bot.db.db["Config"]
-        members = await db.find_one({"_id": "users"})
-        guilds = await db.find_one({"_id": "guilds"})
-        if str(self.author.id) in members:
-            current = (
-                members[str(self.author.id)].get("lang", self.bot.lang.default)
-                or self.bot.lang.default
-            )
-        elif str(self.guild.id) in guilds:
-            current = (
-                guilds[str(self.guild.id)].get("lang", self.bot.lang.default)
-                or self.bot.lang.default
-            )
-        else:
-            current = self.bot.lang.default
+
+        current = await self.bot.config.get(
+            self.author.id,
+            "lang",
+            await self.bot.config.get(self.guild.id, "lang", self.bot.lang.default),
+        )
 
         ret = json.load(open(f"core/languages/{current}.json"))
 
@@ -109,12 +108,21 @@ class StrapCTX:
         ret = Language(ret)
         return ret
 
+    async def defer(self, *args, **kwargs: dict):
+        msg = kwargs.pop("message", "Please wait...")
+        if self.is_slash:
+            return await super().defer(*args, **kwargs)
+        elif self.deferred:
+            raise RuntimeError("Can't defer more than once")
+        else:
+            self.deferred = await self.send(msg)
+            return self.deferred
+
 
 class StrapContext(StrapCTX, commands.Context):
     is_slash = False
-
-    async def defer(self):
-        pass
+    defer_edited = False
+    deferred = None
 
 
 class StrapSlashContext(StrapCTX, SlashContext):

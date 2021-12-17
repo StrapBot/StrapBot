@@ -37,7 +37,7 @@ class StrapBotCommand(Command):
         """
 
         callback = self.slash or self.callback
-        
+
         self.__init__(callback, **dict(self.__original_kwargs__, **kwargs))
 
     def _update_copy(self, kwargs):
@@ -118,7 +118,7 @@ def command(name: str = None, cls: type = None, **attrs):
         ret = func
         if not attrs.get("slash_only", False):
             ret = cls(func, name=name, slash_args=slash_attrs, **attrs)
-        
+
         return ret
 
     return decorator

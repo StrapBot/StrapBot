@@ -13,15 +13,6 @@ from io import BytesIO
 from urllib.parse import quote_plus as urlencode
 
 
-def escape(text: str, *, mass_mentions: bool = False, formatting: bool = False) -> str:
-    return (
-        text.replace("`", "\\`")
-        .replace("*", "\\*")
-        .replace("_", "\\_")
-        .replace("~", "\\~")
-    )
-
-
 class Fun(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -58,7 +49,6 @@ class Fun(commands.Cog):
     async def choose(self, ctx, *, choices):
         """Choose between multiple options, split by comma."""
         choices = choices.split(",")
-        choices = [escape(c, mass_mentions=True) for c in choices]
         if len(choices) < 2:
             await ctx.send_help(ctx.command)
         else:
