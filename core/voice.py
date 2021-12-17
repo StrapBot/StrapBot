@@ -5,7 +5,6 @@ import random
 import functools
 import itertools
 import youtube_dl
-import ffmpeg
 from discord.ext import commands
 from async_timeout import timeout
 from core.logs import get_logger_instance
@@ -50,7 +49,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
         "options": "-vn",
     }
 
-    ffmpeg = ffmpeg.FFmpeg()
     ytdl = youtube_dl.YoutubeDL(YTDL_OPTIONS)
     ytdl.cache.remove()
 
