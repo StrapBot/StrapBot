@@ -115,7 +115,7 @@ class Config:
                 raise KeyError(f"'{key}'")
 
             data[key] = value
-            await asyncio.sleep(1)  # avoid blocking
+            await asyncio.sleep(0.5)  # avoid blocking
 
         await self.db.find_one_and_update(
             {"_id": _id}, {"$set": {str(id): data}}, upsert=True

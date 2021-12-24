@@ -430,7 +430,7 @@ class Music(commands.Cog):
                     )
             response.close()
 
-        await asyncio.sleep(1)
+        await asyncio.sleep(5)
 
     @commands.command(name="vincystream")
     async def play_vincystream(self, ctx):
@@ -878,7 +878,7 @@ class Music(commands.Cog):
             async with timeout(60):
                 while data == None:
                     data = player.fetch("current_track_info", None)
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(0.5)
         except asyncio.TimeoutError:
             return
 

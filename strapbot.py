@@ -451,7 +451,7 @@ class StrapBot(commands.Bot):
         elif isinstance(error, lavalink.exceptions.NodeException):
             await ctx.defer()
             while not self.lavalink.node_manager.nodes[0]._ws.connected:
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.5)
 
             await self.process_commands(ctx.message)
         elif isinstance(error, ServerSelectionTimeoutError):
@@ -474,7 +474,7 @@ class StrapBot(commands.Bot):
         try:
             while await db.find_one({"_id": _id}):
                 _id = self.gen_error_id()
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.5)
         except ServerSelectionTimeoutError:
             pass
 
@@ -540,7 +540,7 @@ class StrapBot(commands.Bot):
 
     async def on_guild_join(self, guild):
         already_been_in = True
-        data = await self.config.find(guild, "guilds")
+        data = await self.config.find(guild.id, "guilds")
         if not data:
             already_been_in = False
             await self.config.create_base(guild.id, None, "guilds")
@@ -552,7 +552,8 @@ class StrapBot(commands.Bot):
         while not (perms.send_messages or perms.administrator):
             channel = random.choice(guild.channels)
             perms = channel.permissions_for(guild.me)
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.5)
+
 
         msg = f"""
 Hello there, I'm StrapBot! 👋
@@ -566,7 +567,7 @@ You can check out all my functions using `{self.prefix(self, None, True)}help` o
             color=discord.Color.lighter_grey()
         ).set_author(
             name="Thanks for inviting me to your server!",
-            icon_url=guild.me.avatar_url                    
+            icon_url=guild.me.avatar_url
         )
 
         await channel.send(embed=embed)
