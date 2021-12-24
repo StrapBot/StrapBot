@@ -533,11 +533,15 @@ class StrapBot(commands.Bot):
             data = await self.config.find(ctx.author.id)
 
     async def on_guild_join(self, guild):
-        data = await self.config.find(guild)
+        already_been_in = True
+        data = await self.config.find(guild, "guilds")
         if not data:
-            await self.config.create_base(guild.id)
+            already_been_in = False
+            await self.config.create_base(guild.id, None, "guilds")
             self.logger.debug(f"Created configurations for guild `{guild.name}`.")
-            data = await self.config.find(guild.id)
+            data = await self.config.find(guild.id, "guilds")
+        
+        
 
     @property
     def db(self) -> MongoDB:

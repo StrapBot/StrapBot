@@ -4,6 +4,8 @@ import json
 import typing
 from discord.ext.commands import Bot
 
+# because I used type on the args
+_class = type
 
 class Config:
     def __init__(self, bot: Bot):
@@ -34,13 +36,13 @@ class Config:
         ret.update(getattr(self, f"{type_}_base", {}))
         return ret
 
-    async def create_base(self, id: int, guild_id: int = None) -> dict:
-        _id = self.get_idtype(id)
+    async def create_base(self, id: int, guild_id: int = None, type=None) -> dict:
+        _id = type or self.get_idtype(id)
         if _id == "users" and (guild_id is None or not isinstance(guild_id, int)):
             raise ValueError(
                 f"When creating a base for a user, a `guild_id` must be given."
                 if guild_id is None
-                else f"Expected `int` on `guild_id`, got `{type(guild_id).__name__}`."
+                else f"Expected `int` on `guild_id`, got `{_class(guild_id).__name__}`."
             )
         base = self.get_base(_id)
         data = {}
@@ -60,12 +62,13 @@ class Config:
 
         return data
 
-    async def find(self, id: int) -> dict:
-        _id = self.get_idtype(id)
+    async def find(self, id: int, type=None) -> dict:
+        _id = type or self.get_idtype(id)
+        print(_id)
         return (await self.db.find_one({"_id": _id})).get(str(id), {})
 
-    async def get(self, id: int, key: str, default=None):
-        _id = self.get_idtype(id)
+    async def get(self, id: int, key: str, default=None, type=None):
+        _id = type or self.get_idtype(id)
         try:
             data = (await self.db.find_one({"_id": _id}))[str(id)]
         except Exception:
@@ -102,8 +105,8 @@ class Config:
                 raise ValueError(lang["logch"])
         return True
 
-    async def set(self, id, lg="en", **kwargs) -> dict:
-        _id = self.get_idtype(id)
+    async def set(self, id, lg="en", type=None, **kwargs) -> dict:
+        _id = type or self.get_idtype(id)
         data = await self.find(id)
 
         for key, value in kwargs.items():
