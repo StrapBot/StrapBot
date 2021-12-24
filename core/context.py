@@ -54,6 +54,8 @@ class StrapCTX:
                     except Exception: pass
                     self.defer_edited = True
                     _defercoso = True
+            else:
+                kwargs.pop("reference")
 
             ret = await send(content=message, **kwargs)
             if not self.is_slash and self.deferred and _defercoso:
