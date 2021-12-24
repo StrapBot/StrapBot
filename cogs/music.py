@@ -256,14 +256,14 @@ class Music(commands.Cog):
 
             position = player.position / 1000
             if player.paused:
-                await asyncio.sleep(0)
+                await asyncio.sleep(1)
                 continue
 
             if player.current.stream:
                 self.guilds_data[guild.id].text_watched = (
                     "|" + symbols[:20] + "🔘" + "| [LIVE]"
                 )
-                await asyncio.sleep(0)
+                await asyncio.sleep(1)
                 continue
 
             duration_int = player.current.duration / 1000
@@ -274,7 +274,7 @@ class Music(commands.Cog):
             )
             self.guilds_data[guild.id].watched = position
             self.guilds_data[guild.id].unwatched = duration_int - position
-            await asyncio.sleep(0)
+            await asyncio.sleep(1)
         else:
             bound = self.guilds_data[guild.id].bound
             del self.guilds_data[guild.id]
@@ -851,7 +851,7 @@ class Music(commands.Cog):
         self, player, channel, current, is_first, lang, current_lang, ctx=None
     ):
         while not player.is_playing:
-            await asyncio.sleep(0)
+            await asyncio.sleep(1)
 
         await self.guilds_data[channel.guild.id].first_play_event.wait()
 

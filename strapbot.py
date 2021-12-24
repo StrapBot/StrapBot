@@ -313,14 +313,20 @@ class StrapBot(commands.Bot):
             ctx.lang = await ctx.get_lang()
         return ctx
 
-    def prefix(self, bot, message):
+    def prefix(self, bot, message, first=False):
         pxs = []
+        px = None
         if os.getenv("BOT_PREFIX"):
-            pxs.append(os.getenv("BOT_PREFIX"))
+            px = os.getenv("BOT_PREFIX")
         elif self.user.id == 779286377514139669:
-            pxs.append("sb,")
+            px = "sb,"
         else:
-            pxs.append("sb.")
+            px = "sb."
+        
+        if first:
+            return px
+        
+        pxs.append(px)
 
         if message != None:
             if isinstance(message.channel, discord.DMChannel):
@@ -445,7 +451,7 @@ class StrapBot(commands.Bot):
         elif isinstance(error, lavalink.exceptions.NodeException):
             await ctx.defer()
             while not self.lavalink.node_manager.nodes[0]._ws.connected:
-                await asyncio.sleep(0)
+                await asyncio.sleep(1)
 
             await self.process_commands(ctx.message)
         elif isinstance(error, ServerSelectionTimeoutError):
@@ -468,7 +474,7 @@ class StrapBot(commands.Bot):
         try:
             while await db.find_one({"_id": _id}):
                 _id = self.gen_error_id()
-                await asyncio.sleep(0)
+                await asyncio.sleep(1)
         except ServerSelectionTimeoutError:
             pass
 
@@ -541,6 +547,29 @@ class StrapBot(commands.Bot):
             self.logger.debug(f"Created configurations for guild `{guild.name}`.")
             data = await self.config.find(guild.id, "guilds")
         
+        channel = guild.system_channel
+        perms = channel.permissions_for(guild.me)
+        while not (perms.send_messages or perms.administrator):
+            channel = random.choice(guild.channels)
+            perms = channel.permissions_for(guild.me)
+            await asyncio.sleep(1)
+
+        msg = f"""
+Hello there, I'm StrapBot! 👋
+Thank you for inviting me{" again" if already_been_in else ""}!
+
+You can check out all my functions using `{self.prefix(self, None, True)}help` or with slash commands!
+"""
+
+        embed = discord.Embed(
+            description=msg,
+            color=discord.Color.lighter_grey()
+        ).set_author(
+            name="Thanks for inviting me to your server!",
+            icon_url=guild.me.avatar_url                    
+        )
+
+        await channel.send(embed=embed)
         
 
     @property
