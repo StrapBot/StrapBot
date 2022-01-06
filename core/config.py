@@ -7,6 +7,7 @@ from discord.ext.commands import Bot
 # because I used type on the args
 _class = type
 
+
 class Config:
     def __init__(self, bot: Bot):
         from strapbot import StrapBot  # I want colored syntax and suggestions

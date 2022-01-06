@@ -322,10 +322,10 @@ class StrapBot(commands.Bot):
             px = "sb,"
         else:
             px = "sb."
-        
+
         if first:
             return px
-        
+
         pxs.append(px)
 
         if message != None:
@@ -499,7 +499,7 @@ class StrapBot(commands.Bot):
 
         if len(args) > 1000:
             args = "Too long, can't send."
-        
+
         try:
             await db.insert_one(
                 {
@@ -546,14 +546,13 @@ class StrapBot(commands.Bot):
             await self.config.create_base(guild.id, None, "guilds")
             self.logger.debug(f"Created configurations for guild `{guild.name}`.")
             data = await self.config.find(guild.id, "guilds")
-        
+
         channel = guild.system_channel
         perms = channel.permissions_for(guild.me)
         while not (perms.send_messages or perms.administrator):
             channel = random.choice(guild.channels)
             perms = channel.permissions_for(guild.me)
             await asyncio.sleep(0.5)
-
 
         msg = f"""
 Hello there, I'm StrapBot! 👋
@@ -563,15 +562,12 @@ You can check out all my functions using `{self.prefix(self, None, True)}help` o
 """
 
         embed = discord.Embed(
-            description=msg,
-            color=discord.Color.lighter_grey()
+            description=msg, color=discord.Color.lighter_grey()
         ).set_author(
-            name="Thanks for inviting me to your server!",
-            icon_url=guild.me.avatar_url
+            name="Thanks for inviting me to your server!", icon_url=guild.me.avatar_url
         )
 
         await channel.send(embed=embed)
-        
 
     @property
     def db(self) -> MongoDB:

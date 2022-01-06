@@ -158,6 +158,7 @@ class Music(commands.Cog):
         vincystreaming=False,
     ):
         current = current or player.current
+        current_lang = current_lang or self.bot.lang.default
         if not current:
             return
 
@@ -391,7 +392,6 @@ class Music(commands.Cog):
             response: ClientResponse
             datas = await response.json()
             title = datas["title"]
-            artists = datas["artists"]
 
             if self.guilds_data["global"].vincystream_current != datas:
                 self.guilds_data["global"].vincystream_current = datas
@@ -977,14 +977,16 @@ class Music(commands.Cog):
             search = (
                 event.player.current.uri
                 if not vincystreaming
-                else self.guilds_data["global"].vincystream_current.title
+                else " ".join(self.guilds_data["global"].vincystream_current.artists)
+                + self.guilds_data["global"].vincystream_current.title
             )
             cls = self.__class__.__name__
             db = self.bot.db.db["Config"]
             guilds = await db.find_one({"_id": "guilds"})
             if event.player.guild_id in guilds:
-                current_lang = guilds[event.player.guild_id].get(
-                    "lang", self.bot.lang.default
+                current_lang = (
+                    guilds[event.player.guild_id].get("lang", self.bot.lang.default)
+                    or self.bot.lang.default
                 )
             else:
                 current_lang = self.bot.lang.default

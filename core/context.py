@@ -51,9 +51,11 @@ class StrapCTX:
                     send = self.deferred.edit
                     try:
                         del kwargs["content"]
-                    except Exception: pass
+                    except Exception:
+                        pass
                     self.defer_edited = True
                     _defercoso = True
+                    kwargs.pop("reference")
             else:
                 kwargs.pop("reference")
 

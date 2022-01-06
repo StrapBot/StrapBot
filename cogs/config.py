@@ -30,7 +30,7 @@ class Config(commands.Cog):
     async def config(self, ctx):
         """Configure StrapBot with your favorite settings."""
         if self.aborts[ctx.author.id] > 5:
-            self.abors[ctx.author.id] = 0
+            self.aborts[ctx.author.id] = 0
         embed = discord.Embed(color=discord.Color.red(), title=ctx.lang.error)
         close_button = create_button(
             style=ButtonStyle.red, label="Close", custom_id="close"
