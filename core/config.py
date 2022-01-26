@@ -15,7 +15,7 @@ class Config:
         self.bot: StrapBot = bot
         self.db = self.bot.db.Config
         self.base = {
-            "lang": str,
+            "lang": bot.lang.default,
         }
         self.users_base = {"beta": bool}
         self.guilds_base = {"logchannel": int, "youtube": None}

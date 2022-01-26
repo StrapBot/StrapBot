@@ -133,7 +133,7 @@ class Config(commands.Cog):
                         emoji=random.choice(ctx.lang.emojis.get(b, [None])),
                     )
                 )
-        elif base[key] == str:
+        elif base[key] == str or isinstance(base[key], str):
             # TODO: add handler for more strings
             if key == "lang":
                 val = ctx.lang.values_[val]
