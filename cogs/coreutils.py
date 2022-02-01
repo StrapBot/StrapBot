@@ -14,17 +14,20 @@ class coreutils(commands.Cog, name="Coreutils Simulation (beta)"):
     async def ls(self, ctx, path="~"):
         """List your files with the specified path"""
         files = await self.get_dirs(ctx.author.id)
+        ret = []
         if not path.startswith("/") and not path.startswith("~"):
             path = f"~/{path}"
 
-        path = path.replace("~", "/home")
+        if path.startswith("~"):
+            path = path.replace("~", "/home", 1)
+
         if files == None:
             await self.db.find_one_and_update(
                 {"_id": ctx.author.id},
-                {"$set": {"home": {}}},
+                {"$set": {"home": {}, "etc": {}}},
                 upsert=True,
             )
-            files = {"_id": ctx.author.id, "home": {}}
+            files = {"_id": ctx.author.id, "home": {}, "etc": {}}
 
         tg = [x for x in path.split("/") if x]
         if path.startswith("/") and len(tg) != 0:
@@ -32,6 +35,8 @@ class coreutils(commands.Cog, name="Coreutils Simulation (beta)"):
         for dir in tg:
             try:
                 files = files[dir.replace("/", "", 1)]
+                if dir == "etc":
+                    ret.append("placeholder")
             except KeyError:
                 return await ctx.send("No such file or directory")
 
@@ -44,16 +49,21 @@ class coreutils(commands.Cog, name="Coreutils Simulation (beta)"):
             else:
                 list_.append(path)
         random.shuffle(list_)
+        returned = []
         limit = 20
         list_ = [list_[i : i + limit] for i in range(0, len(list_), limit)]
-        ret = []
         for tr in list_:
             _tr = "\t".join(tr)
-            ret.append(f"```\n{_tr}\n```")
+            ret.append(_tr.strip())
+
         if not ret:
             return await ctx.send("Directory is empty")
+
+        for tr in ret:
+            returned.append(f"```\n{tr}\n```")
+
         await ctx.send(
-            messages=ret, embed=discord.Embed(color=discord.Color.lighter_grey())
+            messages=returned
         )
 
     @commands.command()
@@ -178,6 +188,11 @@ class coreutils(commands.Cog, name="Coreutils Simulation (beta)"):
             if not tg[-1] in files_ and tg[-1] != "/":
                 return await ctx.send(
                     f"Error deleting `{file}`: No such file or directory."
+                )
+
+            if len(tg, 1) and "etc" in tg:
+                return await ctx.send(
+                    f"Error deleting `{file}`, it's a system file."
                 )
 
             if tg[-1] != "/":
