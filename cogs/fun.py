@@ -487,7 +487,7 @@ class Fun(commands.Cog):
                 new += choice(words)
 
             news.append(new)
-            await asyncio.sleep(0)  # avoid blocking
+            await asyncio.sleep(0.5)  # avoid blocking
 
         await ctx.send(choice(news))
 
