@@ -65,7 +65,6 @@ class Config:
 
     async def find(self, id: int, type=None) -> dict:
         _id = type or self.get_idtype(id)
-        print(_id)
         return (await self.db.find_one({"_id": _id})).get(str(id), {})
 
     async def get(self, id: int, key: str, default=None, type=None):

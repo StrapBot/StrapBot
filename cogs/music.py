@@ -113,6 +113,7 @@ def is_one_in_vc():
 class Music(commands.Cog):
 
     VINCYSTREAM_URL = "http://vincystream.online/stream"
+    VINCYSTREAM_URL_S = "https://vincystream.online/stream"
 
     def __init__(self, bot: StrapBot):
         self.bot = bot
@@ -123,6 +124,7 @@ class Music(commands.Cog):
 
     def cog_unload(self):
         """Cog unload handler. This removes any event hooks that were registered."""
+        self.meta_loop.stop()
         self.bot.lavalink._event_hooks.clear()
 
     async def cog_check(self, ctx):
@@ -253,8 +255,10 @@ class Music(commands.Cog):
         #    and not (self.guilds_data[guild.id].skipped or False)
         # ):
         symbols = "▬" * 20
+        print(player.is_playing)
+        print(player.fetch("is_utw", False))
         while player.is_playing and player.fetch("is_utw", False):
-
+            print(1)
             position = player.position / 1000
             if player.paused:
                 await asyncio.sleep(1)
@@ -262,11 +266,12 @@ class Music(commands.Cog):
 
             if player.current.stream:
                 self.guilds_data[guild.id].text_watched = (
-                    "|" + symbols[:20] + "🔘" + "| [LIVE]"
+                    "|" + symbols[:20] + "🔘| [LIVE]"
                 )
                 await asyncio.sleep(1)
                 continue
 
+            print(2)
             duration_int = player.current.duration / 1000
 
             val = round(((100 * float(position) / float(duration_int)) / 50) * 10)
@@ -931,12 +936,14 @@ class Music(commands.Cog):
             del self.guilds_data[int(event.player.guild_id)].custom_title
             del self.guilds_data[int(event.player.guild_id)].custom_artwork
             del self.guilds_data[int(event.player.guild_id)].artists
+            print("strunz")
             self.guilds_data[int(event.player.guild_id)].player = event.player
             self.guilds_data[
                 int(event.player.guild_id)
-            ].vincystreaming = vincystreaming = (
-                event.player.current.uri == self.VINCYSTREAM_URL
-            )
+            ].vincystreaming = vincystreaming = event.player.current.uri in [
+                self.VINCYSTREAM_URL,
+                self.VINCYSTREAM_URL_S,
+            ]
             q = type("hoping this works", (), {"items": []})
             if vincystreaming:
                 qq = Song(**self.guilds_data["global"].vincystream_current)
@@ -1021,7 +1028,8 @@ class Music(commands.Cog):
 
             async def set_first_play_event():
                 """made it a coroutine so I can gather it"""
-                self.guilds_data[int(event.player.guild_id)].first_play_event.set()
+                if is_first:
+                    self.guilds_data[int(event.player.guild_id)].first_play_event.set()
 
             tasks = [
                 self.get_info(event.player, search, vincystreaming),
@@ -1041,10 +1049,10 @@ class Music(commands.Cog):
                     )
                 )
             await asyncio.gather(*tasks)
+        elif isinstance(event, lavalink.events.TrackEndEvent):
+            event.player.delete("is_utw")
+            event.player.delete("current_track_info")
         elif isinstance(event, lavalink.events.QueueEndEvent):
-            # When this track_hook receives a "QueueEndEvent" from lavalink.py
-            # it indicates that there are no tracks left in the player's queue.
-            # To save on resources, we can tell the bot to disconnect from the voicechannel.
             event.player.delete("is_utw")
             event.player.delete("current_track_info")
             guild_id = int(event.player.guild_id)

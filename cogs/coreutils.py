@@ -62,9 +62,7 @@ class coreutils(commands.Cog, name="Coreutils Simulation (beta)"):
         for tr in ret:
             returned.append(f"```\n{tr}\n```")
 
-        await ctx.send(
-            messages=returned
-        )
+        await ctx.send(messages=returned)
 
     @commands.command()
     async def cat(self, ctx, file):
@@ -191,9 +189,7 @@ class coreutils(commands.Cog, name="Coreutils Simulation (beta)"):
                 )
 
             if len(tg, 1) and "etc" in tg:
-                return await ctx.send(
-                    f"Error deleting `{file}`, it's a system file."
-                )
+                return await ctx.send(f"Error deleting `{file}`, it's a system file.")
 
             if tg[-1] != "/":
                 if isinstance(files_[tg[-1]], dict) and not _dirs:
