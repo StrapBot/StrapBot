@@ -13,27 +13,30 @@ from discord_slash.model import BaseCommandObject
 testing = os.getenv("SB_ENVIRONMENT") == "dev"
 tz = timezone("Europe/Rome")
 
-def midnightify(dt):
+
+def midnightify(dt: datetime):
     return dt.replace(hour=0, minute=0, second=0, microsecond=0)
+
 
 class Loops:
     TWITCH_URLS = {
         "vincy": "https://twitch.tv/Vincydotzsh",
-        "erg": "https://twitch.tv/JxstErg1"
+        "erg": "https://twitch.tv/JxstErg1",
     }
-    
+
     NAMES_IDS = {
         726381259332386867: "vincy",
         "vincy": 726381259332386867,
         602819090012176384: "erg",
-        "erg": 602819090012176384
+        "erg": 602819090012176384,
     }
+
     def __init__(self, bot):
         self.bot = bot
         self.time = 0
         self.next_birthdays = {
             "vincy": datetime(day=22, month=3, year=datetime.today().year, tzinfo=tz),
-            "erg": datetime(day=27, month=11, year=datetime.today().year, tzinfo=tz)
+            "erg": datetime(day=27, month=11, year=datetime.today().year, tzinfo=tz),
         }
         self.check_birthday()
         ed = "Testing" if testing else "Beta"
@@ -74,7 +77,6 @@ class Loops:
                     "name": "Usa {prefix}help per i comandi.",
                     "type": "streaming",
                     "twitch_url": self.TWITCH_URLS["erg"],
-
                 },
                 {
                     "name": f"Edizione {ed}! Questo bot potrebbe essere meno stabile di quello stabile.",
@@ -110,12 +112,14 @@ class Loops:
         today = midnightify(datetime.now(tz))
         for user, bday in self.next_birthdays.items():
             if (bday - today).days < 0:
-                self.next_birthdays[user] = self.next_birthdays[user].replace(year=bday.year + 1)
+                self.next_birthdays[user] = self.next_birthdays[user].replace(
+                    year=bday.year + 1
+                )
 
     @tasks.loop(seconds=5)
     async def keep_checking_for_birthday(self):
         self.check_birthday()
-        await asyncio.sleep(0) # this might be blocking, so...
+        await asyncio.sleep(0)  # this might be blocking, so...
 
     @tasks.loop(seconds=30)
     async def presence_loop(self):
@@ -128,9 +132,12 @@ class Loops:
             result = (bd - today).days
             if result < 15 and result >= 0:
                 bday = {"user": self.NAMES_IDS[user], "day": bd, "days": result}
-        
 
-        if bday and self.bot.user.id in [903372493316821104, 779286377514139669, 740140581174378527]:
+        if bday and self.bot.user.id in [
+            903372493316821104,
+            779286377514139669,
+            740140581174378527,
+        ]:
             u = ergastolator = discord.utils.get(
                 self.bot.get_all_members(), id=bday["user"]
             )
