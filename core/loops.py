@@ -41,12 +41,12 @@ class Loops:
                 {
                     "name": "Use {prefix}help for help.",
                     "type": "streaming",
-                    "twitch_url": "https://twitch.tv/vincysuper07",
+                    "twitch_url": self.TWITCH_URLS["vincy"],
                 },
                 {
                     "name": "Made by {ergastolator} and {vincy}.",
                     "type": "streaming",
-                    "twitch_url": "https://twitch.tv/ergstream1",
+                    "twitch_url": self.TWITCH_URLS["erg"],
                 },
             ],
             "it": [
@@ -55,12 +55,12 @@ class Loops:
                 {
                     "name": "Usa {prefix}help per i comandi.",
                     "type": "streaming",
-                    "twitch_url": "https://twitch.tv/ergstream1",
+                    "twitch_url": self.TWITCH_URLS["erg"],
                 },
                 {
                     "name": "Fatto da {ergastolator} e {vincy}.",
                     "type": "streaming",
-                    "twitch_url": "https://twitch.tv/ergstream1",
+                    "twitch_url": self.TWITCH_URLS["vincy"],
                 },
             ],
         }
