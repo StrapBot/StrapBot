@@ -207,9 +207,7 @@ class Music(commands.Cog):
                         )
                         if data.duration != ""
                         else ""
-                    )
-                    if not current.stream
-                    else "Live",
+                    ),
                     inline=False,
                 )
             else:
