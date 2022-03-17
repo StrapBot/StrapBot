@@ -3,18 +3,39 @@ import discord
 import random
 import asyncio
 from discord.ext import tasks
+from datetime import datetime
+from pytz import timezone
 from discord_slash.model import BaseCommandObject
 
 
 # NEVER USE THIS ENVIRONMENT VARIABLE.
 # It's used by me for the private testing bot.
 testing = os.getenv("SB_ENVIRONMENT") == "dev"
+tz = timezone("Europe/Rome")
 
+def midnightify(dt):
+    return dt.replace(hour=0, minute=0, second=0, microsecond=0)
 
 class Loops:
+    TWITCH_URLS = {
+        "vincy": "https://twitch.tv/Vincydotzsh",
+        "erg": "https://twitch.tv/JxstErg1"
+    }
+    
+    NAMES_IDS = {
+        726381259332386867: "vincy",
+        "vincy": 726381259332386867,
+        602819090012176384: "erg",
+        "erg": 602819090012176384
+    }
     def __init__(self, bot):
         self.bot = bot
         self.time = 0
+        self.next_birthdays = {
+            "vincy": datetime(day=22, month=3, year=datetime.today().year, tzinfo=tz),
+            "erg": datetime(day=27, month=11, year=datetime.today().year, tzinfo=tz)
+        }
+        self.check_birthday()
         ed = "Testing" if testing else "Beta"
         self.activities = {
             "en": [
@@ -28,17 +49,17 @@ class Loops:
                 {
                     "name": "Use {prefix}help for help.",
                     "type": "streaming",
-                    "twitch_url": "https://twitch.tv/vincysuper07",
+                    "twitch_url": self.TWITCH_URLS["vincy"],
                 },
                 {
                     "name": f"{ed} Edition! This bot might not be as stable as the stable one.",
                     "type": "streaming",
-                    "twitch_url": "https://twitch.tv/vincysuper07",
+                    "twitch_url": self.TWITCH_URLS["vincy"],
                 },
                 {
                     "name": "Made by {ergastolator} and {vincy}.",
                     "type": "streaming",
-                    "twitch_url": "https://twitch.tv/ergstream1",
+                    "twitch_url": self.TWITCH_URLS["erg"],
                 },
             ],
             "it": [
@@ -52,17 +73,18 @@ class Loops:
                 {
                     "name": "Usa {prefix}help per i comandi.",
                     "type": "streaming",
-                    "twitch_url": "https://twitch.tv/ergstream1",
+                    "twitch_url": self.TWITCH_URLS["erg"],
+
                 },
                 {
                     "name": f"Edizione {ed}! Questo bot potrebbe essere meno stabile di quello stabile.",
                     "type": "streaming",
-                    "twitch_url": "https://twitch.tv/vincysuper07",
+                    "twitch_url": self.TWITCH_URLS["vincy"],
                 },
                 {
                     "name": "Fatto da {ergastolator} e {vincy}.",
                     "type": "streaming",
-                    "twitch_url": "https://twitch.tv/ergstream1",
+                    "twitch_url": self.TWITCH_URLS["vincy"],
                 },
             ],
         }
@@ -84,35 +106,68 @@ class Loops:
                 if isinstance(loop, tasks.Loop):
                     loop.stop()
 
+    def check_birthday(self):
+        today = midnightify(datetime.now(tz))
+        for user, bday in self.next_birthdays.items():
+            if (bday - today).days < 0:
+                self.next_birthdays[user] = self.next_birthdays[user].replace(year=bday.year + 1)
+
+    @tasks.loop(seconds=5)
+    async def keep_checking_for_birthday(self):
+        self.check_birthday()
+        await asyncio.sleep(0) # this might be blocking, so...
+
     @tasks.loop(seconds=30)
     async def presence_loop(self):
         """A loop that changes presence every 30 seconds"""
         await self.bot.wait_until_ready()
 
-        members = []
-        for member in self.bot.get_all_members():
-            if not member.bot:
-                members.append(member)
+        today = midnightify(datetime.now(tz))
+        bday = None
+        for user, bd in self.next_birthdays.items():
+            result = (bd - today).days
+            if result < 15 and result >= 0:
+                bday = {"user": self.NAMES_IDS[user], "day": bd, "days": result}
+        
 
-        ergastolator = discord.utils.get(
-            self.bot.get_all_members(), id=602819090012176384
-        )
-        vincy = discord.utils.get(self.bot.get_all_members(), id=726381259332386867)
+        if bday and self.bot.user.id in [903372493316821104, 779286377514139669, 740140581174378527]:
+            u = ergastolator = discord.utils.get(
+                self.bot.get_all_members(), id=bday["user"]
+            )
+            s = "" if bday["days"] == 1 else "s"
+            name = f"{bday['days']} day{s} until {u.name}'s birthday!"
+            if bday["days"] == 0:
+                name = f"Happy birthday, {u.name}!"
+            activity = {
+                "name": name,
+                "type": "watching",
+            }
+        else:
+            members = []
+            for member in self.bot.get_all_members():
+                if not member.bot:
+                    members.append(member)
 
-        activities = self.activities[self.bot.lang.default]
-        try:
-            activity = activities[self.time]
-        except IndexError:
-            self.time = 0
-            activity = activities[self.time]
+            ergastolator = discord.utils.get(
+                self.bot.get_all_members(), id=602819090012176384
+            )
+            vincy = discord.utils.get(self.bot.get_all_members(), id=726381259332386867)
 
-        name = activity["name"].format(
-            guilds=len(self.bot.guilds),
-            members=len(members),
-            prefix=self.bot.command_prefix(self.bot, None)[-1],
-            ergastolator=ergastolator,
-            vincy=vincy,
-        )
+            activities = self.activities[self.bot.lang.default]
+            try:
+                activity = activities[self.time]
+            except IndexError:
+                self.time = 0
+                activity = activities[self.time]
+
+            name = activity["name"].format(
+                guilds=len(self.bot.guilds),
+                members=len(members),
+                prefix=self.bot.command_prefix(self.bot, None)[-1],
+                ergastolator=ergastolator,
+                vincy=vincy,
+            )
+
         type = getattr(discord.ActivityType, activity["type"], None)
 
         if type == None:
