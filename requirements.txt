@@ -1,0 +1,9 @@
+discord.py[voice,speed]
+motor[encryption,srv]
+asyncio
+python-dotenv
+pynacl
+lavalink
+pytz
+rich
+aenum

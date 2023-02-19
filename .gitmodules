@@ -1,0 +1,3 @@
+[submodule "langs"]
+	path = langs
+	url = git@github.com:StrapBot/languages.git
