@@ -12,6 +12,10 @@ The bot is still being rewritten at the moment, not all features of the old one 
 ## Translating
 Translations are always welcome! You can send a pull request to [the languages repository](https://github.com/StrapBot/langs.git) translating the bot to your language.
 
+## The server
+The server is used for the YouTube news to work. It works using Google's [PubSubHubbub Hub](https://pubsubhubbub.appspot.com) to send requests to the server, which sends notifications to channels using webhooks.
+It should be always running to work correctly, and it's recommended to run it in a VPS or dedicated server, or in a home server (such as a Raspberry Pi) with a static IP.
+
 ### The SERVER_REQUEST_URL environment variable
 This environment variable is the hostname and port to send to PubSubHubbub to receive notifications.
 
