@@ -85,7 +85,7 @@ async def send_new_video(
 @app.before_server_start
 async def before_server_start(app, loop):
     global mongo, db
-    mongo = AsyncIOMotorClient(os.getenv("MONGODB_CONN"), io_loop=loop).strapbotrew
+    mongo = AsyncIOMotorClient(os.getenv("MONGO_URI"), io_loop=loop).strapbotrew
     await mongo.command({"ping": 1})  #  type: ignore
     db = mongo.YouTubeNews  # type: ignore
     app.ctx.mongo = mongo
