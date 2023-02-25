@@ -11,7 +11,7 @@
             "program": "${env:PWD}/strapbot.py",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "python": "${env:PWD}/venv/bin/python"
+            "python": "${env:PWD}/venv/bin/python3"
         }
     ]
 }

@@ -7,7 +7,8 @@ from textwrap import indent
 from core.utils import get_logger
 from discord.ext import commands
 from core.context import StrapContext
-from typing import Literal
+from typing import Literal, Optional
+from datetime import datetime
 
 logger = get_logger(__name__)
 
@@ -166,6 +167,35 @@ class Owners(commands.Cog):
             return
 
         await self.send_eval_result(ctx, "error", data["traceback"], False)
+
+    async def do_sync_tree(
+        self, ctx: StrapContext, guild: Optional[discord.Guild] = None
+    ):
+        kw = {"guild": guild} if guild else {}
+        m = await ctx.send("running")
+        g = f" for guild {str(guild)} ({guild.id})" if guild else ""
+        logger.debug(f"Updating command tree{g}...")
+        async with ctx.typing():
+            await self.bot.tree.sync(**kw)
+            done = ctx.format_message("done")
+            await m.reply(f"{ctx.author.mention} {done}")
+
+        logger.info(f"Command tree{g} has been synced.")
+
+    @commands.group()
+    async def sync_tree(self, ctx: StrapContext):
+        await self.do_sync_tree(ctx, ctx.guild)
+
+    @sync_tree.command(name="global")
+    async def sync_global_tree(self, ctx: StrapContext):
+        await self.do_sync_tree(ctx)
+
+    @sync_tree.command(name="main")
+    async def sync_main_tree(self, ctx: StrapContext):
+        if not self.bot.main_guild:
+            return
+
+        await self.do_sync_tree(ctx, self.bot.main_guild)
 
 
 async def setup(bot):

@@ -19,13 +19,14 @@ from core.utils import (
     MyTranslator,
     configure_logging,
     get_logger,
+    handler as logging_handler,
 )
 from discord.ext.commands.bot import _default
+from core.repl import InteractiveConsole, REPLThread
+
 
 configure_logging()
 logger = get_logger()
-
-dotenv.load_dotenv()
 
 
 class StrapBot(commands.Bot):
@@ -44,6 +45,7 @@ class StrapBot(commands.Bot):
         allowed_mentions: typing.Optional[
             discord.AllowedMentions
         ] = discord.AllowedMentions.none(),
+        use_repl: bool = False,
         **options: typing.Any,
     ):
         super().__init__(
@@ -60,13 +62,23 @@ class StrapBot(commands.Bot):
         self.session: ClientSession
         self.mongodb_uri = mongodb_uri
         self.webhook_url = webhook_url
+        self.main_guild: typing.Optional[discord.Guild] = None
+        self.use_repl = use_repl
 
-    def give_prefixes(self, bot, message: typing.Optional[discord.Message]):
+    def do_give_prefixes(
+        self, bot, message: typing.Optional[discord.Message]
+    ) -> typing.List[str]:
         pfixes = [os.getenv("BOT_PREFIX", "sb.")]
         if message and not message.guild:
             pfixes.append("")
 
-        return commands.when_mentioned_or(*pfixes)(bot, message)  # type: ignore
+        return pfixes
+
+    def give_prefixes(
+        self, bot, message: typing.Optional[discord.Message]
+    ) -> typing.List[str]:
+        p = self.do_give_prefixes(bot, message)
+        return commands.when_mentioned_or(*p)(bot, message)  # type: ignore
 
     async def get_config(
         self, target: typing.Union[discord.Guild, discord.User, discord.Member, int]
@@ -89,6 +101,14 @@ class StrapBot(commands.Bot):
         return self.mongodb[name]
 
     async def setup_hook(self):
+        if __name__ == "__main__":
+            # remove variables that are not needed anymore
+            global token
+            global webhook
+            global mongodb
+            del token
+            del webhook
+            del mongodb
 
         # MongoDB
         # MongoDB database loading happens first because
@@ -100,6 +120,19 @@ class StrapBot(commands.Bot):
         self.mongodb = self.mongoclient.strapbotrew
         await self.mongodb.command({"ping": 1})  # type: ignore
         logger.info(f"Connected to {mongodb} database.")
+
+        # REPL
+        if self.use_repl:
+            try:
+                import readline
+            except ImportError:
+                pass
+            repl_locals = {"asyncio": asyncio, "bot": self}
+            repl_locals.update(globals())
+            self.console = InteractiveConsole(repl_locals, self, self.loop)
+            self.repl_thread = REPLThread(self)
+            self.repl_thread.daemon = True
+            logging_handler.iconsole = self.console  # type: ignore
 
         # Extensions
         logger.debug("Loading extensions...")
@@ -129,18 +162,26 @@ class StrapBot(commands.Bot):
         )
 
         # Application commands
+        main_guild_id = os.getenv("MAIN_GUILD_ID", None)
         logger.debug("Configuring command tree...")
-        g = discord.Object(id=746111972428480582)
+        await self.tree.set_translator(MyTranslator())
         self._original_tree_error = self.tree.on_error
-        await bot.tree.set_translator(MyTranslator())
-        self.tree.copy_global_to(guild=g)
-        await self.tree.sync(guild=g)
+        self.tree.on_error = self.on_tree_error
+        if main_guild_id != None and main_guild_id.isdigit():
+            g = discord.Object(id=int(main_guild_id))
+            self.tree.copy_global_to(guild=g)
 
     async def on_ready(self):
         logger.info(
             f"[bold]StrapBot[/] successfully logged" f" in as [italic]{self.user}[/]!",
             extra={"highlighter": None},
         )
+        main_guild_id = os.getenv("MAIN_GUILD_ID", None)
+        if main_guild_id != None and main_guild_id.isdigit():
+            self.main_guild = self.get_guild(int(main_guild_id))
+
+        if self.use_repl:
+            self.repl_thread.start()
 
     async def get_context(self, message: discord.Message, /, *, cls=StrapContext):
         ctx = await super().get_context(message, cls=cls)
@@ -177,6 +218,13 @@ class StrapBot(commands.Bot):
         msg = "An exception occurred"
         if event and event_type:
             msg += f" in {event_type} `{event}`"
+        elif event_type and not event:
+            a = (
+                "a"
+                if not event_type.lower().startswith(("a", "e", "i", "o", "u"))
+                else "an"
+            )
+            msg += f" in {a} {event_type}"
 
         msg += "."
 
@@ -212,6 +260,16 @@ class StrapBot(commands.Bot):
         )
         await wh.send(f"{msg}\n{eid}\n{ecl}\n{egs}")
 
+    async def on_tree_error(
+        self,
+        interaction: discord.Interaction,
+        error: discord.app_commands.AppCommandError,
+        /,
+    ) -> None:
+        await self._original_tree_error(interaction, error)
+        await self.handle_errors(error, interaction.namespace, "interaction")
+        pass
+
     async def on_error(self, meth: str, *args, **kwargs):
         exc = sys.exc_info()[1]
         await super().on_error(meth, *args, **kwargs)
@@ -229,13 +287,16 @@ class StrapBot(commands.Bot):
         await self.handle_errors(exc, ctx.command.qualified_name, "command")  # type: ignore
 
     async def close(self):
+        self.console.stop()
         await self.session.close()
         return await super().close()
 
 
 if __name__ == "__main__":
+    dotenv.load_dotenv()
     for line in get_startup_text("v4 alpha").splitlines():
         logger.info(line, extra={"highlighter": None})
+        __import__("time").sleep(0)
 
     token = raise_if_no_env("TOKEN", RuntimeError("A bot token is required."))
     mongodb = raise_if_no_env(

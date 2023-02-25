@@ -3,6 +3,7 @@ import json
 import random
 import shutil
 import logging
+import asyncio
 import unicodedata
 from rich.logging import RichHandler
 from typing import List, Optional, Union
@@ -29,6 +30,7 @@ from discord.ext.commands import (
 )
 from discord.ext.commands.hybrid import HybridAppCommand
 from discord.enums import Locale
+from functools import partial
 
 AnyCommand = Union[
     Command,
@@ -46,6 +48,27 @@ DEFAULT_LANG_ENV = "DEFAULT_LANGUAGE"
 LANGS_PATH = os.path.abspath("./langs")
 
 
+class LoggingHandler(RichHandler):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.show_time = self._log_render.show_time
+        self.show_level = self._log_render.show_level
+        self.show_path = self._log_render.show_path
+        self.iconsole = None
+
+    def emit(self, record: logging.LogRecord) -> None:
+        if self.iconsole:
+            print(end="\r")
+        self._log_render.show_time = getattr(record, "show_time", self.show_time)
+        self._log_render.show_level = getattr(record, "show_level", self.show_level)
+        self._log_render.show_path = getattr(record, "show_path", self.show_path)
+
+        super().emit(record)
+
+    def render_message(self, record: logging.LogRecord, message: str):
+        return super().render_message(record, message.strip("\n"))
+
+
 def get_flag_emoji(code):
     ret = ""
     # this isn't the best way ever of course, but at least it works
@@ -55,12 +78,15 @@ def get_flag_emoji(code):
     return ret
 
 
+handler = LoggingHandler(markup=True)
+
+
 def configure_logging():
     logging.basicConfig(
         level="INFO",
         format="%(message)s",
         datefmt="[%d/%m/%Y %X]",
-        handlers=[RichHandler(markup=True)],
+        handlers=[handler],
     )
 
 
@@ -257,6 +283,7 @@ class MyTranslator(Translator):
     async def translate(
         self, string: locale_str, locale: Locale, context: TranslationContextTypes
     ) -> Optional[str]:
+        loop = asyncio.get_event_loop()
         # country-specific locales haven't been implemented yet
         lang = locale.value.split("-")[0]
 
@@ -267,8 +294,9 @@ class MyTranslator(Translator):
         command = context.data
         if isinstance(context.data, Parameter):
             command = context.data.command
-
-        props = get_lang(lang, command=command)  # type: ignore
+        props = await loop.run_in_executor(
+            None, partial(get_lang, lang, command=command)  #  type: ignore
+        )
         props_check = lambda: props == None or (
             isinstance(command, Choice) and command.name not in props
         )
