@@ -9,8 +9,9 @@ The bot is still being rewritten at the moment, not all features of the old one 
 - YouTube news;
 - Support for modals on config.
 
-## Translating
-Translations are always welcome! You can send a pull request to [the languages repository](https://github.com/StrapBot/langs.git) translating the bot to your language.
+## Translating
+Translations are always welcome!
+You can send a pull request to [the languages repository](https://github.com/StrapBot/langs.git) translating the bot to your language.
 
 ## The server
 The server is used for the YouTube news to work. It works using Google's [PubSubHubbub Hub](https://pubsubhubbub.appspot.com) to send requests to the server, which sends notifications to channels using webhooks.
