@@ -14,12 +14,13 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from core.config import AnyConfig, Config
 from core.context import StrapContext
 from core.utils import (
+    IS_TERMINAL,
+    HANDLER as logging_handler,
     get_startup_text,
     raise_if_no_env,
-    MyTranslator,
     configure_logging,
     get_logger,
-    handler as logging_handler,
+    MyTranslator,
 )
 from discord.ext.commands.bot import _default
 from core.repl import InteractiveConsole, REPLThread
@@ -287,7 +288,8 @@ class StrapBot(commands.Bot):
         await self.handle_errors(exc, ctx.command.qualified_name, "command")  # type: ignore
 
     async def close(self):
-        self.console.stop()
+        if self.use_repl:
+            self.console.stop()
         await self.session.close()
         return await super().close()
 
@@ -306,5 +308,5 @@ if __name__ == "__main__":
         "ERRORS_WEBHOOK_URL", KeyError("A webhook URL for errors logging is required.")
     )
 
-    bot = StrapBot(mongodb_uri=mongodb, webhook_url=webhook)
+    bot = StrapBot(mongodb_uri=mongodb, webhook_url=webhook, use_repl=IS_TERMINAL)
     bot.run(token, log_handler=None)

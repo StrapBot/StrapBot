@@ -53,13 +53,12 @@ class Owners(commands.Cog):
     async def send_eval_result(
         self, ctx: StrapContext, type_: str, result: str, react: bool = True
     ):
-        emoji = "🥴" if type_ == "error" else "😀"
+        emoji = "🛑" if type_ == "error" else ("✅" if result else "☑️")
         await self.try_add_reaction(ctx.message, emoji, react)
+        if not result:
+            return
 
         file = None
-        if not result:
-            await self.try_add_reaction(ctx.message, "🐟", react)
-            return
         newresult = f"```py\n{result}\n```"
         if len(newresult) > 2000:
             file = discord.File(BytesIO(result.encode()), filename="output.py")

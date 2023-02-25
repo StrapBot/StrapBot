@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import random
 import shutil
@@ -46,7 +47,7 @@ AnyGroup = Union[HybridGroup, Group]
 
 DEFAULT_LANG_ENV = "DEFAULT_LANGUAGE"
 LANGS_PATH = os.path.abspath("./langs")
-
+IS_TERMINAL = sys.stdout.isatty() and sys.stderr.isatty()
 
 class LoggingHandler(RichHandler):
     def __init__(self, *args, **kwargs) -> None:
@@ -78,7 +79,7 @@ def get_flag_emoji(code):
     return ret
 
 
-handler = LoggingHandler(markup=True)
+HANDLER = LoggingHandler(markup=True, show_path=IS_TERMINAL)
 
 
 def configure_logging():
@@ -86,7 +87,7 @@ def configure_logging():
         level="INFO",
         format="%(message)s",
         datefmt="[%d/%m/%Y %X]",
-        handlers=[handler],
+        handlers=[HANDLER],
     )
 
 
@@ -118,7 +119,7 @@ def get_startup_text(version: str, font: str = ""):
     """
     text1 = ""
     spaces = ""
-    if shutil.get_terminal_size((0, 0)).columns >= 129:
+    if shutil.get_terminal_size((0, 0)).columns >= 129 or not IS_TERMINAL:
         font = font or random.choice(
             ["jazmine", "letters", "lean", "nipples", "poison", "shadow", "standard"]
         )
