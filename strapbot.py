@@ -69,7 +69,9 @@ class StrapBot(commands.Bot):
     def do_give_prefixes(
         self, bot, message: typing.Optional[discord.Message]
     ) -> typing.List[str]:
-        pfixes = [os.getenv("BOT_PREFIX", "sb.")]
+        p = os.getenv("BOT_PREFIX", "sb.").strip()
+        p = p if p else "sb."
+        pfixes = [p]
         if message and not message.guild:
             pfixes.append("")
 

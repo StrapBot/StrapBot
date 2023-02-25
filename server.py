@@ -26,7 +26,9 @@ async def get_request_url():
     if not req_url and app.ctx.host == "0.0.0.0":
         async with ClientSession() as session:
             async with session.get("http://ifconfig.me/ip") as resp:
-                req_url = (await resp.content.read()).decode()
+                req_url = (
+                    f"http://{(await resp.content.read()).decode()}:{app.ctx.port}"
+                )
     return req_url
 
 
@@ -195,6 +197,6 @@ if __name__ in ["__main__", "__mp_main__"]:
     debug = _get_env_val("SERVER_DEBUG")
     dev = _get_env_val("SERVER_DEV")
     host = os.getenv("SERVER_HOST", "127.0.0.1")
-    port = int(os.getenv("SERVER_PORT", 4063))
+    port = int(os.getenv("SERVER_PORT", 8080))
     request_url = os.getenv("SERVER_REQUEST_URL")
     main(host, port, debug, dev, request_url, __name__ != "__mp_main__")

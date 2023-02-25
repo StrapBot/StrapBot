@@ -49,6 +49,7 @@ DEFAULT_LANG_ENV = "DEFAULT_LANGUAGE"
 LANGS_PATH = os.path.abspath("./langs")
 IS_TERMINAL = sys.stdout.isatty() and sys.stderr.isatty()
 
+
 class LoggingHandler(RichHandler):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -56,6 +57,9 @@ class LoggingHandler(RichHandler):
         self.show_level = self._log_render.show_level
         self.show_path = self._log_render.show_path
         self.iconsole = None
+
+    def render_message(self, record: logging.LogRecord, message: str):
+        return super().render_message(record, message.strip("\n"))
 
     def emit(self, record: logging.LogRecord) -> None:
         if self.iconsole:
@@ -65,9 +69,6 @@ class LoggingHandler(RichHandler):
         self._log_render.show_path = getattr(record, "show_path", self.show_path)
 
         super().emit(record)
-
-    def render_message(self, record: logging.LogRecord, message: str):
-        return super().render_message(record, message.strip("\n"))
 
 
 def get_flag_emoji(code):
