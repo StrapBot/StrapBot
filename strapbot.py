@@ -7,6 +7,7 @@ import traceback
 import typing
 import discord
 import dotenv
+import logging
 from aiohttp import ClientSession
 from discord.ext import commands
 from motor.core import AgnosticClient, AgnosticCollection, AgnosticDatabase
@@ -164,6 +165,10 @@ class StrapBot(commands.Bot):
             extra={"highlighter": None},
         )
 
+        # YouTube news
+        # It would have taken too long to start the bot in some cases
+        self.loop.create_task(self.check_youtube_news(True))
+
         # Application commands
         main_guild_id = os.getenv("MAIN_GUILD_ID", None)
         logger.debug("Configuring command tree...")
@@ -173,6 +178,33 @@ class StrapBot(commands.Bot):
         if main_guild_id != None and main_guild_id.isdigit():
             g = discord.Object(id=int(main_guild_id))
             self.tree.copy_global_to(guild=g)
+
+    async def check_youtube_news(self, log: bool=False) -> bool:
+        def _maybe_log(level, *args, **kwargs):
+            if log:
+                logger.log(level, *args, **kwargs)
+        
+        _maybe_log(logging.DEBUG, "Checking if the server is running...")
+        internal = self.get_db("Internal", cog=False)
+        data = await internal.find_one({"_id": "server"})  #  type: ignore
+        yt_msg = "You didn't setup the server. YouTube news will not work."
+        if data == None or (data and data.get("request_url", None) == None):
+            _maybe_log(logging.WARNING, yt_msg)
+            return False
+        elif data and data.get("request_url") != None:
+            chg = str(random.randint(0, 100000000000000))
+            try:
+                async with self.session.get(
+                    data["request_url"] + "/notify", params={"hub.challenge": chg}
+                ) as req:
+                    if (await req.content.read()).decode() != chg or (req.status < 200 or req.status >= 300):
+                        _maybe_log(logging.WARNING, yt_msg)
+                        return False
+            except Exception:
+                _maybe_log(logging.WARNING, "The server might be down. Check if it's running for YouTube news to work.")
+                return False
+
+        return True
 
     async def on_ready(self):
         logger.info(
@@ -298,7 +330,7 @@ class StrapBot(commands.Bot):
 
 if __name__ == "__main__":
     dotenv.load_dotenv()
-    for line in get_startup_text("v4 alpha").splitlines():
+    for line in get_startup_text("v1 beta").splitlines():
         logger.info(line, extra={"highlighter": None})
         __import__("time").sleep(0)
 

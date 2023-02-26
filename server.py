@@ -1,4 +1,4 @@
-"""Server for receiving requests from Google's PubSubHubbub."""
+"""Server for receiving requests from Google's PubSubHubbub Hub."""
 
 import os
 import sanic
@@ -9,6 +9,7 @@ from aiohttp import ClientSession
 from sanic import Request, response
 from sanic.log import logger, error_logger, server_logger, Colors
 from dotenv import load_dotenv
+from traceback import format_exc
 from motor.motor_asyncio import AsyncIOMotorClient
 from motor.core import AgnosticClient, AgnosticCollection
 from discord import Webhook, NotFound, File
@@ -21,6 +22,11 @@ mongo: Optional[AgnosticClient] = None
 db: Optional[AgnosticCollection] = None
 
 
+async def send_requrl_to_db(url):
+    internal_db = mongo.Internal  #  type: ignore
+    await internal_db.update_one({"_id": "server"}, {"$set": {"request_url": url}}, upsert=True)  # type: ignore
+
+
 async def get_request_url():
     req_url = app.ctx.request_url
     if not req_url and app.ctx.host == "0.0.0.0":
@@ -29,6 +35,8 @@ async def get_request_url():
                 req_url = (
                     f"http://{(await resp.content.read()).decode()}:{app.ctx.port}"
                 )
+
+    await send_requrl_to_db(req_url)
     return req_url
 
 
@@ -56,30 +64,41 @@ async def send_new_video(
     webhook_url: str,
     name: str,
     url: str,
+    guild_id: int,
+    channel_id: int,
     channel_name: str,
     channel_url: str,
-    channel_id: str,
+    yt_channel_id: str,
 ):
-    db: AgnosticCollection = app.ctx.db
     async with ClientSession() as session:
         try:
-            webhook = await Webhook.from_url(webhook_url, session=session).fetch()
+            webhook = await Webhook.from_url(
+                webhook_url, session=session, bot_token=os.getenv("TOKEN")
+            ).fetch()
         except NotFound:
-            webhooks = (
-                (await db.find_one({"_id": channel_id})) or {}  #  type: ignore
-            ).get("webhooks", [])
-            webhooks.remove(webhook_url)
-            if not webhooks:
-                await request_pubsubhubbub(channel_id, False, False)
-                await db.delete_one({"_id": channel_id})  # type: ignore
-            else:
-                await db.update_one({"_id": channel_id}, {"$set": {"webhooks": webhooks}})  # type: ignore
+            guilds_db = mongo.YouTubeNewsGuilds  #  type: ignore
+            gdata = await guilds_db.find_one({"_id": guild_id})
+            if not gdata.get("needs_new_webhook", False):
+                await guilds_db.update_one(
+                    {"_id": guild_id}, {"$set": {"needs_new_webhook": True}}
+                )
         else:
-            # cfgdb: AgnosticCollection = mongo.Configurations # type: ignore
-            # guild_config = await cfgdb.find_one({"_id": webhook.guild_id}) # type: ignore
-            # msg = guild_config["youtube_message"]
-            msg = f"sera. [{channel_name}](<{channel_url}>) ha pubblicato un nuovo coso™: {url}"
-            await webhook.send(msg)
+            cfgdb: AgnosticCollection = mongo.Configurations  #  type: ignore
+            guild_config: dict = await cfgdb.find_one({"_id": webhook.guild_id})  # type: ignore
+            default = "{url}"
+            msg = guild_config.get("youtube_message", default) or default
+            channel = f"[{channel_name}](<{channel_url}>)"
+            video = f"[{name}]({url})"
+            await webhook.send(
+                msg.format(
+                    name=name,
+                    channel=channel,
+                    channel_name=channel_name,
+                    channel_url=channel_url,
+                    url=url,
+                    video=video,
+                )
+            )
 
 
 @app.before_server_start
@@ -90,6 +109,7 @@ async def before_server_start(app, loop):
     db = mongo.YouTubeNews  # type: ignore
     app.ctx.mongo = mongo
     app.ctx.db = db
+    await get_request_url()
 
 
 @app.get("/")
@@ -115,10 +135,10 @@ async def notify(request: Request):
 
         entry = feed["entry"]
         url = entry["link"]["@href"]
-        webhooks = (
-            (await db.find_one({"_id": channel_id})) or {}  #  type: ignore
-        ).get("webhooks", [])
-        if not webhooks:
+        guilds = ((await db.find_one({"_id": channel_id})) or {}).get(  #  type: ignore
+            "webhooks", []
+        )
+        if not guilds:
             await request_pubsubhubbub(channel_id, False, False)
             await db.delete_one({"_id": channel_id})  # type: ignore
             return response.empty()
@@ -128,9 +148,20 @@ async def notify(request: Request):
         author = entry["author"]
         channel_name = author["name"]
         channel_url = author["uri"]
-        for wh in webhooks:
+        for guild_id in guilds:
+            gdb = mongo.YouTubeNewsGuilds  #  type: ignore
+            gdata = await gdb.find_one({"_id": guild_id})
             tasks.append(
-                send_new_video(wh, title, url, channel_name, channel_url, channel_id)
+                send_new_video(
+                    gdata["webhook"],
+                    title,
+                    url,
+                    guild_id,
+                    channel_id,
+                    channel_name,
+                    channel_url,
+                    channel_id,
+                )
             )
 
         await asyncio.gather(*tasks)
@@ -143,7 +174,10 @@ async def notify(request: Request):
                 wh = Webhook.from_url(env, session=session)
                 await wh.send(
                     f"{type(e).__name__}: {str(e)}",
-                    file=File(BytesIO(request.body), "body.xml"),
+                    files=[
+                        File(BytesIO(request.body), "body.xml"),
+                        File(BytesIO(format_exc().encode()), "traceback.py"),
+                    ],
                 )
         raise
 

@@ -194,13 +194,21 @@ class StrapBotHelp(commands.HelpCommand):
         )
 
     async def get_cog_help(self, cog: commands.Cog):
-        check = await discord.utils.maybe_coroutine(cog.cog_check, self.context)
         p = self.context.clean_prefix
-        cmds = [
-            f"`{p}{cmd.qualified_name}`"
-            for cmd in cog.walk_commands()
-            if check and not cmd.parent
-        ]
+        check = await discord.utils.maybe_coroutine(cog.cog_check, self.context)
+        cmds = []
+        for cmd in cog.walk_commands():
+            if cmd.parent:
+                continue
+            
+            chks = check
+            for chk in cmd.checks:
+                chks = chks and await discord.utils.maybe_coroutine(chk, self.context)
+            
+            if not chks:
+                continue
+            
+            cmds.append(f"`{p}{cmd.qualified_name}`")
         commands_ = f", ".join(cmds)
         footer = self.context.format_message(
             "cog_help_footer", {"prefix": p}, lang=self.lang

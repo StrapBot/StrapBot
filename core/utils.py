@@ -7,7 +7,7 @@ import logging
 import asyncio
 import unicodedata
 from rich.logging import RichHandler
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
 from pyfiglet import Figlet
 from discord.ext import commands
 from discord.app_commands import (
@@ -49,6 +49,8 @@ DEFAULT_LANG_ENV = "DEFAULT_LANGUAGE"
 LANGS_PATH = os.path.abspath("./langs")
 IS_TERMINAL = sys.stdout.isatty() and sys.stderr.isatty()
 
+# Logging
+
 
 class LoggingHandler(RichHandler):
     def __init__(self, *args, **kwargs) -> None:
@@ -69,15 +71,6 @@ class LoggingHandler(RichHandler):
         self._log_render.show_path = getattr(record, "show_path", self.show_path)
 
         super().emit(record)
-
-
-def get_flag_emoji(code):
-    ret = ""
-    # this isn't the best way ever of course, but at least it works
-    for l in list(code):
-        ret += unicodedata.lookup(f"regional indicator symbol letter {l}")
-
-    return ret
 
 
 HANDLER = LoggingHandler(markup=True, show_path=IS_TERMINAL)
@@ -101,49 +94,7 @@ def get_logger(name: str = ""):
     return logging.getLogger(name)
 
 
-def raise_if_no_env(envvar: str, exc: Exception):
-    """
-    A function that raises an exception
-    if an environment variable is missing.
-    """
-    var = os.getenv(envvar, None)
-    if var == None:
-        raise exc
-
-    return var
-
-
-def get_startup_text(version: str, font: str = ""):
-    """
-    A function that generates the text
-    that is used before the startup.
-    """
-    text1 = ""
-    spaces = ""
-    if shutil.get_terminal_size((0, 0)).columns >= 129 or not IS_TERMINAL:
-        font = font or random.choice(
-            ["jazmine", "letters", "lean", "nipples", "poison", "shadow", "standard"]
-        )
-        fl = Figlet(font=font, justify="left", width=100)
-
-        textlines = fl.renderText("StrapBot!").splitlines()
-        text1l = []
-        length = 0
-
-        for line in textlines:
-            text1l.append(f"[bold]{line}[/]")
-            _len = len(line)
-            if _len > length:
-                length = _len
-
-        inittext = "Welcome to..."
-        _spcs = " " * round((length - len(inittext)) / 2)
-        text1 = _spcs + inittext + "\n" + ("\n".join(text1l))
-        spaces = " " * round((length - len("StrapBot " + version)) / 2)
-        text1 += "\n"
-
-    text2 = spaces + f"[bold]StrapBot[/] {version}"
-    return f"\n{text1}{text2}\n\n"
+# Languages
 
 
 def get_langs() -> List[str]:
@@ -304,7 +255,7 @@ class MyTranslator(Translator):
         )
         if props == None or props_check():
             default = os.getenv(DEFAULT_LANG_ENV, "en")
-            props = get_lang(default, command=command)  # type: ignore
+            props = await loop.run_in_executor(None, partial(get_lang, default, command=command))  # type: ignore
             if props == None or props_check():
                 return
 
@@ -326,3 +277,76 @@ class MyTranslator(Translator):
                 else "name"
             )
             return param[attr]
+
+
+# Other
+
+
+def get_guild_youtube_channels(
+    channels: List[Dict[str, Union[str, List[str]]]], guild_data: dict
+):
+    """
+    channels must be the full list of channels in the YouTubeNews DB
+    guild_data must be the guild entry in the YouTubeNewsGuilds DB
+    """
+    ret = guild_data.copy()
+    ret["channels"] = []
+    for item in channels:
+        id = item["_id"]
+        if guild_data["_id"] in item["guilds"]:
+            ret["channels"].append(id)
+    return ret
+
+
+def get_flag_emoji(code):
+    """Returns a flag emoji, given a country code"""
+    ret = ""
+    for l in list(code):
+        ret += unicodedata.lookup(f"regional indicator symbol letter {l}")
+
+    return ret
+
+
+def raise_if_no_env(envvar: str, exc: Exception):
+    """
+    A function that raises an exception
+    if an environment variable is missing.
+    """
+    var = os.getenv(envvar, None)
+    if var == None:
+        raise exc
+
+    return var
+
+
+def get_startup_text(version: str, font: str = ""):
+    """
+    A function that generates the text
+    that is used before the startup.
+    """
+    text1 = ""
+    spaces = ""
+    if shutil.get_terminal_size((0, 0)).columns >= 129 or not IS_TERMINAL:
+        font = font or random.choice(
+            ["jazmine", "letters", "lean", "nipples", "poison", "shadow", "standard"]
+        )
+        fl = Figlet(font=font, justify="left", width=100)
+
+        textlines = fl.renderText("StrapBot!").splitlines()
+        text1l = []
+        length = 0
+
+        for line in textlines:
+            text1l.append(f"[bold]{line}[/]")
+            _len = len(line)
+            if _len > length:
+                length = _len
+
+        inittext = "Welcome to..."
+        _spcs = " " * round((length - len(inittext)) / 2)
+        text1 = _spcs + inittext + "\n" + ("\n".join(text1l))
+        spaces = " " * round((length - len("StrapBot " + version)) / 2)
+        text1 += "\n"
+
+    text2 = spaces + f"[bold]StrapBot[/] {version}"
+    return f"\n{text1}{text2}\n\n"

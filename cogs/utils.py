@@ -8,6 +8,11 @@ from core.context import StrapContext
 from core.views import ConfigMenuView, ModChoiceView
 from datetime import datetime
 
+def server_online():
+    async def check(ctx: StrapContext) -> bool:
+        return await ctx.bot.check_youtube_news()
+
+    return commands.check(check)
 
 class Utilities(commands.Cog):
     """Other uncategorized commands that could be useful."""
@@ -81,6 +86,12 @@ class Utilities(commands.Cog):
             support_guild_link=support,
             ephemeral=True,
         )
+
+    @commands.command()
+    @server_online()
+    async def youtube(self, ctx: StrapContext):
+        await ctx.send("test")
+
 
 
 async def setup(bot):
