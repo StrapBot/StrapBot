@@ -56,6 +56,7 @@ class InteractiveConsole(code.InteractiveConsole):
 
             return
 
+        # turning this bug into a "feature" for now
         if self.sigint_pressed:
             return
         else:
@@ -77,9 +78,12 @@ class InteractiveConsole(code.InteractiveConsole):
         return sys.ps2 if self.__more else sys.ps1  # type: ignore
 
     def interact(self, banner=None, exitmsg=None):
-
         if banner:
             logger.info(f"{banner}")
+
+        from rich.pretty import install
+
+        install()
 
         self.__more = 0
         self.__running = True

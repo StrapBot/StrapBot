@@ -179,11 +179,11 @@ class StrapBot(commands.Bot):
             g = discord.Object(id=int(main_guild_id))
             self.tree.copy_global_to(guild=g)
 
-    async def check_youtube_news(self, log: bool=False) -> bool:
+    async def check_youtube_news(self, log: bool = False) -> bool:
         def _maybe_log(level, *args, **kwargs):
             if log:
                 logger.log(level, *args, **kwargs)
-        
+
         _maybe_log(logging.DEBUG, "Checking if the server is running...")
         internal = self.get_db("Internal", cog=False)
         data = await internal.find_one({"_id": "server"})  #  type: ignore
@@ -197,11 +197,16 @@ class StrapBot(commands.Bot):
                 async with self.session.get(
                     data["request_url"] + "/notify", params={"hub.challenge": chg}
                 ) as req:
-                    if (await req.content.read()).decode() != chg or (req.status < 200 or req.status >= 300):
+                    if (await req.content.read()).decode() != chg or (
+                        req.status < 200 or req.status >= 300
+                    ):
                         _maybe_log(logging.WARNING, yt_msg)
                         return False
             except Exception:
-                _maybe_log(logging.WARNING, "The server might be down. Check if it's running for YouTube news to work.")
+                _maybe_log(
+                    logging.WARNING,
+                    "The server might be down. Check if it's running for YouTube news to work.",
+                )
                 return False
 
         return True
@@ -301,7 +306,7 @@ class StrapBot(commands.Bot):
         error: discord.app_commands.AppCommandError,
         /,
     ) -> None:
-        await self._original_tree_error(interaction, error)
+        await self._original_tree_error(interaction, error)  #  type: ignore
         await self.handle_errors(error, interaction.namespace, "interaction")
         pass
 
@@ -330,9 +335,9 @@ class StrapBot(commands.Bot):
 
 if __name__ == "__main__":
     dotenv.load_dotenv()
-    for line in get_startup_text("v1 beta").splitlines():
+    for line in get_startup_text("v4 beta").splitlines():
         logger.info(line, extra={"highlighter": None})
-        __import__("time").sleep(0)
+        __import__("time").sleep(0.0035)
 
     token = raise_if_no_env("TOKEN", RuntimeError("A bot token is required."))
     mongodb = raise_if_no_env(

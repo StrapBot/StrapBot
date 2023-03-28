@@ -1,18 +1,21 @@
 import discord
 import math
 import os
-import json
 from discord.ext import commands
 from core.help import StrapBotHelp
 from core.context import StrapContext
-from core.views import ConfigMenuView, ModChoiceView
+from core.views import ConfigMenuView, ModChoiceView, YouTubeView
 from datetime import datetime
+
 
 def server_online():
     async def check(ctx: StrapContext) -> bool:
-        return await ctx.bot.check_youtube_news()
+        ps = ctx.channel.permissions_for(ctx.author)  # type: ignore
+        p = ps.administrator or ps.manage_guild
+        return p and await ctx.bot.check_youtube_news()
 
     return commands.check(check)
+
 
 class Utilities(commands.Cog):
     """Other uncategorized commands that could be useful."""
@@ -90,8 +93,7 @@ class Utilities(commands.Cog):
     @commands.command()
     @server_online()
     async def youtube(self, ctx: StrapContext):
-        await ctx.send("test")
-
+        await ctx.send("test", view=YouTubeView(ctx))
 
 
 async def setup(bot):

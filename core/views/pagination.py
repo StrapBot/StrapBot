@@ -19,10 +19,10 @@ class StopButton(ui.Button):
 class PaginationView(ui.View):
     def __init__(self, *pages: Union[Embed, List[Embed], str, List[str]], **kwargs):
         super().__init__(**kwargs)
-        stop_button: StopButton = (
-            kwargs.pop("stop_button", StopButton()) or StopButton()
-        )
+        stop_button: StopButton = kwargs.pop("stop_button", None) or StopButton()
         stop_button._view = self
+        if not isinstance(stop_button, StopButton):
+            raise ValueError("custom stop buttons must derive from StopButton")
 
         # just in case the order is changed in the future
         for i, c in enumerate(self.children):
@@ -115,18 +115,18 @@ class PaginationView(ui.View):
         self.next_page.disabled = r_disabled
         self.last_page.disabled = r_disabled
 
-    @ui.button(emoji="◀️", custom_id="previous", style=ButtonStyle.green)
+    @ui.button(emoji="◀️", custom_id="previous", row=3, style=ButtonStyle.green)
     async def previous_page(self, interaction: discord.Interaction, button: ui.Button):
         curr = self.current
         if curr <= 0:
             curr = 1
         await self.show_page(interaction, curr - 1)
 
-    @ui.button(custom_id="stop")
+    @ui.button(custom_id="stop", row=3)
     async def stop_button(self, interaction: discord.Interaction, button: ui.Button):
         ...
 
-    @ui.button(emoji="▶️", custom_id="next", style=ButtonStyle.green)
+    @ui.button(emoji="▶️", custom_id="next", row=3, style=ButtonStyle.green)
     async def next_page(self, interaction: discord.Interaction, button: ui.Button):
         curr = self.current
         if curr >= len(self.pages):
@@ -134,18 +134,18 @@ class PaginationView(ui.View):
 
         await self.show_page(interaction, curr + 1)
 
-    @ui.button(emoji="⏮️", custom_id="first", row=1, style=ButtonStyle.green)
+    @ui.button(emoji="⏮️", custom_id="first", row=4, style=ButtonStyle.green)
     async def first_page(self, interaction: discord.Interaction, button: ui.Button):
         await self.show_page(interaction, 0)
 
-    @ui.button(emoji="🔢", custom_id="num", row=1, style=ButtonStyle.blurple)
+    @ui.button(emoji="🔢", custom_id="num", row=4, style=ButtonStyle.blurple)
     async def choose_page(self, interaction: discord.Interaction, button: ui.Button):
         if interaction.user.id != self.author.id:
             return
 
         await interaction.response.send_modal(PageModal(self))
 
-    @ui.button(emoji="⏭️", custom_id="last", row=1, style=ButtonStyle.green)
+    @ui.button(emoji="⏭️", custom_id="last", row=4, style=ButtonStyle.green)
     async def last_page(self, interaction: discord.Interaction, button: ui.Button):
         await self.show_page(interaction, len(self.pages) - 1)
 
