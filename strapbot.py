@@ -123,6 +123,23 @@ class StrapBot(commands.Bot):
         self.mongoclient = AsyncIOMotorClient(self.mongodb_uri)
         self.mongodb = self.mongoclient.strapbotrew
         await self.mongodb.command({"ping": 1})  # type: ignore
+
+        cache = self.get_db("Cache", cog=False)
+        # scusi se rompo, ma ci sara SEMPRE un index, quello su _id
+        # wdym
+        # le collection by-default hanno un index su _id
+        # a
+
+        if not await cache.list_indexes().to_list(None):
+            # 172800s = 48h
+            # TODO: maybe put the cache expiration in an environment variable
+            await cache.create_index(
+                "used_at", name="ClearIndex", expireAfterSeconds=172800
+            )  #  type: ignore
+            await cache.create_index(
+                "query", name="QueriesIndex", unique=True
+            )  #  type: ignore
+
         logger.info(f"Connected to {mongodb} database.")
 
         # REPL
