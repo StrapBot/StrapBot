@@ -1,17 +1,18 @@
 import os
 import discord
 import typing
-from enum import Enum
-from discord import Interaction
 from ..context import StrapContext
+from datetime import datetime, timedelta
+from discord import Interaction
 from discord import ui
+from enum import Enum
 from typing import Optional
 from urllib.parse import quote as urlencode
 
 
 class SearchType(Enum):
-    id = -1
     username = 0
+    id = -1
     search = 1
 
 
@@ -21,7 +22,7 @@ class AddChannelModal(ui.Modal):
     CHANNELS_LINK = (
         f"{BASE_LINK}/channels?part=snippet&key={os.getenv('GOOGLE_API_KEY')}"
     )
-    SEARCH_LINK = f"{BASE_LINK}/search?key={os.getenv('GOOGLE_API_KEY')}"
+    SEARCH_LINK = f"{BASE_LINK}/search?part=snippet&key={os.getenv('GOOGLE_API_KEY')}"
     ARG_TYPES = {
         SearchType.id: "id",
         SearchType.username: "forUsername",
@@ -44,18 +45,15 @@ class AddChannelModal(ui.Modal):
 
         return kind == "youtube#channel"
 
-    async def search_channels(
+    async def do_search_channels(
         self, query: str, *, type: SearchType = SearchType.username
     ) -> typing.List[dict]:
         query = query.strip()
         db = self.ctx.bot.get_db("Cache", cog=False)
 
-        # TODO: check if use search or username or id
         cache = await db.find_one({"query": query}) or {}  # type: ignore
         link = f"{self.LINKS[type]}&{self.ARG_TYPES[type]}={urlencode(query)}"
         ret = []
-
-        headers = {"If-None-Match": cache.get("body", {}).get("etag", "")}
 
         def _filter(body):
             i = []
@@ -68,12 +66,22 @@ class AddChannelModal(ui.Modal):
 
             return i
 
-        async with self.ctx.bot.session.get(link, headers=headers) as response:
-            from datetime import datetime
+        used_at = cache.get("used_at", datetime.utcnow() - timedelta(hours=13))
+        if datetime.utcnow() < used_at + timedelta(hours=12) and cache.get(
+            "body", {}
+        ).get("items", []):
+            # if less than 12 hours have passed since last time
+            # and there are results in the cached data, then it
+            # is useless to make another request, because data
+            # is most likely the same. also, YouTube APIs are
+            # very slow most of times.
+            return _filter(cache["body"])
 
+        headers = {"If-None-Match": cache.get("body", {}).get("etag", "")}
+
+        async with self.ctx.bot.session.get(link, headers=headers) as response:
             if response.status == 304:
-                used_at = datetime.utcnow()
-                await db.update_one({"query": query}, {"$set": {"used_at": used_at}})  # type: ignore
+                await db.update_one({"query": query}, {"$set": {"used_at": datetime.utcnow()}})  # type: ignore
                 ret = _filter(cache["body"])
             else:
                 body = await response.json()
@@ -87,28 +95,23 @@ class AddChannelModal(ui.Modal):
 
         return ret
 
+    async def search_channels(self, query: str) -> typing.List[dict]:
+        ret = []
+        for name, type in SearchType.__members__.items():
+            ret = await self.do_search_channels(query, type=type)  # type: ignore
+            if ret:
+                break
+
+        return ret
+
     async def on_submit(self, interaction: Interaction, /) -> None:
         await interaction.response.defer()
         results = await self.search_channels(self.id_or_url_or_username.value)
         if not results:
             await interaction.followup.send(
-                f"trying id on query={self.id_or_url_or_username.value!r}"
+                f"no_results query={self.id_or_url_or_username.value!r}"
             )
-            results = await self.search_channels(
-                self.id_or_url_or_username.value, type=SearchType.id
-            )
-            if not results:
-                await interaction.followup.send(
-                    f"trying search on query={self.id_or_url_or_username.value!r}"
-                )
-                results = await self.search_channels(
-                    self.id_or_url_or_username.value, type=SearchType.search
-                )
-                if not results:
-                    await interaction.followup.send(
-                        f"no_results query={self.id_or_url_or_username.value!r}"
-                    )
-                    return
+            return
 
         await interaction.followup.send(
             f"{len(results)}\n{self.id_or_url_or_username}\n{results[0]['id']}"

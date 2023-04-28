@@ -126,7 +126,7 @@ class StrapBot(commands.Bot):
 
         cache = self.get_db("Cache", cog=False)
 
-        # NOTE: at the first startup of the bot, the Cache collecgion
+        # NOTE: at the first startup of the bot, the Cache collection
         #       doesn't exist, so its indexes don't exist too.
         if not await cache.list_indexes().to_list(None):
             # 172800s = 48h
