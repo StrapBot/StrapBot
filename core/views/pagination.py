@@ -17,7 +17,7 @@ class StopButton(ui.Button):
 
 
 class PaginationView(ui.View):
-    def __init__(self, *pages: Union[Embed, List[Embed], str, List[str]], **kwargs):
+    def __init__(self, *pages: Union[Embed, List[Embed], str], **kwargs):
         super().__init__(**kwargs)
         stop_button: StopButton = kwargs.pop("stop_button", None) or StopButton()
         stop_button._view = self

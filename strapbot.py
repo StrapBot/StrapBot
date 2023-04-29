@@ -242,6 +242,27 @@ class StrapBot(commands.Bot):
 
         return True
 
+    async def request_pubsubhubbub(
+        self, channel_id: str, subscribe: bool, raise_for_status: bool = True
+    ):
+        assert await self.check_youtube_news(), "The server is down."
+        internal = self.get_db("Internal", cog=False)
+        serverdata = await internal.find_one({"_id": "server"})  #  type: ignore
+        data = {
+            "hub.callback": f"{serverdata['request_url']}/notify",
+            "hub.topic": f"https://www.youtube.com/xml/feeds/videos.xml?channel_id={channel_id}",
+            "hub.verify": "sync",
+            "hub.mode": f"{'un' if not subscribe else ''}subscribe",
+            "hub.verify_token": "",
+            "hub.secret": "",
+            "hub.lease_seconds": "",
+        }
+        async with self.session.post(
+            "https://pubsubhubbub.appspot.com/subscribe", data=data
+        ) as resp:
+            if raise_for_status:
+                resp.raise_for_status()
+
     async def on_ready(self):
         logger.info(
             f"[bold]StrapBot[/] successfully logged" f" in as [italic]{self.user}[/]!",

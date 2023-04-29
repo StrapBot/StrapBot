@@ -3,18 +3,27 @@ import discord
 import typing
 from ..context import StrapContext
 from datetime import datetime, timedelta
-from discord import Interaction
+from discord import Embed, Interaction
 from discord import ui
 from enum import Enum
-from typing import Optional
+from typing import List, Optional, Union
 from urllib.parse import quote, urlencode
-
+from .pagination import PaginationView
 
 class SearchType(Enum):
     channels = 0
     id = -1
     search = 1
 
+class ChannelsPaginator(PaginationView):
+    def __init__(self, results: list, **kwargs):
+        self.results = results
+        pages = [discord.Embed(title=x["snippet"]["title"], description=x["snippet"]["description"]) for x in results]
+        super().__init__(*pages, **kwargs)
+
+    @ui.button(label="Choose")
+    async def salve(self, interaction: Interaction, button: ui.Button):
+        await interaction.response.send_message("test")
 
 class AddChannelModal(ui.Modal):
     BASE_LINK = "https://www.googleapis.com/youtube/v3"
@@ -35,7 +44,7 @@ class AddChannelModal(ui.Modal):
         args = {
             "key": os.getenv("GOOGLE_API_KEY"),
             "part": "snippet",
-            "maxResults": "10",
+            "maxResults": "15",
             keys[type]: query,
         }
         if type == SearchType.search:
@@ -118,9 +127,13 @@ class AddChannelModal(ui.Modal):
             )
             return
 
+
         await interaction.followup.send(
             f"{len(results)}\n{self.id_or_url_or_username}\n{results[0]['id']}"
         )
+
+        paginator = ChannelsPaginator(results)
+        await paginator.start(self.ctx)
 
 
 class YouTubeView(ui.View):
