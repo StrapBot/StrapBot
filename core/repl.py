@@ -78,6 +78,10 @@ class InteractiveConsole(code.InteractiveConsole):
         return sys.ps2 if self.__more else sys.ps1  # type: ignore
 
     def interact(self, banner=None, exitmsg=None):
+        if self.bot.debugging:
+            # you must not use this while debugging
+            return
+
         if banner:
             logger.info(f"{banner}")
 
@@ -115,11 +119,17 @@ class InteractiveConsole(code.InteractiveConsole):
         self.loop.create_task(self.bot.close())
 
     def stop(self):
+        if self.bot.debugging:
+            return
+
         self.__running = False
         if self.input_task:
             self.input_task.cancel()
 
     def raw_input(self, prompt: str = "") -> Optional[str]:
+        if self.bot.debugging:
+            return
+
         try:
             t = asyncio.ensure_future(
                 self.loop.run_in_executor(None, partial(input, prompt))
@@ -140,7 +150,7 @@ class InteractiveConsole(code.InteractiveConsole):
 
         return super().push(line)
 
-    def runcode(self, code):
+    def runcode(self, code: types.CodeType):
         self.__code_future = concurrent.futures.Future()
         future = self.__code_future
 
@@ -174,7 +184,7 @@ class InteractiveConsole(code.InteractiveConsole):
         self.loop.call_soon_threadsafe(callback)
 
         try:
-            return self.__code_future.result()
+            return future.result()
         except SystemExit:
             raise
         except concurrent.futures.CancelledError:
@@ -184,7 +194,7 @@ class InteractiveConsole(code.InteractiveConsole):
                 # pretend the future was cancelled,
                 # so that it doesn't complain about
                 # it being finished.
-                self.__code_future._state = "CANCELLED"  #  type: ignore
+                future._state = "CANCELLED"  #  type: ignore
                 if self.repl_future:
                     self.repl_future.cancel()
                 super().write("\nKeyboardInterrupt\n")

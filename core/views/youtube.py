@@ -7,36 +7,41 @@ from discord import Interaction
 from discord import ui
 from enum import Enum
 from typing import Optional
-from urllib.parse import quote as urlencode
+from urllib.parse import quote, urlencode
 
 
 class SearchType(Enum):
-    username = 0
+    channels = 0
     id = -1
     search = 1
 
 
 class AddChannelModal(ui.Modal):
-    id_or_url_or_username = ui.TextInput(label="Channel", custom_id="channel")
     BASE_LINK = "https://www.googleapis.com/youtube/v3"
-    CHANNELS_LINK = (
-        f"{BASE_LINK}/channels?part=snippet&key={os.getenv('GOOGLE_API_KEY')}"
-    )
-    SEARCH_LINK = f"{BASE_LINK}/search?part=snippet&key={os.getenv('GOOGLE_API_KEY')}"
-    ARG_TYPES = {
-        SearchType.id: "id",
-        SearchType.username: "forUsername",
-        SearchType.search: "q",
-    }
-    LINKS = {
-        SearchType.id: CHANNELS_LINK,
-        SearchType.username: CHANNELS_LINK,
-        SearchType.search: SEARCH_LINK,
-    }
+    id_or_url_or_username = ui.TextInput(label="Channel", custom_id="channel")
 
     def __init__(self, ctx: StrapContext) -> None:
         super().__init__(title="placeholder")
         self.ctx = ctx
+
+    def create_link(self, type: SearchType, query: str) -> str:
+        id = type == SearchType.id
+        type = SearchType.channels if id else type
+        keys = {
+            SearchType.search: "q",
+            SearchType.channels: "id" if id else "forUsername",
+        }
+        # NOTE: id will be ignored if endpoint is "search"
+        args = {
+            "key": os.getenv("GOOGLE_API_KEY"),
+            "part": "snippet",
+            "maxResults": "10",
+            keys[type]: query,
+        }
+        if type == SearchType.search:
+            args["type"] = "channel"
+
+        return f"{self.BASE_LINK}/{type.name}?{urlencode(args)}"
 
     def _channel_check(self, item: dict):
         kind = item["kind"]
@@ -46,13 +51,13 @@ class AddChannelModal(ui.Modal):
         return kind == "youtube#channel"
 
     async def do_search_channels(
-        self, query: str, *, type: SearchType = SearchType.username
+        self, query: str, *, type: SearchType = SearchType.channels
     ) -> typing.List[dict]:
         query = query.strip()
         db = self.ctx.bot.get_db("Cache", cog=False)
 
         cache = await db.find_one({"query": query}) or {}  # type: ignore
-        link = f"{self.LINKS[type]}&{self.ARG_TYPES[type]}={urlencode(query)}"
+        link = self.create_link(type, query)
         ret = []
 
         def _filter(body):
@@ -67,9 +72,9 @@ class AddChannelModal(ui.Modal):
             return i
 
         used_at = cache.get("used_at", datetime.utcnow() - timedelta(hours=13))
-        if datetime.utcnow() < used_at + timedelta(hours=12) and cache.get(
-            "body", {}
-        ).get("items", []):
+        if datetime.utcnow() < used_at + timedelta(hours=12) and _filter(
+            cache.get("body", {})
+        ):
             # if less than 12 hours have passed since last time
             # and there are results in the cached data, then it
             # is useless to make another request, because data
@@ -129,14 +134,14 @@ class YouTubeView(ui.View):
             and await self.ctx.bot.check_youtube_news()
         )
 
-    @ui.button(label="chn_add")
+    @ui.button(label="btn_add")
     async def add_channel(self, interaction: Interaction, button: ui.Button):
         await interaction.response.send_modal(AddChannelModal(self.ctx))
 
-    @ui.button(label="chn_list")
+    @ui.button(label="btn_list")
     async def list_channels(self, interaction: Interaction, button: ui.Button):
         await interaction.response.send_message("placeholder")
 
-    @ui.button(label="chn_del")
+    @ui.button(label="btn_del")
     async def del_channel(self, interaction: Interaction, button: ui.Button):
         await interaction.response.send_message("placeholder")

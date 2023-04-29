@@ -22,10 +22,13 @@ from core.utils import (
     configure_logging,
     get_logger,
     MyTranslator,
+    is_debugging,
 )
 from discord.ext.commands.bot import _default
 from core.repl import InteractiveConsole, REPLThread
 
+if is_debugging():
+    from core.utils import get_debug_eval_in_loop_class, get_debug_evaluate_expression
 
 configure_logging()
 logger = get_logger()
@@ -66,6 +69,10 @@ class StrapBot(commands.Bot):
         self.webhook_url = webhook_url
         self.main_guild: typing.Optional[discord.Guild] = None
         self.use_repl = use_repl
+
+    @property
+    def debugging(self) -> bool:
+        return is_debugging()
 
     def do_give_prefixes(
         self, bot, message: typing.Optional[discord.Message]
@@ -140,18 +147,27 @@ class StrapBot(commands.Bot):
 
         logger.info(f"Connected to {mongodb} database.")
 
-        # REPL
+        # REPL and debugging
         if self.use_repl:
-            try:
-                import readline
-            except ImportError:
-                pass
-            repl_locals = {"asyncio": asyncio, "bot": self}
-            repl_locals.update(globals())
-            self.console = InteractiveConsole(repl_locals, self, self.loop)
-            self.repl_thread = REPLThread(self)
-            self.repl_thread.daemon = True
-            logging_handler.iconsole = self.console  # type: ignore
+            if self.debugging:
+                self.use_repl = False
+                # modify pydevd to have the bot and its loop inside its REPL
+                _vars = sys.modules["_pydevd_bundle"].pydevd_vars
+                self._original_eval_exp = _vars.evaluate_expression
+                self._original_eval_class = _vars._EvalAwaitInNewEventLoop
+                _vars.evaluate_expression = get_debug_evaluate_expression(self)
+                _vars._EvalAwaitInNewEventLoop = get_debug_eval_in_loop_class(self)
+            else:
+                try:
+                    import readline
+                except ImportError:
+                    pass
+                self.repl_thread = REPLThread(self)
+                self.repl_thread.daemon = True
+                repl_locals = {"asyncio": asyncio, "bot": self}
+                repl_locals.update(globals())
+                self.console = InteractiveConsole(repl_locals, self, self.loop)
+                logging_handler.iconsole = self.console  # type: ignore
 
         # Extensions
         logger.debug("Loading extensions...")
@@ -235,7 +251,7 @@ class StrapBot(commands.Bot):
         if main_guild_id != None and main_guild_id.isdigit():
             self.main_guild = self.get_guild(int(main_guild_id))
 
-        if self.use_repl:
+        if self.use_repl and not self.debugging:
             self.repl_thread.start()
 
     async def get_context(self, message: discord.Message, /, *, cls=StrapContext):
@@ -342,7 +358,7 @@ class StrapBot(commands.Bot):
         await self.handle_errors(exc, ctx.command.qualified_name, "command")  # type: ignore
 
     async def close(self):
-        if self.use_repl:
+        if self.use_repl and not self.debugging:
             self.console.stop()
         await self.session.close()
         return await super().close()

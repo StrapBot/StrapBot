@@ -16,6 +16,8 @@ Translations are always welcome! You can send a pull request to [the languages r
 The server is used for the YouTube news to work. It works using Google's [PubSubHubbub Hub](https://pubsubhubbub.appspot.com) to send requests to the server, which sends notifications to channels using webhooks. \
 It should be always running to work correctly, and it's recommended to run it in a VPS or dedicated server. If you want to run it on a home server (such as a Raspberry Pi), make sure you have a **static** public IP and you set port forwarding correctly in your home network.
 
+You can start the server by either running `python3 server.py` or by running `sanic --factory server:create`.
+
 ### The SERVER_REQUEST_URL environment variable
 This environment variable is the hostname and port to send to the PubSubHubbub Hub so it can send notifications to the server, which then sends them to the channels.
 

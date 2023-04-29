@@ -49,6 +49,51 @@ DEFAULT_LANG_ENV = "DEFAULT_LANGUAGE"
 LANGS_PATH = os.path.abspath("./langs")
 IS_TERMINAL = sys.stdout.isatty() and sys.stderr.isatty()
 
+# Debugging
+
+
+def is_debugging() -> bool:
+    return "debugpy" in sys.modules and sys.modules["debugpy"].is_client_connected()
+
+
+if is_debugging():
+    import types
+    import concurrent.futures
+    from pydevd import PyDB
+    from _pydevd_bundle.pydevd_vars import _EvalAwaitInNewEventLoop as Original
+
+    def get_debug_eval_in_loop_class(bot: commands.Bot) -> type:
+        class _EvalAwaitInNewEventLoop(Original):
+            def _on_run(self):
+                try:
+                    future = concurrent.futures.Future()
+
+                    def callback():
+                        try:
+                            task_future = bot.loop.create_task(self._async_func())
+                            asyncio.futures._chain_future(task_future, future)  # type: ignore
+                        except BaseException as exc:
+                            future.set_exception(exc)
+
+                    bot.loop.call_soon_threadsafe(callback)
+                    self.evaluated_value = future.result()
+                except concurrent.futures.CancelledError:
+                    pass
+                except BaseException:
+                    self.exc = sys.exc_info()
+
+        return _EvalAwaitInNewEventLoop
+
+    def get_debug_evaluate_expression(bot):
+        def evaluate_expression(
+            py_db: PyDB, frame: types.FrameType, expression: str, is_exec: bool
+        ):
+            frame.f_locals["bot"] = bot
+            return bot._original_eval_exp(py_db, frame, expression, is_exec)
+
+        return evaluate_expression
+
+
 # Logging
 
 

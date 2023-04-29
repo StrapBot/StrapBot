@@ -182,6 +182,30 @@ async def notify(request: Request):
         raise
 
 
+def get_envs():
+    def _get_env_val(k: str) -> bool:
+        env = os.getenv(k, "0")
+        ret = False
+        if env.isdigit():
+            ret = bool(int(env))
+        elif env.lower() in ["true", "false"]:
+            ret = json.loads(env.lower())
+
+        return ret
+
+    debug = _get_env_val("SERVER_DEBUG")
+    dev = _get_env_val("SERVER_DEV")
+    host = os.getenv("SERVER_HOST", "127.0.0.1")
+    port = int(os.getenv("SERVER_PORT", 8080))
+    request_url = os.getenv("SERVER_REQUEST_URL")
+    return (host, port, debug, dev, request_url)
+
+
+def create() -> sanic.Sanic:
+    main(*get_envs(), False)
+    return app
+
+
 def main(
     host_: str,
     port_: int,
@@ -213,24 +237,9 @@ def main(
     app.ctx.request_url = request_url
 
     if return_run:
-        return app.run(host, port, dev=dev, debug=debug)
+        return create().run(host, port, dev=dev, debug=debug)
 
 
 if __name__ in ["__main__", "__mp_main__"]:
-
-    def _get_env_val(k: str) -> bool:
-        env = os.getenv(k, "0")
-        ret = False
-        if env.isdigit():
-            ret = bool(int(env))
-        elif env.lower() in ["true", "false"]:
-            ret = json.loads(env.lower())
-
-        return ret
-
-    debug = _get_env_val("SERVER_DEBUG")
-    dev = _get_env_val("SERVER_DEV")
-    host = os.getenv("SERVER_HOST", "127.0.0.1")
-    port = int(os.getenv("SERVER_PORT", 8080))
-    request_url = os.getenv("SERVER_REQUEST_URL")
+    host, port, debug, dev, request_url = get_envs()
     main(host, port, debug, dev, request_url, __name__ != "__mp_main__")
