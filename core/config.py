@@ -80,13 +80,17 @@ class ConfigType:
     async def get_select_menu_values(cls, ctx: commands.Context) -> List[SelectOption]:
         return []
 
+    @classmethod
+    async def setup(cls, ctx: commands.Context, value):
+        pass
+
 
 # NOTE: to create a new configuration, you have to
 #       subclass one of these three classes below,
 #       depending on the configuration you want to
 #       create.
 
-# Global configurations
+# Global configurations (for both users and guilds)
 class GlobalConfigType(ConfigType):
     pass
 
@@ -181,6 +185,78 @@ class LogChannelType(GuildConfigType):
     @classmethod
     async def get_valid_values(cls, ctx: commands.Context) -> list:
         return list(filter(cls.chn_check, getattr(ctx.guild, "channels", [])))
+
+
+class YouTubeNewsChannelType(GuildConfigType):
+    key = "yt_news_channel_id"
+    emoji = "\N{public address loudspeaker}"
+    select_menu_type = select_menu_type = SelectMenuType(
+        MenuType.channel,
+        1,
+        1,
+        [ChannelType.text, ChannelType.news],
+    )
+
+    @staticmethod
+    def channel_check(channel) -> bool:
+        if not isinstance(channel, TextChannel):
+            return False
+
+        perms = channel.permissions_for(channel.guild.me)
+        return perms.administrator or perms.manage_webhooks
+
+    @classmethod
+    def validate(cls, val: int, bot: commands.Bot):
+        if val == None:
+            return True  # value might be not set yet
+
+        if not isinstance(val, TextChannel):
+            if not isinstance(val, int):
+                return False
+
+            chn = bot.get_channel(val)
+            if chn == None or not isinstance(chn, TextChannel):
+                return False
+        else:
+            chn = val
+
+        return cls.channel_check(chn)
+
+    @classmethod
+    async def get_valid_values(cls, ctx: commands.Context) -> list:
+        return list(filter(cls.channel_check, getattr(ctx.guild, "channels", [])))
+
+    @staticmethod
+    async def setup(ctx: commands.Context, value: discord.TextChannel):
+        bot: commands.Bot = ctx.bot
+        db = bot.get_db("YouTubeNewsGuilds", False)  # type: ignore
+        if isinstance(value, int):
+            value = ctx.guild.get_channel(value)  # type: ignore
+
+        webhook = await value.create_webhook(
+            name=value.guild.me.name,
+            avatar=await value.guild.me.avatar.read()
+            if value.guild.me.avatar
+            else None,
+        )
+
+        cfg = await db.find_one({"_id": value.guild.id})
+        if cfg != None:
+            old_channel: Optional[TextChannel] = bot.get_channel(
+                cfg["channel_id"]
+            )  #  type: ignore
+            if old_channel != None:
+                old_wh = discord.utils.get(
+                    await old_channel.webhooks(), url=cfg["webhook_url"]
+                )
+                if old_wh != None:
+                    await old_wh.delete()
+
+        await db.update_one(
+            {"_id": value.guild.id},
+            {"$set": {"channel_id": value.id, "webhook_url": webhook.url}},
+            upsert=True,
+        )
 
 
 # User only configurations
@@ -299,7 +375,7 @@ class Config:
         return ret
 
     async def set(self, **props):
-        new = self._data
+        new = self._data.copy()
         new["type"] = type(self.target).__name__.lower()
         modified = False
         for key, value in props.items():
@@ -309,7 +385,7 @@ class Config:
             new[key] = self.types[key](value, self.bot)
             modified = True
 
-        ret = new
+        ret = new.copy()
         if modified:
             await self.db.update_one({"_id": self.id}, {"$set": new})  # type: ignore
             ret = await self.fetch(True)

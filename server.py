@@ -86,7 +86,7 @@ async def send_new_video(
             cfgdb: AgnosticCollection = mongo.Configurations  #  type: ignore
             guild_config: dict = await cfgdb.find_one({"_id": webhook.guild_id})  # type: ignore
             default = "{url}"
-            msg = guild_config.get("youtube_message", default) or default
+            msg = guild_config.get("youtube_message", None) or default
             channel = f"[{channel_name}](<{channel_url}>)"
             video = f"[{name}]({url})"
             await webhook.send(
@@ -136,7 +136,7 @@ async def notify(request: Request):
         entry = feed["entry"]
         url = entry["link"]["@href"]
         guilds = ((await db.find_one({"_id": channel_id})) or {}).get(  #  type: ignore
-            "webhooks", []
+            "guilds", []
         )
         if not guilds:
             await request_pubsubhubbub(channel_id, False, False)
@@ -153,7 +153,7 @@ async def notify(request: Request):
             gdata = await gdb.find_one({"_id": guild_id})
             tasks.append(
                 send_new_video(
-                    gdata["webhook"],
+                    gdata["webhook_url"],
                     title,
                     url,
                     guild_id,

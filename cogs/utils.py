@@ -93,7 +93,12 @@ class Utilities(commands.Cog):
     @commands.command()
     @server_online()
     async def youtube(self, ctx: StrapContext):
-        await ctx.send("test", view=YouTubeView(ctx))
+        if not ctx.guild_config.yt_news_channel_id:
+            await ctx.send("missing_config")
+            return
+        content = "main_menu"
+        view = YouTubeView(ctx, content)
+        await ctx.send(content, view=view)
 
 
 async def setup(bot):

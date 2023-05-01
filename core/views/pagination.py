@@ -105,6 +105,7 @@ class PaginationView(ui.View):
         kwargs["view"] = self
         if kwargs["embeds"]:
             kwargs["embeds"] = self.update_embeds(kwargs["embeds"])
+
         await interaction.response.edit_message(**kwargs)
 
     def update_buttons(self):

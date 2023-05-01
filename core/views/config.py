@@ -50,6 +50,17 @@ class PropertyView(ConfigView):
         self.value = config[key]
         self.key = key
 
+    async def set(self, value: Any):
+        original_value = self.config[self.key]
+        ret = await self.config.set(**{self.key: value})
+        try:
+            await self.config.types[self.key].setup(self.ctx, value)
+        except Exception:
+            await self.config.set(**{self.key: original_value})
+            raise
+
+        return ret
+
     @ui.button(**BACK_BUTTON_PROPS)
     async def back(self, interaction: discord.Interaction, button: ui.Button):
         if not self.parent:
@@ -84,9 +95,6 @@ class BooleanPropertyView(PropertyView):
         self.toggler.label = self.ctx.format_message(
             "bool_" + ("disable" if self.value else "enable")
         )
-
-    async def set(self, value: Any):
-        return await self.config.set(**{self.key: value})
 
     @ui.button(label="Toggle", custom_id="toggle", style=ButtonStyle.green)
     async def toggler(self, interaction: discord.Interaction, button: ui.Button):
@@ -194,7 +202,14 @@ class SelectPropertyView(PropertyView):
         if self.menu_type.min_values == 1 and self.menu_type.max_values == 1:
             val = val[0]
 
-        await self.config.set(**{self.key: val})
+        try:
+            await self.set(val)
+        except Exception:
+            select.disabled = True
+            await interaction.followup.edit_message(
+                interaction.message.id, view=self  #  type: ignore
+            )
+            raise
         await self.ctx.config.fetch()
         await self.ctx.guild_config.fetch()
         lang = _get_lang_props(self.ctx.language_to_use, self.key)

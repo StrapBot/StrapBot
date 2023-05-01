@@ -58,6 +58,14 @@ class StrapContext(commands.Context):
         return get_lang(self.language_to_use, cog=self.cog, command=self.command)
 
     @property
+    def guild_lang(self) -> typing.Optional[dict]:
+        return get_lang(self.guild_config.lang, cog=self.cog, command=self.command)
+
+    @property
+    def user_lang(self) -> typing.Optional[dict]:
+        return get_lang(self.config.lang, cog=self.cog, command=self.command)
+
+    @property
     def language_to_use(self) -> str:
         val = self.config.lang
         if self.guild_config.override_guild_lang:

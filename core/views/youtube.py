@@ -1,4 +1,6 @@
 import os
+from aiohttp.client_reqrep import ClientResponse, RequestInfo
+from aiohttp.typedefs import LooseHeaders
 import discord
 import typing
 from ..context import StrapContext
@@ -6,14 +8,64 @@ from datetime import datetime, timedelta
 from discord import Embed, Interaction
 from discord import ui
 from enum import Enum
-from typing import List, Optional, Union
-from urllib.parse import quote, urlencode
-from .pagination import PaginationView
+from typing import Optional, Tuple
+from urllib.parse import urlencode
+from aiohttp import ClientResponseError
+from discord import ChannelType
+from . import View, PaginationView, StopButton
+
 
 class SearchType(Enum):
     channels = 0
     id = -1
     search = 1
+
+
+class BackButton(StopButton):
+    def __init__(self, view: "YouTubeView", emoji: str = "⬅️"):
+        self.bview = view
+        super().__init__(emoji)
+
+    async def callback(self, interaction: Interaction[discord.Client]):
+        await interaction.response.edit_message(
+            content=self.bview.content, embed=None, view=self.bview
+        )
+        self.view.stop()
+
+
+class PubSubHubbubResponseError(ClientResponseError):
+    def __init__(
+        self,
+        request_info: RequestInfo,
+        history: Tuple[ClientResponse, ...],
+        *,
+        code: Optional[int] = None,
+        status: Optional[int] = None,
+        message: str = "",
+        headers: Optional[LooseHeaders] = None,
+    ) -> None:
+        super().__init__(
+            request_info,
+            history,
+            code=code,
+            status=status,
+            message=message,
+            headers=headers,
+        )
+        self.args = (
+            "PubSubHubbub request failed",
+            request_info.real_url,
+            request_info.method,
+            self.status,
+            message,
+            headers,
+        )
+        if history:
+            self.args += (history,)
+
+    def __str__(self):
+        return f"PubSubHubbub request failed, code={super().__str__()}"
+
 
 class ChannelsPaginator(PaginationView):
     def __init__(self, results: list, **kwargs):
@@ -23,7 +75,52 @@ class ChannelsPaginator(PaginationView):
 
     @ui.button(label="Choose")
     async def salve(self, interaction: Interaction, button: ui.Button):
-        await interaction.response.send_message("test")
+        await interaction.response.defer()
+        youtuber = self.results[self.current]
+        channel: discord.TextChannel = self.ctx.bot.get_channel(  #  type: ignore
+            self.ctx.guild_config.yt_news_channel_id
+        )
+
+        try:
+            await self.ctx.bot.request_pubsubhubbub(youtuber["id"], True)
+            db = self.ctx.bot.get_db("YouTubeNews", False)
+            channel_db = (
+                await db.find_one({"_id": youtuber["id"]})  #  type: ignore
+            ) or {"guilds": []}
+
+            channel_db["guilds"].append(channel.guild.id)
+            await db.update_one(
+                {"_id": youtuber["id"]}, {"$set": channel_db}, upsert=True
+            )  #  type: ignore
+
+        except Exception as e:
+            await interaction.followup.edit_message(
+                interaction.message.id,  #  type: ignore
+                content="error",
+                view=None,
+                embed=None,
+            )
+            if isinstance(e, ClientResponseError):
+                raise PubSubHubbubResponseError(
+                    e.request_info,
+                    e.history,
+                    status=e.status,
+                    message=e.message,
+                    headers=e.headers,
+                ) from None
+
+            raise
+
+        msg = self.ctx.format_message(
+            "added", {"youtuber": youtuber["title"], "channel": channel.mention}
+        )
+        await interaction.followup.edit_message(
+            interaction.message.id,  #  type: ignore
+            content=msg,
+            embed=None,  #  type: ignore
+            view=None,  # type: ignore
+        )
+
 
 class AddChannelModal(ui.Modal):
     BASE_LINK = "https://www.googleapis.com/youtube/v3"
@@ -123,7 +220,7 @@ class AddChannelModal(ui.Modal):
         results = await self.search_channels(self.id_or_url_or_username.value)
         if not results:
             await interaction.followup.send(
-                f"no_results query={self.id_or_url_or_username.value!r}"
+                "no_results"
             )
             return
 
@@ -136,10 +233,23 @@ class AddChannelModal(ui.Modal):
         await paginator.start(self.ctx)
 
 
-class YouTubeView(ui.View):
-    def __init__(self, ctx: StrapContext, *, timeout: Optional[float] = 180):
+class YouTubeView(View):
+    def __init__(
+        self,
+        ctx: StrapContext,
+        content: str,
+        format: dict = {},
+        *,
+        timeout: Optional[float] = 180,
+    ):
         super().__init__(timeout=timeout)
         self.ctx = ctx
+        self.__content = content
+        self.format = format
+
+    @property
+    def content(self):
+        return self.ctx.format_message(self.__content, self.format)
 
     async def interaction_check(self, interaction: Interaction, /) -> bool:
         return (
