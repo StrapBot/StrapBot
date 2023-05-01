@@ -327,6 +327,10 @@ class MyTranslator(Translator):
 # Other
 
 
+def paginate_list(lst: list, items: int):
+    return [lst[i : i + items] for i in range(0, len(lst), items)]
+
+
 def get_guild_youtube_channels(
     channels: List[Dict[str, Union[str, List[str]]]], guild_data: dict
 ):
@@ -337,9 +341,8 @@ def get_guild_youtube_channels(
     ret = guild_data.copy()
     ret["channels"] = []
     for item in channels:
-        id = item["_id"]
         if guild_data["_id"] in item["guilds"]:
-            ret["channels"].append(id)
+            ret["channels"].append(item["data"])
     return ret
 
 

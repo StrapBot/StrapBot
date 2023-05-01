@@ -127,7 +127,7 @@ class StrapBot(commands.Bot):
         mongodb = "[bold #4DB33D]MongoDB[/bold #4DB33D]"
         logger.debug(f"Connecting to {mongodb} database...")
         self.session = ClientSession(loop=self.loop)
-        self.mongoclient = AsyncIOMotorClient(self.mongodb_uri)
+        self.mongoclient = AsyncIOMotorClient(self.mongodb_uri, io_loop=self.loop)
         self.mongodb = self.mongoclient.strapbotrew
         await self.mongodb.command({"ping": 1})  # type: ignore
 
@@ -225,7 +225,22 @@ class StrapBot(commands.Bot):
             _maybe_log(logging.WARNING, yt_msg)
             return False
         elif data and data.get("request_url") != None:
-            chg = str(random.randint(0, 100000000000000))
+            chg = list(str(random.randint(0, 10000000000000000000)))
+            if len(chg) >= 3:
+                bpos = random.randint(0, len(chg) - 1)
+                opos = random.randint(0, len(chg) - 1)
+                while opos == bpos:
+                    opos = random.randint(0, len(chg) - 1)
+
+                tpos = random.randint(0, len(chg) - 1)
+                while tpos == bpos or tpos == opos:
+                    tpos = random.randint(0, len(chg) - 1)
+
+                chg[bpos] = "b"
+                chg[opos] = "o"
+                chg[tpos] = "t"
+
+            chg = "".join(chg)
             try:
                 async with self.session.get(
                     data["request_url"] + "/notify", params={"hub.challenge": chg}

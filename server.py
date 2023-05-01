@@ -7,6 +7,7 @@ import xmltodict
 import asyncio
 from aiohttp import ClientSession
 from sanic import Request, response
+from sanic.request import RequestParameters
 from sanic.log import logger, error_logger, server_logger, Colors
 from dotenv import load_dotenv
 from traceback import format_exc
@@ -20,6 +21,17 @@ load_dotenv()
 app = sanic.Sanic("strapbot_server")
 mongo: Optional[AgnosticClient] = None
 db: Optional[AgnosticCollection] = None
+
+
+class ReceivedChallenge(Exception):
+    def __init__(self, args: RequestParameters) -> None:
+        super().__init__()
+        self.args = tuple(args.values())
+        self.challenge = args.get("hub.challenge", None) or ""
+        self.reqa = args
+
+    def __str__(self):
+        return f"Challenge `{self.reqa.get('hub.challenge')}` received."
 
 
 async def send_requrl_to_db(url):
@@ -123,7 +135,7 @@ async def notify(request: Request):
         db: AgnosticCollection = app.ctx.db
         challenge = request.args.get("hub.challenge", "")
         if challenge:
-            return response.text(challenge, 200)
+            raise ReceivedChallenge(request.args)
 
         data = xmltodict.parse(request.body)
         feed = data["feed"]
@@ -172,14 +184,25 @@ async def notify(request: Request):
         if env != None:
             async with ClientSession() as session:
                 wh = Webhook.from_url(env, session=session)
-                await wh.send(
-                    f"{type(e).__name__}: {str(e)}",
-                    files=[
-                        File(BytesIO(request.body), "body.xml"),
-                        File(BytesIO(format_exc().encode()), "traceback.py"),
-                    ],
-                )
-        raise
+                files = []
+                if request.args:
+                    files.append(
+                        File(
+                            BytesIO(json.dumps(request.args, indent=4).encode()),
+                            "args.json",
+                        )
+                    )
+
+                if not isinstance(e, ReceivedChallenge):
+                    files.append(File(BytesIO(format_exc().encode()), "traceback.py"))
+
+                if request.body:
+                    files.append(File(BytesIO(request.body), "body.xml"))
+                await wh.send(f"{type(e).__name__}: {str(e)}", files=files)
+        if isinstance(e, ReceivedChallenge):
+            return response.text(e.challenge)
+        else:
+            raise
 
 
 def get_envs():

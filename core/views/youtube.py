@@ -1,18 +1,16 @@
-import os
-from aiohttp.client_reqrep import ClientResponse, RequestInfo
-from aiohttp.typedefs import LooseHeaders
 import discord
+import os
 import typing
+from aiohttp import ClientResponse, ClientResponseError, RequestInfo
+from aiohttp.typedefs import LooseHeaders
 from ..context import StrapContext
 from datetime import datetime, timedelta
-from discord import Interaction
-from discord import ui
+from discord import ui, Interaction, ButtonStyle
 from enum import Enum
 from typing import Optional, Tuple
 from urllib.parse import urlencode
-from aiohttp import ClientResponseError
-from discord import ChannelType
 from . import View, PaginationView, StopButton
+from ..utils import get_guild_youtube_channels, paginate_list
 
 
 class SearchType(Enum):
@@ -68,14 +66,24 @@ class PubSubHubbubResponseError(ClientResponseError):
 
 
 class ChannelsPaginator(PaginationView):
-    def __init__(self, view: "YouTubeView", results: list, **kwargs):
+    def __init__(
+        self,
+        view: "YouTubeView",
+        results: list,
+        used_by: typing.Literal["add", "del"] = "add",
+        **kwargs,
+    ):
         self.results = results
         self.ctx = view.ctx
+        self.used_by = used_by
         pages = [self.parse_result(x) for x in results]
         kwargs["stop_button"] = kwargs.pop("stop_button", None) or BackButton(view)
         super().__init__(*pages, **kwargs)
+        if used_by == "del":
+            self.choose.label = "btn_delete"
 
     def parse_result(self, result: dict) -> discord.Embed:
+        e = {"add": "results", "del": "delete"}[self.used_by]
         ret = (
             discord.Embed(
                 title=result["title"],
@@ -84,30 +92,53 @@ class ChannelsPaginator(PaginationView):
                 url=f"https://youtube.com/channel/{result['id']}",
             )
             .set_author(
-                name="results_embed_title",
-                icon_url=self.ctx.me.avatar.url if self.ctx.me.avatar else None,
+                name=f"{e}_embed_title",
+                icon_url=self.ctx.me.avatar,
             )
             .set_thumbnail(url=result["thumbnails"]["default"]["url"])
         )
 
         return ret
 
-    @ui.button(label="Choose")
-    async def salve(self, interaction: Interaction, button: ui.Button):
+    @ui.button(custom_id="choose", label="btn_choose")
+    async def choose(self, interaction: Interaction, button: ui.Button):
         await interaction.response.defer()
+        subscribe = self.used_by == "add"
         youtuber = self.results[self.current]
         channel: discord.TextChannel = self.ctx.bot.get_channel(  #  type: ignore
             self.ctx.guild_config.yt_news_channel_id
         )
 
         try:
-            await self.ctx.bot.request_pubsubhubbub(youtuber["id"], True)
             db = self.ctx.bot.get_db("YouTubeNews", False)
             channel_db = (
                 await db.find_one({"_id": youtuber["id"]})  #  type: ignore
             ) or {"guilds": []}
 
-            channel_db["guilds"].append(channel.guild.id)
+            if subscribe and channel.guild.id in channel_db["guilds"]:
+                await interaction.followup.edit_message(
+                    interaction.message.id,  #  type: ignore
+                    content="already_added",
+                    view=None,
+                    embed=None,
+                )
+                return
+
+            f = channel_db["guilds"].append
+            if not subscribe:
+                f = channel_db["guilds"].remove
+
+            f(channel.guild.id)
+
+            # convert guilds to a set to avoid duplicates,
+            # then converting it back to list
+            channel_db["guilds"] = list(set(channel_db["guilds"]))
+            channel_db["data"] = youtuber
+
+            guilds_check = bool(channel_db["guilds"])
+            await self.ctx.bot.request_pubsubhubbub(
+                youtuber["id"], subscribe or guilds_check
+            )
             await db.update_one(
                 {"_id": youtuber["id"]}, {"$set": channel_db}, upsert=True
             )  #  type: ignore
@@ -131,7 +162,8 @@ class ChannelsPaginator(PaginationView):
             raise
 
         msg = self.ctx.format_message(
-            "added", {"youtuber": youtuber["title"], "channel": channel.mention}
+            "added" if subscribe else "deleted",
+            {"youtuber": youtuber["title"], "channel": channel.mention},
         )
         await interaction.followup.edit_message(
             interaction.message.id,  #  type: ignore
@@ -168,16 +200,18 @@ class AddChannelModal(ui.Modal):
 
         return f"{self.BASE_LINK}/{type.name}?{urlencode(args)}"
 
-    def _channel_check(self, item: dict):
+    @staticmethod
+    def _channel_check(item: dict):
         kind = item["kind"]
         if kind == "youtube#searchResult":
             kind = item["id"]["kind"]
 
         return kind == "youtube#channel"
 
-    def simplify_results(self, body):
+    @classmethod
+    def simplify_results(cls, body):
         i = []
-        for item in filter(self._channel_check, body["items"]):
+        for item in filter(cls._channel_check, body["items"]):
             if item["kind"] == "youtube#searchResult":
                 item["kind"] = item["id"]["kind"]
                 item["id"] = item["id"]["channelId"]
@@ -274,14 +308,69 @@ class YouTubeView(View):
             and await self.ctx.bot.check_youtube_news()
         )
 
-    @ui.button(label="btn_add")
+    @ui.button(label="btn_add", style=ButtonStyle.primary)
     async def add_channel(self, interaction: Interaction, button: ui.Button):
         await interaction.response.send_modal(AddChannelModal(self))
 
-    @ui.button(label="btn_list")
+    @ui.button(label="btn_list", style=ButtonStyle.primary)
     async def list_channels(self, interaction: Interaction, button: ui.Button):
-        await interaction.response.send_message("placeholder")
+        await interaction.response.defer()
+        chdb = self.ctx.bot.get_db("YouTubeNews", False)
+        gddb = self.ctx.bot.get_db("YouTubeNewsGuilds", False)
+        channels = await chdb.find().to_list(None)
+        guild_data = await gddb.find_one({"_id": interaction.guild_id})  # type: ignore
+        data = get_guild_youtube_channels(channels, guild_data)
+        if not data["channels"]:
+            await interaction.followup.edit_message(
+                interaction.message.id,  # type: ignore
+                content="channels_empty",
+                embed=None,
+                view=None,
+            )
+            return
 
-    @ui.button(label="btn_del")
+        pages = []
+        for chns in paginate_list(data["channels"], 5):
+            desc = []
+            for chn in chns:
+                title = chn["title"]
+                if len(title) > 30:
+                    title = title[:27] + "..."
+
+                url = f"https://youtube.com/channel/{chn['id']}"
+
+                title = f"- [**`{title}`**]({url})"
+                desc.append(title)
+
+            pages.append(
+                discord.Embed(
+                    description="\n".join(desc), color=self.ctx.me.accent_color
+                ).set_author(name="channels_list", icon_url=self.ctx.me.avatar)
+            )
+
+        view = PaginationView(*pages, stop_button=BackButton(self))
+        kwargs = await view.setup(interaction.user)
+        await interaction.followup.edit_message(
+            interaction.message.id, **kwargs  #  type: ignore
+        )
+
+    @ui.button(label="btn_del", style=ButtonStyle.primary)
     async def del_channel(self, interaction: Interaction, button: ui.Button):
-        await interaction.response.send_message("placeholder")
+        await interaction.response.defer()
+        chdb = self.ctx.bot.get_db("YouTubeNews", False)
+        gddb = self.ctx.bot.get_db("YouTubeNewsGuilds", False)
+        channels = await chdb.find().to_list(None)
+        guild_data = await gddb.find_one({"_id": interaction.guild_id})  # type: ignore
+        data = get_guild_youtube_channels(channels, guild_data)["channels"]
+        if not data:
+            await interaction.followup.edit_message(
+                interaction.message.id,  # type: ignore
+                content="channels_empty",
+                embed=None,
+                view=None,
+            )
+            return
+
+        paginator = ChannelsPaginator(self, data, "del")
+        kwargs = await paginator.setup(interaction.user)
+        await interaction.followup.edit_message(interaction.message.id, **kwargs)  # type: ignore
