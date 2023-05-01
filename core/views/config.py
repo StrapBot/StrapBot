@@ -1,6 +1,7 @@
 import os
 import discord
 from discord import ui
+from . import View
 from ..config import AnyConfig, SelectMenuType, MenuType
 from ..utils import get_lang_config_names, DEFAULT_LANG_ENV
 from ..context import StrapContext
@@ -25,7 +26,7 @@ def _get_lang_props(lang: str, key: Any):
     return props[key]  # type: ignore
 
 
-class ConfigView(ui.View):
+class ConfigView(View):
     def __init__(self, ctx: StrapContext, timeout: float = 180):
         super().__init__(timeout=timeout)
         self.ctx = ctx

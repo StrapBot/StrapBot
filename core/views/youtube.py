@@ -5,7 +5,7 @@ import discord
 import typing
 from ..context import StrapContext
 from datetime import datetime, timedelta
-from discord import Embed, Interaction
+from discord import Interaction
 from discord import ui
 from enum import Enum
 from typing import Optional, Tuple
@@ -68,10 +68,29 @@ class PubSubHubbubResponseError(ClientResponseError):
 
 
 class ChannelsPaginator(PaginationView):
-    def __init__(self, results: list, **kwargs):
+    def __init__(self, view: "YouTubeView", results: list, **kwargs):
         self.results = results
-        pages = [discord.Embed(title=x["snippet"]["title"], description=x["snippet"]["description"]) for x in results]
+        self.ctx = view.ctx
+        pages = [self.parse_result(x) for x in results]
+        kwargs["stop_button"] = kwargs.pop("stop_button", None) or BackButton(view)
         super().__init__(*pages, **kwargs)
+
+    def parse_result(self, result: dict) -> discord.Embed:
+        ret = (
+            discord.Embed(
+                title=result["title"],
+                description=result["description"].strip() or "missing_desc",
+                color=self.ctx.me.accent_color,
+                url=f"https://youtube.com/channel/{result['id']}",
+            )
+            .set_author(
+                name="results_embed_title",
+                icon_url=self.ctx.me.avatar.url if self.ctx.me.avatar else None,
+            )
+            .set_thumbnail(url=result["thumbnails"]["default"]["url"])
+        )
+
+        return ret
 
     @ui.button(label="Choose")
     async def salve(self, interaction: Interaction, button: ui.Button):
@@ -126,9 +145,10 @@ class AddChannelModal(ui.Modal):
     BASE_LINK = "https://www.googleapis.com/youtube/v3"
     id_or_url_or_username = ui.TextInput(label="Channel", custom_id="channel")
 
-    def __init__(self, ctx: StrapContext) -> None:
+    def __init__(self, view: "YouTubeView") -> None:
         super().__init__(title="placeholder")
-        self.ctx = ctx
+        self.view = view
+        self.ctx = view.ctx
 
     def create_link(self, type: SearchType, query: str) -> str:
         id = type == SearchType.id
@@ -137,7 +157,6 @@ class AddChannelModal(ui.Modal):
             SearchType.search: "q",
             SearchType.channels: "id" if id else "forUsername",
         }
-        # NOTE: id will be ignored if endpoint is "search"
         args = {
             "key": os.getenv("GOOGLE_API_KEY"),
             "part": "snippet",
@@ -156,6 +175,21 @@ class AddChannelModal(ui.Modal):
 
         return kind == "youtube#channel"
 
+    def simplify_results(self, body):
+        i = []
+        for item in filter(self._channel_check, body["items"]):
+            if item["kind"] == "youtube#searchResult":
+                item["kind"] = item["id"]["kind"]
+                item["id"] = item["id"]["channelId"]
+
+            if "snippet" in item:
+                item.update(item["snippet"])
+                del item["snippet"]
+
+            i.append(item)
+
+        return i
+
     async def do_search_channels(
         self, query: str, *, type: SearchType = SearchType.channels
     ) -> typing.List[dict]:
@@ -166,19 +200,8 @@ class AddChannelModal(ui.Modal):
         link = self.create_link(type, query)
         ret = []
 
-        def _filter(body):
-            i = []
-            for item in filter(self._channel_check, body["items"]):
-                if item["kind"] == "youtube#searchResult":
-                    item["kind"] = item["id"]["kind"]
-                    item["id"] = item["id"]["channelId"]
-
-                i.append(item)
-
-            return i
-
         used_at = cache.get("used_at", datetime.utcnow() - timedelta(hours=13))
-        if datetime.utcnow() < used_at + timedelta(hours=12) and _filter(
+        if datetime.utcnow() < used_at + timedelta(hours=12) and self.simplify_results(
             cache.get("body", {})
         ):
             # if less than 12 hours have passed since last time
@@ -186,14 +209,14 @@ class AddChannelModal(ui.Modal):
             # is useless to make another request, because data
             # is most likely the same. also, YouTube APIs are
             # very slow most of times.
-            return _filter(cache["body"])
+            return self.simplify_results(cache["body"])
 
         headers = {"If-None-Match": cache.get("body", {}).get("etag", "")}
 
         async with self.ctx.bot.session.get(link, headers=headers) as response:
             if response.status == 304:
                 await db.update_one({"query": query}, {"$set": {"used_at": datetime.utcnow()}})  # type: ignore
-                ret = _filter(cache["body"])
+                ret = self.simplify_results(cache["body"])
             else:
                 body = await response.json()
                 page_info = body.pop("pageInfo", {})
@@ -202,7 +225,7 @@ class AddChannelModal(ui.Modal):
                 await db.update_one({"query": query}, {"$set": {"used_at": datetime.utcnow(), "body": body}}, upsert=True)  # type: ignore
 
                 if page_info.get("totalResults", None):
-                    ret = _filter(body)
+                    ret = self.simplify_results(body)
 
         return ret
 
@@ -224,13 +247,9 @@ class AddChannelModal(ui.Modal):
             )
             return
 
-
-        await interaction.followup.send(
-            f"{len(results)}\n{self.id_or_url_or_username}\n{results[0]['id']}"
-        )
-
-        paginator = ChannelsPaginator(results)
-        await paginator.start(self.ctx)
+        paginator = ChannelsPaginator(self.view, results)
+        kwargs = await paginator.setup(interaction.user)
+        await interaction.followup.edit_message(interaction.message.id, **kwargs)  # type: ignore
 
 
 class YouTubeView(View):
@@ -259,7 +278,7 @@ class YouTubeView(View):
 
     @ui.button(label="btn_add")
     async def add_channel(self, interaction: Interaction, button: ui.Button):
-        await interaction.response.send_modal(AddChannelModal(self.ctx))
+        await interaction.response.send_modal(AddChannelModal(self))
 
     @ui.button(label="btn_list")
     async def list_channels(self, interaction: Interaction, button: ui.Button):

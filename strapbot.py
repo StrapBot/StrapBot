@@ -162,12 +162,12 @@ class StrapBot(commands.Bot):
                     import readline
                 except ImportError:
                     pass
-                self.repl_thread = REPLThread(self)
-                self.repl_thread.daemon = True
                 repl_locals = {"asyncio": asyncio, "bot": self}
                 repl_locals.update(globals())
                 self.console = InteractiveConsole(repl_locals, self, self.loop)
                 logging_handler.iconsole = self.console  # type: ignore
+                self.repl_thread = REPLThread(self)
+                self.repl_thread.daemon = True
 
         # Extensions
         logger.debug("Loading extensions...")
@@ -185,6 +185,8 @@ class StrapBot(commands.Bot):
                 errors += 1
                 e = getattr(e, "original", e)
                 logger.error(f"Error loading [red bold]{ext}[/]", exc_info=e)
+            else:
+                logger.debug(f"Extension [bold]{ext}[/] loaded successfully.")
 
         additional = " with [bold]no errors[/]"
         if errors:
@@ -311,11 +313,7 @@ class StrapBot(commands.Bot):
         if event and event_type:
             msg += f" in {event_type} `{event}`"
         elif event_type and not event:
-            a = (
-                "a"
-                if not event_type.lower().startswith(("a", "e", "i", "o", "u"))
-                else "an"
-            )
+            a = "a" if not event_type.lower().startswith(tuple("aeiou")) else "an"
             msg += f" in {a} {event_type}"
 
         msg += "."
@@ -360,7 +358,6 @@ class StrapBot(commands.Bot):
     ) -> None:
         await self._original_tree_error(interaction, error)  #  type: ignore
         await self.handle_errors(error, interaction.namespace, "interaction")
-        pass
 
     async def on_error(self, meth: str, *args, **kwargs):
         exc = sys.exc_info()[1]
@@ -370,7 +367,6 @@ class StrapBot(commands.Bot):
     async def on_command_error(self, ctx: StrapContext, exc: commands.CommandError):
         while hasattr(exc, "original"):
             exc = exc.original  #  type: ignore
-            await asyncio.sleep(0.1)
 
         await super().on_command_error(ctx, exc)
         if isinstance(exc, commands.CommandNotFound):
