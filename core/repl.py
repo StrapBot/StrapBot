@@ -98,7 +98,7 @@ class InteractiveConsole(code.InteractiveConsole):
         while self.__running:
             try:
                 try:
-                    line = self.raw_input(self.get_prompt())  #  type: ignore
+                    line = self.raw_input(self.get_prompt())  #  type: ignore
                 except EOFError:
                     super().write("\n")
                     break
@@ -158,7 +158,7 @@ class InteractiveConsole(code.InteractiveConsole):
             self.repl_future = None
             self.repl_future_interrupted = False
 
-            func = types.FunctionType(code, self.locals)  #  type: ignore
+            func = types.FunctionType(code, self.locals)  #  type: ignore
             try:
                 coro = func()
             except SystemExit:
@@ -194,7 +194,7 @@ class InteractiveConsole(code.InteractiveConsole):
                 # pretend the future was cancelled,
                 # so that it doesn't complain about
                 # it being finished.
-                future._state = "CANCELLED"  #  type: ignore
+                future._state = "CANCELLED"  #  type: ignore
                 if self.repl_future:
                     self.repl_future.cancel()
                 super().write("\nKeyboardInterrupt\n")

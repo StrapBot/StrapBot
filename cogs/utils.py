@@ -77,7 +77,7 @@ class Utilities(commands.Cog):
         official = os.getenv("OFFICIAL", "0") == "1"
         await ctx.send(
             embed=discord.Embed(
-                color=discord.Color.lighter_grey(),
+                color=ctx.me.accent_color,
                 description="support_link" if official else "link",
             )
             .set_author(

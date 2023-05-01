@@ -169,7 +169,7 @@ class StrapContext(commands.Context):
 
         if allowed_mentions == None:
             # mention_author will never be None
-            new = discord.AllowedMentions(replied_user=mention_author)  #  type: ignore
+            new = discord.AllowedMentions(replied_user=mention_author)  #  type: ignore
             if self.bot.allowed_mentions != None:
                 allowed_mentions = self.bot.allowed_mentions.merge(new)
             else:

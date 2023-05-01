@@ -167,7 +167,7 @@ class StrapBotHelp(commands.HelpCommand):
     def get_bot_help(self, mapping):
         return (
             discord.Embed(
-                description=self._get_help_text(), color=discord.Color.lighter_grey()
+                description=self._get_help_text(), color=self.context.me.accent_color
             )
             .set_footer(
                 text="footer",
@@ -217,7 +217,7 @@ class StrapBotHelp(commands.HelpCommand):
         ret = (
             discord.Embed(
                 description=self.get_cog_description(cog),
-                color=discord.Color.lighter_grey(),
+                color=self.context.me.accent_color,
             )
             .set_author(name=self.get_cog_name(cog), icon_url=self.context.me.avatar)
             .set_footer(text=footer, icon_url=self.context.me.avatar)
@@ -284,7 +284,7 @@ class StrapBotHelp(commands.HelpCommand):
         embed = discord.Embed(
             title=f"`{self.get_command_signature(command).strip()}`",
             description=desc or "command_no_description",
-            color=discord.Color.lighter_grey(),
+            color=self.context.me.accent_color,
         )
         if isinstance(command, (commands.Group, commands.HybridGroup)):
             cmds = [cmd.name for cmd in command.walk_commands()]

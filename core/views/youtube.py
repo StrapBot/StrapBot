@@ -96,7 +96,7 @@ class ChannelsPaginator(PaginationView):
     async def salve(self, interaction: Interaction, button: ui.Button):
         await interaction.response.defer()
         youtuber = self.results[self.current]
-        channel: discord.TextChannel = self.ctx.bot.get_channel(  #  type: ignore
+        channel: discord.TextChannel = self.ctx.bot.get_channel(  #  type: ignore
             self.ctx.guild_config.yt_news_channel_id
         )
 
@@ -104,17 +104,17 @@ class ChannelsPaginator(PaginationView):
             await self.ctx.bot.request_pubsubhubbub(youtuber["id"], True)
             db = self.ctx.bot.get_db("YouTubeNews", False)
             channel_db = (
-                await db.find_one({"_id": youtuber["id"]})  #  type: ignore
+                await db.find_one({"_id": youtuber["id"]})  #  type: ignore
             ) or {"guilds": []}
 
             channel_db["guilds"].append(channel.guild.id)
             await db.update_one(
                 {"_id": youtuber["id"]}, {"$set": channel_db}, upsert=True
-            )  #  type: ignore
+            )  #  type: ignore
 
         except Exception as e:
             await interaction.followup.edit_message(
-                interaction.message.id,  #  type: ignore
+                interaction.message.id,  #  type: ignore
                 content="error",
                 view=None,
                 embed=None,
@@ -134,9 +134,9 @@ class ChannelsPaginator(PaginationView):
             "added", {"youtuber": youtuber["title"], "channel": channel.mention}
         )
         await interaction.followup.edit_message(
-            interaction.message.id,  #  type: ignore
+            interaction.message.id,  #  type: ignore
             content=msg,
-            embed=None,  #  type: ignore
+            embed=None,  #  type: ignore
             view=None,  # type: ignore
         )
 
@@ -242,9 +242,7 @@ class AddChannelModal(ui.Modal):
         await interaction.response.defer()
         results = await self.search_channels(self.id_or_url_or_username.value)
         if not results:
-            await interaction.followup.send(
-                "no_results"
-            )
+            await interaction.followup.send("no_results")
             return
 
         paginator = ChannelsPaginator(self.view, results)

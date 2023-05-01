@@ -23,7 +23,7 @@ db: Optional[AgnosticCollection] = None
 
 
 async def send_requrl_to_db(url):
-    internal_db = mongo.Internal  #  type: ignore
+    internal_db = mongo.Internal  #  type: ignore
     await internal_db.update_one({"_id": "server"}, {"$set": {"request_url": url}}, upsert=True)  # type: ignore
 
 
@@ -76,14 +76,14 @@ async def send_new_video(
                 webhook_url, session=session, bot_token=os.getenv("TOKEN")
             ).fetch()
         except NotFound:
-            guilds_db = mongo.YouTubeNewsGuilds  #  type: ignore
+            guilds_db = mongo.YouTubeNewsGuilds  #  type: ignore
             gdata = await guilds_db.find_one({"_id": guild_id})
             if not gdata.get("needs_new_webhook", False):
                 await guilds_db.update_one(
                     {"_id": guild_id}, {"$set": {"needs_new_webhook": True}}
                 )
         else:
-            cfgdb: AgnosticCollection = mongo.Configurations  #  type: ignore
+            cfgdb: AgnosticCollection = mongo.Configurations  #  type: ignore
             guild_config: dict = await cfgdb.find_one({"_id": webhook.guild_id})  # type: ignore
             default = "{url}"
             msg = guild_config.get("youtube_message", None) or default
@@ -105,7 +105,7 @@ async def send_new_video(
 async def before_server_start(app, loop):
     global mongo, db
     mongo = AsyncIOMotorClient(os.getenv("MONGO_URI"), io_loop=loop).strapbotrew
-    await mongo.command({"ping": 1})  #  type: ignore
+    await mongo.command({"ping": 1})  #  type: ignore
     db = mongo.YouTubeNews  # type: ignore
     app.ctx.mongo = mongo
     app.ctx.db = db
@@ -135,7 +135,7 @@ async def notify(request: Request):
 
         entry = feed["entry"]
         url = entry["link"]["@href"]
-        guilds = ((await db.find_one({"_id": channel_id})) or {}).get(  #  type: ignore
+        guilds = ((await db.find_one({"_id": channel_id})) or {}).get(  #  type: ignore
             "guilds", []
         )
         if not guilds:
@@ -149,7 +149,7 @@ async def notify(request: Request):
         channel_name = author["name"]
         channel_url = author["uri"]
         for guild_id in guilds:
-            gdb = mongo.YouTubeNewsGuilds  #  type: ignore
+            gdb = mongo.YouTubeNewsGuilds  #  type: ignore
             gdata = await gdb.find_one({"_id": guild_id})
             tasks.append(
                 send_new_video(

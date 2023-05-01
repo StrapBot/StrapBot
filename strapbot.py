@@ -102,7 +102,7 @@ class StrapBot(commands.Bot):
         if isinstance(target, discord.Member):
             ret = self.get_user(target.id)  # must be User and not Member
 
-        return await Config.create_config(self, ret or target)  #  type: ignore
+        return await Config.create_config(self, ret or target)  #  type: ignore
 
     def get_db(self, dbname, cog=True):
         name = dbname
@@ -140,10 +140,10 @@ class StrapBot(commands.Bot):
             # TODO: maybe put the cache expiration in an environment variable
             await cache.create_index(
                 "used_at", name="ClearIndex", expireAfterSeconds=172800
-            )  #  type: ignore
+            )  #  type: ignore
             await cache.create_index(
                 "query", name="QueriesIndex", unique=True
-            )  #  type: ignore
+            )  #  type: ignore
 
         logger.info(f"Connected to {mongodb} database.")
 
@@ -219,7 +219,7 @@ class StrapBot(commands.Bot):
 
         _maybe_log(logging.DEBUG, "Checking if the server is running...")
         internal = self.get_db("Internal", cog=False)
-        data = await internal.find_one({"_id": "server"})  #  type: ignore
+        data = await internal.find_one({"_id": "server"})  #  type: ignore
         yt_msg = "You didn't setup the server. YouTube news will not work."
         if data == None or (data and data.get("request_url", None) == None):
             _maybe_log(logging.WARNING, yt_msg)
@@ -249,7 +249,7 @@ class StrapBot(commands.Bot):
     ):
         assert await self.check_youtube_news(), "The server is down."
         internal = self.get_db("Internal", cog=False)
-        serverdata = await internal.find_one({"_id": "server"})  #  type: ignore
+        serverdata = await internal.find_one({"_id": "server"})  #  type: ignore
         data = {
             "hub.callback": f"{serverdata['request_url']}/notify",
             "hub.topic": f"https://www.youtube.com/xml/feeds/videos.xml?channel_id={channel_id}",
@@ -356,7 +356,7 @@ class StrapBot(commands.Bot):
         error: discord.app_commands.AppCommandError,
         /,
     ) -> None:
-        await self._original_tree_error(interaction, error)  #  type: ignore
+        await self._original_tree_error(interaction, error)  #  type: ignore
         await self.handle_errors(error, interaction.namespace, "interaction")
 
     async def on_error(self, meth: str, *args, **kwargs):
@@ -366,7 +366,7 @@ class StrapBot(commands.Bot):
 
     async def on_command_error(self, ctx: StrapContext, exc: commands.CommandError):
         while hasattr(exc, "original"):
-            exc = exc.original  #  type: ignore
+            exc = exc.original  #  type: ignore
 
         await super().on_command_error(ctx, exc)
         if isinstance(exc, commands.CommandNotFound):

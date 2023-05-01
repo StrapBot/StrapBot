@@ -1,28 +1,34 @@
 import discord
-from typing import List, Dict, Union, Optional
+from typing import List, Union
+from typing_extensions import Self
 from discord import Embed, ButtonStyle
 from discord import ui
+from . import View
 from core.context import StrapContext
 
 # subclass this when making a custom stop button
 class StopButton(ui.Button):
     def __init__(self, emoji: str = "⏹️"):
         super().__init__(
-            emoji=emoji or "⏹️", custom_id="stop", style=ButtonStyle.blurple
+            emoji=emoji or "⏹️", custom_id="nav_stop", style=ButtonStyle.blurple
         )
+        self.view: PaginationView
 
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.edit_message(view=None)
         self.view.stop()  # type: ignore
 
 
-class PaginationView(ui.View):
+class PaginationView(View):
     def __init__(self, *pages: Union[Embed, List[Embed], str], **kwargs):
-        super().__init__(**kwargs)
         stop_button: StopButton = kwargs.pop("stop_button", None) or StopButton()
+        self.current = kwargs.pop("index", 0)
+        super().__init__(**kwargs)
         stop_button._view = self
         if not isinstance(stop_button, StopButton):
             raise ValueError("custom stop buttons must derive from StopButton")
+
+        self._stop_button_changed = stop_button.__class__ != StopButton
 
         # just in case the order is changed in the future
         for i, c in enumerate(self.children):
@@ -33,7 +39,6 @@ class PaginationView(ui.View):
                 break
 
         self.pages: List[dict] = []
-        self.current = kwargs.pop("index", 0)
         self.author: Union[discord.Member, discord.User]
         if not pages:
             raise ValueError
@@ -52,6 +57,17 @@ class PaginationView(ui.View):
             self.pages.append(
                 {"embeds": embeds, "content": str(content) if content else None}
             )
+
+    @property
+    def navigation_children(self) -> List[ui.Item[Self]]:
+        def check(child):
+            return child.custom_id.startswith("nav_")
+
+        return list(filter(check, self.children))
+
+    @property
+    def additional_children(self):
+        return [c for c in self.children if c not in self.navigation_children]
 
     def update_embeds(self, embeds: List[discord.Embed]) -> List[discord.Embed]:
         ret = []
@@ -73,16 +89,39 @@ class PaginationView(ui.View):
         except Exception:
             pass
 
-    async def start(self, ctx: StrapContext, reply="", **kwargs):
-        self.author = ctx.author
-        kwargs.update(self.pages[self.current].copy())
+    async def setup(
+        self, author: Union[discord.Member, discord.User], **kwargs
+    ) -> dict:
+        """
+        A manual alternative to start() to use
+        for `Interaction`s or when editing a message.
 
-        if len(self.pages) > 1:
+        Returns the keyword arguments to pass.
+        """
+        self.author = author
+        kwargs.update(self.pages[self.current].copy())
+        if len(self.pages) > 1 or self.additional_children or self._stop_button_changed:
             kwargs["view"] = self
-            self.update_buttons()
+            if len(self.pages) > 1:
+                self.update_buttons()
+            else:
+                for i in self.navigation_children:
+                    if isinstance(i, StopButton) and self._stop_button_changed:
+                        # the stop button has been replaced, don't remove it
+                        continue
+
+                    self.remove_item(i)
+
+        elif "view" not in kwargs:
+            kwargs["view"] = None
 
         if kwargs["embeds"]:
             kwargs["embeds"] = self.update_embeds(kwargs["embeds"])
+
+        return kwargs
+
+    async def start(self, ctx: StrapContext, reply="", **kwargs):
+        kwargs.update(await self.setup(ctx.author, **kwargs))
 
         if reply == None:
             send = ctx.send
@@ -116,18 +155,18 @@ class PaginationView(ui.View):
         self.next_page.disabled = r_disabled
         self.last_page.disabled = r_disabled
 
-    @ui.button(emoji="◀️", custom_id="previous", row=3, style=ButtonStyle.green)
+    @ui.button(emoji="◀️", custom_id="nav_previous", row=3, style=ButtonStyle.green)
     async def previous_page(self, interaction: discord.Interaction, button: ui.Button):
         curr = self.current
         if curr <= 0:
             curr = 1
         await self.show_page(interaction, curr - 1)
 
-    @ui.button(custom_id="stop", row=3)
+    @ui.button(custom_id="nav_stop", row=3)
     async def stop_button(self, interaction: discord.Interaction, button: ui.Button):
         ...
 
-    @ui.button(emoji="▶️", custom_id="next", row=3, style=ButtonStyle.green)
+    @ui.button(emoji="▶️", custom_id="nav_next", row=3, style=ButtonStyle.green)
     async def next_page(self, interaction: discord.Interaction, button: ui.Button):
         curr = self.current
         if curr >= len(self.pages):
@@ -135,18 +174,18 @@ class PaginationView(ui.View):
 
         await self.show_page(interaction, curr + 1)
 
-    @ui.button(emoji="⏮️", custom_id="first", row=4, style=ButtonStyle.green)
+    @ui.button(emoji="⏮️", custom_id="nav_first", row=4, style=ButtonStyle.green)
     async def first_page(self, interaction: discord.Interaction, button: ui.Button):
         await self.show_page(interaction, 0)
 
-    @ui.button(emoji="🔢", custom_id="num", row=4, style=ButtonStyle.blurple)
+    @ui.button(emoji="🔢", custom_id="nav_num", row=4, style=ButtonStyle.blurple)
     async def choose_page(self, interaction: discord.Interaction, button: ui.Button):
         if interaction.user.id != self.author.id:
             return
 
         await interaction.response.send_modal(PageModal(self))
 
-    @ui.button(emoji="⏭️", custom_id="last", row=4, style=ButtonStyle.green)
+    @ui.button(emoji="⏭️", custom_id="nav_last", row=4, style=ButtonStyle.green)
     async def last_page(self, interaction: discord.Interaction, button: ui.Button):
         await self.show_page(interaction, len(self.pages) - 1)
 

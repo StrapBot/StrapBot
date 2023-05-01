@@ -244,7 +244,7 @@ class YouTubeNewsChannelType(GuildConfigType):
         if cfg != None:
             old_channel: Optional[TextChannel] = bot.get_channel(
                 cfg["channel_id"]
-            )  #  type: ignore
+            )  #  type: ignore
             if old_channel != None:
                 old_wh = discord.utils.get(
                     await old_channel.webhooks(), url=cfg["webhook_url"]

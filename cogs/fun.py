@@ -62,9 +62,7 @@ class Fun(commands.Cog):
 
         await ctx.send(
             file=discord.File(img, filename="quote.jpg"),
-            embed=discord.Embed(
-                url=url, color=discord.Color.lighter_grey(), description="sent"
-            )
+            embed=discord.Embed(url=url, color=ctx.me.accent_color, description="sent")
             .set_image(url="attachment://quote.jpg")
             .set_author(
                 name="InspiroBot", icon_url=ctx.me.avatar, url="https://inspirobot.me"

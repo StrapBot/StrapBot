@@ -293,7 +293,7 @@ class MyTranslator(Translator):
         if isinstance(context.data, Parameter):
             command = context.data.command
         props = await loop.run_in_executor(
-            None, partial(get_lang, lang, command=command)  #  type: ignore
+            None, partial(get_lang, lang, command=command)  #  type: ignore
         )
         props_check = lambda: props == None or (
             isinstance(command, Choice) and command.name not in props

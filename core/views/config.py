@@ -208,7 +208,7 @@ class SelectPropertyView(PropertyView):
         except Exception:
             select.disabled = True
             await interaction.followup.edit_message(
-                interaction.message.id, view=self  #  type: ignore
+                interaction.message.id, view=self  #  type: ignore
             )
             raise
         await self.ctx.config.fetch()
@@ -232,7 +232,7 @@ class SelectPropertyView(PropertyView):
 
         if self.menu_type.type == MenuType.string:
             items: ui.Select = discord.utils.get(
-                self.children, custom_id="select"  #  type: ignore
+                self.children, custom_id="select"  #  type: ignore
             )
             for opt in items.options:
                 opt.default = opt.value == self.config[self.key]
@@ -312,7 +312,7 @@ class ConfigButton(ui.Button):
 
         view = viewtype(self.ctx, self.config, self.key, self.view, **kwargs)
         await interaction.followup.edit_message(
-            interaction.message.id, content=content, view=view  #  type: ignore
+            interaction.message.id, content=content, view=view  #  type: ignore
         )
 
 
@@ -377,7 +377,7 @@ class ModChoiceButton(ui.Button):
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer()
         cfg = await self.bot.get_config(getattr(self.view, str(self.custom_id)))
-        view = ConfigMenuView(self.ctx, cfg, self.view)  #  type: ignore
+        view = ConfigMenuView(self.ctx, cfg, self.view)  #  type: ignore
         await interaction.followup.edit_message(
             interaction.message.id,  # type: ignore
             content=self.ctx.format_message(view.content),
