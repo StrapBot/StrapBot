@@ -90,7 +90,7 @@ class Utilities(commands.Cog):
             ephemeral=True,
         )
 
-    @commands.command()
+    @commands.hybrid_command()
     @server_online()
     async def youtube(self, ctx: StrapContext):
         if not ctx.guild_config.yt_news_channel_id:
