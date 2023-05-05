@@ -6,7 +6,6 @@ The bot is still being rewritten at the moment, not all features of the old one 
 ## Features to be added
 - Moderation commands;
 - Music commands (without YouTube) [unlikely though];
-- YouTube news;
 - Support for modals on config.
 
 ## Translating

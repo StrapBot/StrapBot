@@ -74,13 +74,14 @@ class ChannelsPaginator(PaginationView):
         **kwargs,
     ):
         self.results = results
-        self.ctx = view.ctx
+        kwargs["context"] = self.ctx = view.ctx
         self.used_by = used_by
         pages = [self.parse_result(x) for x in results]
         kwargs["stop_button"] = kwargs.pop("stop_button", None) or BackButton(view)
         super().__init__(*pages, **kwargs)
         if used_by == "del":
-            self.choose.label = "btn_delete"
+            self.choose.label = self.ctx.format_message("btn_delete")
+            self.choose.style = discord.ButtonStyle.red
 
     def parse_result(self, result: dict) -> discord.Embed:
         e = {"add": "results", "del": "delete"}[self.used_by]
@@ -100,7 +101,7 @@ class ChannelsPaginator(PaginationView):
 
         return ret
 
-    @ui.button(custom_id="choose", label="btn_choose")
+    @ui.button(custom_id="choose", label="btn_choose", style=discord.ButtonStyle.green)
     async def choose(self, interaction: Interaction, button: ui.Button):
         await interaction.response.defer()
         subscribe = self.used_by == "add"
@@ -118,7 +119,7 @@ class ChannelsPaginator(PaginationView):
             if subscribe and channel.guild.id in channel_db["guilds"]:
                 await interaction.followup.edit_message(
                     interaction.message.id,  #  type: ignore
-                    content="already_added",
+                    content=self.ctx.format_message("already_added"),
                     view=None,
                     embed=None,
                 )
@@ -274,6 +275,7 @@ class AddChannelModal(ui.Modal):
 
     async def on_submit(self, interaction: Interaction, /) -> None:
         await interaction.response.defer()
+        # TODO: add loading
         results = await self.search_channels(self.id_or_url_or_username.value)
         if not results:
             await interaction.followup.send("no_results")
@@ -293,7 +295,7 @@ class YouTubeView(View):
         *,
         timeout: Optional[float] = 180,
     ):
-        super().__init__(timeout=timeout)
+        super().__init__(ctx, timeout=timeout)
         self.ctx = ctx
         self.__content = content
         self.format = format
@@ -323,23 +325,25 @@ class YouTubeView(View):
         if not data["channels"]:
             await interaction.followup.edit_message(
                 interaction.message.id,  # type: ignore
-                content="channels_empty",
+                content=self.ctx.format_message("channels_empty"),
                 embed=None,
                 view=None,
             )
             return
 
         pages = []
-        for chns in paginate_list(data["channels"], 5):
+        items_per_page = 10
+        for j, chns in enumerate(paginate_list(data["channels"], items_per_page)):
             desc = []
-            for chn in chns:
+            for i, chn in enumerate(chns):
                 title = chn["title"]
                 if len(title) > 30:
                     title = title[:27] + "..."
 
                 url = f"https://youtube.com/channel/{chn['id']}"
 
-                title = f"- [**`{title}`**]({url})"
+                jj = items_per_page * j
+                title = f"{jj+i+1}. [**`{title}`**]({url})"
                 desc.append(title)
 
             pages.append(
@@ -348,7 +352,7 @@ class YouTubeView(View):
                 ).set_author(name="channels_list", icon_url=self.ctx.me.avatar)
             )
 
-        view = PaginationView(*pages, stop_button=BackButton(self))
+        view = PaginationView(*pages, context=self.ctx, stop_button=BackButton(self))
         kwargs = await view.setup(interaction.user)
         await interaction.followup.edit_message(
             interaction.message.id, **kwargs  #  type: ignore
@@ -365,7 +369,7 @@ class YouTubeView(View):
         if not data:
             await interaction.followup.edit_message(
                 interaction.message.id,  # type: ignore
-                content="channels_empty",
+                content=self.ctx.format_message("channels_empty"),
                 embed=None,
                 view=None,
             )

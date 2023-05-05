@@ -23,7 +23,7 @@ class PaginationView(View):
     def __init__(self, *pages: Union[Embed, List[Embed], str], **kwargs):
         stop_button: StopButton = kwargs.pop("stop_button", None) or StopButton()
         self.current = kwargs.pop("index", 0)
-        super().__init__(**kwargs)
+        super().__init__(kwargs.pop("context", None), **kwargs)
         stop_button._view = self
         if not isinstance(stop_button, StopButton):
             raise ValueError("custom stop buttons must derive from StopButton")
@@ -72,7 +72,11 @@ class PaginationView(View):
     def update_embeds(self, embeds: List[discord.Embed]) -> List[discord.Embed]:
         ret = []
         for emb in embeds:
-            embed = emb.copy()
+            if self.ctx:
+                embed = self.ctx.format_embed(emb)
+            else:
+                embed = emb.copy()
+
             footer = embed.footer.text
             footer_text = f"Page {self.current + 1} of {len(self.pages)}"
             footer_text += f" | {footer}" if footer else ""

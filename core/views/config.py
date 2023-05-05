@@ -1,6 +1,7 @@
 import os
 import discord
 from discord import ui
+from core.context import StrapContext
 from . import View
 from ..config import AnyConfig, SelectMenuType, MenuType
 from ..utils import get_lang_config_names, DEFAULT_LANG_ENV
@@ -27,12 +28,9 @@ def _get_lang_props(lang: str, key: Any):
 
 
 class ConfigView(View):
-    def __init__(self, ctx: StrapContext, timeout: float = 180):
-        super().__init__(timeout=timeout)
-        self.ctx = ctx
-
-    async def interaction_check(self, interaction: discord.Interaction, /) -> bool:
-        return interaction.user.id == self.ctx.author.id
+    def __init__(self, ctx: StrapContext, *, timeout: Optional[float] = 180):
+        super().__init__(ctx, timeout=timeout)
+        self.ctx = ctx  # at least Pylance doesn't complain now
 
 
 class PropertyView(ConfigView):
