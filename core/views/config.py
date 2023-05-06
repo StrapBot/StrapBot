@@ -1,8 +1,10 @@
 import os
 import discord
 from discord import ui
+from discord.interactions import Interaction
+from discord.utils import MISSING
 from core.context import StrapContext
-from . import View
+from . import View, Modal
 from ..config import AnyConfig, SelectMenuType, MenuType
 from ..utils import get_lang_config_names, DEFAULT_LANG_ENV
 from ..context import StrapContext
@@ -41,7 +43,7 @@ class PropertyView(ConfigView):
         key: str,
         parent=None,
         *,
-        timeout: float = 180,
+        timeout: Optional[float] = 180,
     ):
         super().__init__(ctx, timeout=timeout)
         self.parent = parent
@@ -57,7 +59,8 @@ class PropertyView(ConfigView):
         except Exception:
             await self.config.set(**{self.key: original_value})
             raise
-
+        else:
+            await self.config.fetch()
         return ret
 
     @ui.button(**BACK_BUTTON_PROPS)
@@ -100,14 +103,82 @@ class BooleanPropertyView(PropertyView):
         self.value = not self.value
         await interaction.response.defer()
         await self.set(self.value)
-        await self.ctx.config.fetch()
-        await self.ctx.guild_config.fetch()
         data = _get_lang_props(self.ctx.language_to_use, self.key)
         cont = CONFIG_TEMPLATE.format(
             name=data["name"], description=data["description"]
         )
         self.update_button_name()
         await interaction.followup.edit_message(interaction.message.id, content=cont, view=self)  # type: ignore
+
+
+class CustomPropertyModal(Modal):
+    def __init__(
+        self, view: "CustomPropertyView", *, timeout: Optional[float] = None
+    ) -> None:
+        self.view = view
+        data = _get_lang_props(view.ctx.language_to_use, view.key)
+        super().__init__(view.ctx, title=data["name"], timeout=timeout)
+        self.ctx = view.ctx
+
+    @classmethod
+    def create(cls, view: "CustomPropertyView", *, timeout: Optional[float] = None):
+        cfg_type = view.config.types[view.key]
+        style = cfg_type.text_style or discord.TextStyle.short
+        value = view.config[view.key]
+        cls.value = ui.TextInput(
+            label="value_input_label",
+            style=style,
+            placeholder=cfg_type.default,
+            default=value,
+        )
+        cls.__modal_children_items__["value"] = cls.value
+
+        return cls(view, timeout=timeout)
+
+    async def on_submit(self, interaction: Interaction):
+        await interaction.response.defer()
+
+        value = self.value.value
+        await self.view.set(value)
+
+        lang = _get_lang_props(self.ctx.language_to_use, self.view.key)
+        cont = CONFIG_TEMPLATE.format(
+            name=lang["name"], description=lang["description"]
+        )
+        curr = self.view.get_current(
+            self.view.config.types[self.view.key].text_style,
+            value,
+        )
+        self.value.default = value
+        m = self.ctx.format_message("current_conf", {"current": curr})
+        cont += f"\n\n{m}"
+
+        # recreate the View so the modal will change value
+        self.view.stop()
+        view = CustomPropertyView(
+            self.ctx,
+            self.view.config,
+            self.view.key,
+            self.view.parent,
+            timeout=self.view.timeout,
+        )
+        await interaction.followup.edit_message(
+            interaction.message.id, content=cont, view=view  #  type: ignore
+        )
+
+
+class CustomPropertyView(PropertyView):
+    @staticmethod
+    def get_current(text_style: Optional[discord.TextStyle], conf):
+        text_style = text_style or discord.TextStyle.short
+        is_short = text_style == discord.TextStyle.short
+        sym = "`" * (1 if is_short else 3)
+        n = "\n" if not is_short else ""
+        return f"{sym}{n}{conf}{n}{sym}"
+
+    @ui.button(label="set")
+    async def open_modal(self, interaction: discord.Interaction, button: ui.Button):
+        await interaction.response.send_modal(CustomPropertyModal.create(self))
 
 
 # please give me a better way to do this
@@ -209,8 +280,6 @@ class SelectPropertyView(PropertyView):
                 interaction.message.id, view=self  #  type: ignore
             )
             raise
-        await self.ctx.config.fetch()
-        await self.ctx.guild_config.fetch()
         lang = _get_lang_props(self.ctx.language_to_use, self.key)
         cont = CONFIG_TEMPLATE.format(
             name=lang["name"], description=lang["description"]
@@ -278,7 +347,6 @@ class ConfigButton(ui.Button):
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer()
         await self.config.fetch()
-        await self.ctx.guild_config.fetch()
         self.data = _get_lang_props(self.ctx.language_to_use, self.key)
         kwargs = {}
         viewtype: Type[PropertyView] = PropertyView
@@ -291,7 +359,8 @@ class ConfigButton(ui.Button):
         if isinstance(conf, bool):
             viewtype = BooleanPropertyView
         elif conf_tp.custom:
-            pass  # Modals are to be implemented yet
+            viewtype = CustomPropertyView
+            current = viewtype.get_current(conf_tp.text_style, conf)
         elif conf_tp.select_menu_type != None:
             menu_type = conf_tp.select_menu_type
             viewtype = SelectPropertyView
@@ -374,7 +443,7 @@ class ModChoiceButton(ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer()
-        cfg = await self.bot.get_config(getattr(self.view, str(self.custom_id)))
+        cfg = getattr(self.ctx, f"{self.custom_id}_config")
         view = ConfigMenuView(self.ctx, cfg, self.view)  #  type: ignore
         await interaction.followup.edit_message(
             interaction.message.id,  # type: ignore

@@ -5,16 +5,15 @@ import json
 from discord.ext import commands
 from discord.ext.commands.view import StringView
 from .utils import get_lang
-
+from typing_extensions import Self
 from .config import GuildConfig, UserConfig
 
 
 class StrapContext(commands.Context):
-    config: UserConfig
-    guild_config: GuildConfig
-
     def __init__(
         self,
+        user_config: UserConfig,
+        guild_config: GuildConfig,
         *,
         message: discord.Message,
         bot: commands.Bot,
@@ -52,6 +51,30 @@ class StrapContext(commands.Context):
         from strapbot import StrapBot
 
         self.bot: StrapBot = bot  # type: ignore
+        self.__user_config = user_config
+        self.__guild_config = guild_config
+
+    @classmethod
+    def create(cls, user_config: UserConfig, guild_config: GuildConfig) -> typing.Type[Self]:
+        def creator(**kwargs) -> Self:
+            return cls(user_config, guild_config, **kwargs)
+
+        return creator  #  type: ignore
+
+    @property
+    def config(self) -> UserConfig:
+        """Alias for `user_config`."""
+        return self.user_config
+
+    @property
+    def user_config(self) -> UserConfig:
+        """The current user's settings"""
+        return self.__user_config
+
+    @property
+    def guild_config(self) -> GuildConfig:
+        """The current guild's settings."""
+        return self.__guild_config
 
     @property
     def lang(self) -> typing.Optional[dict]:

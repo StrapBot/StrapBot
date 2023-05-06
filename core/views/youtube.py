@@ -9,7 +9,7 @@ from discord import ui, Interaction, ButtonStyle
 from enum import Enum
 from typing import Optional, Tuple
 from urllib.parse import urlencode
-from . import View, PaginationView, StopButton
+from . import View, Modal, PaginationView, StopButton
 from ..utils import get_guild_youtube_channels, paginate_list
 
 
@@ -174,12 +174,14 @@ class ChannelsPaginator(PaginationView):
         )
 
 
-class AddChannelModal(ui.Modal):
+class AddChannelModal(Modal):
     BASE_LINK = "https://www.googleapis.com/youtube/v3"
-    id_or_url_or_username = ui.TextInput(label="Channel", custom_id="channel")
+    id_or_url_or_username = ui.TextInput(
+        label="channel_input_label", custom_id="channel"
+    )
 
     def __init__(self, view: "YouTubeView") -> None:
-        super().__init__(title="placeholder")
+        super().__init__(view.ctx, title="add_modal_title")
         self.view = view
         self.ctx = view.ctx
 

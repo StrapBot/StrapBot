@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 from traceback import format_exc
 from motor.motor_asyncio import AsyncIOMotorClient
 from motor.core import AgnosticClient, AgnosticCollection
-from discord import Webhook, NotFound, File
+from discord import Webhook, NotFound, File, AllowedMentions
 from io import BytesIO
 from typing import Optional
 
@@ -98,7 +98,7 @@ async def send_new_video(
             cfgdb: AgnosticCollection = mongo.Configurations  #  type: ignore
             guild_config: dict = await cfgdb.find_one({"_id": webhook.guild_id})  # type: ignore
             default = "{url}"
-            msg = guild_config.get("youtube_message", None) or default
+            msg = guild_config.get("yt_news_message", None) or default
             channel = f"[{channel_name}](<{channel_url}>)"
             video = f"[{name}]({url})"
             await webhook.send(
@@ -109,7 +109,10 @@ async def send_new_video(
                     channel_url=channel_url,
                     url=url,
                     video=video,
-                )
+                ),
+                allowed_mentions=AllowedMentions(
+                    everyone=True, users=False, roles=True
+                ),
             )
 
 

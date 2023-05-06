@@ -5,8 +5,7 @@ The bot is still being rewritten at the moment, not all features of the old one 
 
 ## Features to be added
 - Moderation commands;
-- Music commands (without YouTube) [unlikely though];
-- Support for modals on config.
+- Music commands (without YouTube) [unlikely though].
 
 ## Translating
 Translations are always welcome! You can send a pull request to [the languages repository](https://github.com/StrapBot/languages.git) translating the bot to your language.

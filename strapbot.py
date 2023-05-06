@@ -12,7 +12,7 @@ from aiohttp import ClientSession
 from discord.ext import commands
 from motor.core import AgnosticClient, AgnosticCollection, AgnosticDatabase
 from motor.motor_asyncio import AsyncIOMotorClient
-from core.config import AnyConfig, Config
+from core.config import AnyConfig, Config, UserConfig, GuildConfig
 from core.context import StrapContext
 from core.utils import (
     IS_TERMINAL,
@@ -293,10 +293,14 @@ class StrapBot(commands.Bot):
             self.repl_thread.start()
 
     async def get_context(self, message: discord.Message, /, *, cls=StrapContext):
-        ctx = await super().get_context(message, cls=cls)
-        ctx.config = await self.get_config(ctx.author)  # type: ignore
-        ctx.guild_config = await self.get_config(ctx.guild)  # type: ignore
-        return ctx
+        if not issubclass(cls, StrapContext):
+            raise TypeError("context class must inherit from StrapContext")
+
+        user_config: UserConfig = await self.get_config(message.author)  # type: ignore
+        guild_config: GuildConfig = await self.get_config(message.guild)  # type: ignore
+        return await super().get_context(
+            message, cls=cls.create(user_config, guild_config)
+        )
 
     @staticmethod
     def create_random_string(length=10):

@@ -1,6 +1,8 @@
 import typing
+
+from discord.utils import MISSING
 from strapbot import StrapBot
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional
 from discord import ui
 from discord.interactions import Interaction
 from discord.ui.item import Item
@@ -18,7 +20,15 @@ class View(ui.View):
 
     def format_items(self):
         assert self.ctx != None, "ctx must not be None"
-        for child in self.children:
+        if isinstance(self, Modal):
+            children = self.__modal_children_items__.values()
+        else:
+            children = self.children
+
+        if getattr(self, "title", MISSING) is not MISSING:
+            self.title = self.ctx.format_message(self.title)
+
+        for child in children:
             if hasattr(child, "label"):
                 child.label = self.ctx.format_message(child.label)  # type: ignore
 
@@ -40,3 +50,25 @@ class View(ui.View):
             author_id = interaction.user.id
 
         return interaction.user.id == author_id
+
+
+class Modal(ui.Modal, View):
+    def __init__(
+        self,
+        ctx: Optional[StrapContext] = None,
+        *,
+        title: str = MISSING,
+        timeout: Optional[float] = None,
+        custom_id: str = MISSING,
+    ) -> None:
+        super().__init__(title=title, timeout=timeout, custom_id=custom_id)
+        View.__init__(self, ctx, timeout=timeout)
+
+    def to_components(self) -> List[Dict[str, Any]]:
+        components = super().to_components()
+        if self.ctx:
+            for component in components:
+                for comp in component.get("components", {}):
+                    comp["label"] = self.ctx.format_message(comp["label"])
+
+        return components

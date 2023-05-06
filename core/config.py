@@ -3,7 +3,7 @@ import discord
 from .utils import lang_exists, get_langs_properties, get_flag_emoji
 from discord.ext import commands
 from discord import TextChannel, Thread, ChannelType, SelectOption
-from discord.enums import ComponentType
+from discord.enums import ComponentType, TextStyle
 from enum import Enum
 from typing import Optional, Union, Type, List, Dict, Any
 from functools import partial
@@ -60,6 +60,7 @@ class ConfigType:
     emoji = ""
     default: Any = None
     custom: bool = False
+    text_style: Optional[TextStyle] = None
     select_menu_type: Optional[SelectMenuType] = None
 
     def __new__(cls, value: Any, bot: commands.Bot) -> Optional[Any]:
@@ -257,6 +258,14 @@ class YouTubeNewsChannelType(GuildConfigType):
             {"$set": {"channel_id": value.id, "webhook_url": webhook.url}},
             upsert=True,
         )
+
+
+class YouTubeNewsMessageType(GuildConfigType):
+    key = "yt_news_message"
+    emoji = "\N{memo}"
+    default = "{link}"
+    custom = True
+    text_style = TextStyle.paragraph
 
 
 # User only configurations
