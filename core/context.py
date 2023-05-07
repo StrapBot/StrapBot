@@ -105,7 +105,7 @@ class StrapContext(commands.Context):
     @property
     def language_to_use(self) -> str:
         val = self.config.lang
-        if self.guild_config.override_guild_lang:
+        if self.guild and self.guild_config.override_guild_lang:
             val = self.guild_config.lang
 
         return val

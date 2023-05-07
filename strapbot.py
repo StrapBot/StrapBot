@@ -10,6 +10,9 @@ import dotenv
 import logging
 from aiohttp import ClientSession
 from discord.ext import commands
+from typing import Union
+from typing_extensions import Self
+from discord import Message, Interaction
 from motor.core import AgnosticClient, AgnosticCollection, AgnosticDatabase
 from motor.motor_asyncio import AsyncIOMotorClient
 from core.config import AnyConfig, Config, UserConfig, GuildConfig
@@ -75,7 +78,7 @@ class StrapBot(commands.Bot):
         return is_debugging()
 
     def do_give_prefixes(
-        self, bot, message: typing.Optional[discord.Message]
+        self, bot, message: typing.Optional[Message]
     ) -> typing.List[str]:
         p = os.getenv("BOT_PREFIX", "sb.").strip()
         p = p if p else "sb."
@@ -86,7 +89,7 @@ class StrapBot(commands.Bot):
         return pfixes
 
     def give_prefixes(
-        self, bot, message: typing.Optional[discord.Message]
+        self, bot, message: typing.Optional[Message]
     ) -> typing.List[str]:
         p = self.do_give_prefixes(bot, message)
         return commands.when_mentioned_or(*p)(bot, message)  # type: ignore
@@ -292,14 +295,19 @@ class StrapBot(commands.Bot):
         if self.use_repl and not self.debugging:
             self.repl_thread.start()
 
-    async def get_context(self, message: discord.Message, /, *, cls=StrapContext):
+    async def get_context(self, origin: Union[Message, Interaction[Self]], /, *, cls=StrapContext):
         if not issubclass(cls, StrapContext):
             raise TypeError("context class must inherit from StrapContext")
 
-        user_config: UserConfig = await self.get_config(message.author)  # type: ignore
-        guild_config: GuildConfig = await self.get_config(message.guild)  # type: ignore
+        if isinstance(origin, Interaction):
+            author = origin.user
+        else:
+            author = origin.author
+
+        user_config: UserConfig = await self.get_config(author) # type: ignore
+        guild_config: GuildConfig = await self.get_config(origin.guild) # type: ignore
         return await super().get_context(
-            message, cls=cls.configure(user_config, guild_config)
+            origin, cls=cls.configure(user_config, guild_config)
         )
 
     @staticmethod
@@ -371,7 +379,7 @@ class StrapBot(commands.Bot):
 
     async def on_tree_error(
         self,
-        interaction: discord.Interaction,
+        interaction: Interaction[Self],
         error: discord.app_commands.AppCommandError,
         /,
     ) -> None:
