@@ -299,7 +299,7 @@ class StrapBot(commands.Bot):
         user_config: UserConfig = await self.get_config(message.author)  # type: ignore
         guild_config: GuildConfig = await self.get_config(message.guild)  # type: ignore
         return await super().get_context(
-            message, cls=cls.create(user_config, guild_config)
+            message, cls=cls.configure(user_config, guild_config)
         )
 
     @staticmethod

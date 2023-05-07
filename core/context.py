@@ -6,24 +6,28 @@ from discord.ext import commands
 from discord.ext.commands.view import StringView
 from .utils import get_lang
 from typing_extensions import Self
+from discord.utils import MISSING
 from .config import GuildConfig, UserConfig
 
 
 class StrapContext(commands.Context):
+    __user_config: UserConfig = MISSING
+    __guild_config: GuildConfig = MISSING
+
     def __init__(
         self,
-        user_config: UserConfig,
-        guild_config: GuildConfig,
+        user_config: UserConfig = MISSING,
+        guild_config: GuildConfig = MISSING,
         *,
         message: discord.Message,
         bot: commands.Bot,
         view: StringView,
-        args: typing.List[typing.Any] = discord.utils.MISSING,
-        kwargs: typing.Dict[str, typing.Any] = discord.utils.MISSING,
+        args: typing.List[typing.Any] = MISSING,
+        kwargs: typing.Dict[str, typing.Any] = MISSING,
         prefix: typing.Optional[str] = None,
         command: typing.Optional[commands.Command] = None,
         invoked_with: typing.Optional[str] = None,
-        invoked_parents: typing.List[str] = discord.utils.MISSING,
+        invoked_parents: typing.List[str] = MISSING,
         invoked_subcommand: typing.Optional[commands.Command] = None,
         subcommand_passed: typing.Optional[str] = None,
         command_failed: bool = False,
@@ -51,15 +55,25 @@ class StrapContext(commands.Context):
         from strapbot import StrapBot
 
         self.bot: StrapBot = bot  # type: ignore
-        self.__user_config = user_config
-        self.__guild_config = guild_config
+        if (user_config is MISSING and self.__user_config is MISSING) or (
+            guild_config is MISSING and self.__guild_config is MISSING
+        ):
+            raise Exception("StrapContext must have both user and guild configs")
+        else:
+            if user_config is not MISSING:
+                self.__user_config = user_config
+
+            if guild_config is not MISSING:
+                self.__guild_config = guild_config
 
     @classmethod
-    def create(cls, user_config: UserConfig, guild_config: GuildConfig) -> typing.Type[Self]:
-        def creator(**kwargs) -> Self:
-            return cls(user_config, guild_config, **kwargs)
+    def configure(
+        cls, user_config: UserConfig, guild_config: GuildConfig
+    ) -> typing.Type[Self]:
+        cls.__user_config = user_config
+        cls.__guild_config = guild_config
 
-        return creator  #  type: ignore
+        return cls
 
     @property
     def config(self) -> UserConfig:
