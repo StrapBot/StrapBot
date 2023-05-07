@@ -1,7 +1,6 @@
 import os
 import discord
-from discord import ui
-from discord.interactions import Interaction
+from discord import ui, Interaction
 from discord.utils import MISSING
 from core.context import StrapContext
 from . import View, Modal
@@ -50,22 +49,60 @@ class PropertyView(ConfigView):
         self.config = config
         self.value = config[key]
         self.key = key
+        self._setting_prop = False
 
-    async def set(self, value: Any):
+    async def set(self, value: Any, interaction: Optional[Interaction] = None):
         original_value = self.config[self.key]
+        await self.set_disabled_items(True, interaction)
         ret = await self.config.set(**{self.key: value})
         try:
             await self.config.types[self.key].setup(self.ctx, value)
         except Exception:
             await self.config.set(**{self.key: original_value})
+            await self.set_disabled_items(True, interaction, keep_back=True)
             raise
         else:
-            await self.config.fetch()
+            await self.config.fetch(True)
+
+        # this time we're not editing the message because
+        # it'll be edited later in this View's subclasses
+        await self.set_disabled_items(False)
         return ret
 
+    async def set_disabled_items(
+        self,
+        value: bool,
+        /,
+        interaction: Optional[Interaction] = None,
+        *,
+        keep_back: bool = False,
+    ):
+        self._setting_prop = value
+        if keep_back:
+            self._setting_prop = False
+
+        for child in self.children:
+            if not hasattr(child, "disabled"):
+                continue
+
+            custid = getattr(child, "custom_id", "")
+            if custid == self.back.custom_id and keep_back:
+                self.back.disabled = False
+                continue
+
+            child.disabled = value  #  type: ignore
+
+        if interaction:
+            try:
+                await interaction.response.edit_message(view=self)
+            except discord.InteractionResponded:
+                await interaction.followup.edit_message(
+                    interaction.message.id, view=self  # type: ignore
+                )
+
     @ui.button(**BACK_BUTTON_PROPS)
-    async def back(self, interaction: discord.Interaction, button: ui.Button):
-        if not self.parent:
+    async def back(self, interaction: Interaction, button: ui.Button):
+        if not self.parent or self._setting_prop:
             return
 
         for child in self.parent.children:
@@ -99,10 +136,10 @@ class BooleanPropertyView(PropertyView):
         )
 
     @ui.button(label="Toggle", custom_id="toggle", style=ButtonStyle.green)
-    async def toggler(self, interaction: discord.Interaction, button: ui.Button):
+    async def toggler(self, interaction: Interaction, button: ui.Button):
         self.value = not self.value
         await interaction.response.defer()
-        await self.set(self.value)
+        await self.set(self.value, interaction)
         data = _get_lang_props(self.ctx.language_to_use, self.key)
         cont = CONFIG_TEMPLATE.format(
             name=data["name"], description=data["description"]
@@ -177,33 +214,33 @@ class CustomPropertyView(PropertyView):
         return f"{sym}{n}{conf}{n}{sym}"
 
     @ui.button(label="set")
-    async def open_modal(self, interaction: discord.Interaction, button: ui.Button):
+    async def open_modal(self, interaction: Interaction, button: ui.Button):
         await interaction.response.send_modal(CustomPropertyModal.create(self))
 
 
 # please give me a better way to do this
 class ChannelSelectMenu(ui.ChannelSelect):
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: Interaction):
         return await self.view.callback(interaction, self)  # type: ignore
 
 
 class RoleSelectMenu(ui.RoleSelect):
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: Interaction):
         return await self.view.callback(interaction, self)  # type: ignore
 
 
 class UserSelectMenu(ui.UserSelect):
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: Interaction):
         return await self.view.callback(interaction, self)  # type: ignore
 
 
 class MentionableSelectMenu(ui.MentionableSelect):
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: Interaction):
         return await self.view.callback(interaction, self)  # type: ignore
 
 
 class StringSelectMenu(ui.Select):
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: Interaction):
         return await self.view.callback(interaction, self)  # type: ignore
 
 
@@ -254,7 +291,7 @@ class SelectPropertyView(PropertyView):
 
         self.add_item(self.back)
 
-    async def callback(self, interaction: discord.Interaction, select: ui.Select):
+    async def callback(self, interaction: Interaction, select: ui.Select):
         await interaction.response.defer()
         if not self.menu_type:
             await self.back.callback(interaction)
@@ -272,14 +309,29 @@ class SelectPropertyView(PropertyView):
         if self.menu_type.min_values == 1 and self.menu_type.max_values == 1:
             val = val[0]
 
+
+        if self.menu_type.type == MenuType.string:
+            items: ui.Select = discord.utils.get(
+                self.children, custom_id="select"  #  type: ignore
+            )
+            for opt in items.options:
+                opt.default = opt.value == val
+
         try:
-            await self.set(val)
+            await self.set(val, interaction)
         except Exception:
             select.disabled = True
             await interaction.followup.edit_message(
                 interaction.message.id, view=self  #  type: ignore
             )
             raise
+        finally:
+            if self.menu_type.type == MenuType.string:
+                items: ui.Select = discord.utils.get(
+                    self.children, custom_id="select"  #  type: ignore
+                )
+                for opt in items.options:
+                    opt.default = opt.value == self.config[self.key]
         lang = _get_lang_props(self.ctx.language_to_use, self.key)
         cont = CONFIG_TEMPLATE.format(
             name=lang["name"], description=lang["description"]
@@ -296,13 +348,6 @@ class SelectPropertyView(PropertyView):
 
             m = self.ctx.format_message("current_conf", {"current": curr})
             cont += f"\n\n{m}"
-
-        if self.menu_type.type == MenuType.string:
-            items: ui.Select = discord.utils.get(
-                self.children, custom_id="select"  #  type: ignore
-            )
-            for opt in items.options:
-                opt.default = opt.value == self.config[self.key]
 
         await interaction.followup.edit_message(
             interaction.message.id, content=cont, view=self  # type: ignore
@@ -344,7 +389,7 @@ class ConfigButton(ui.Button):
         self.key = key
         self.ctx = ctx
 
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: Interaction):
         await interaction.response.defer()
         await self.config.fetch()
         self.data = _get_lang_props(self.ctx.language_to_use, self.key)
@@ -404,7 +449,7 @@ class ConfigMenuView(ConfigView):
             self.add_item(button)
 
     @ui.button(**BACK_BUTTON_PROPS)
-    async def back(self, interaction: discord.Interaction, button: ui.Button):
+    async def back(self, interaction: Interaction, button: ui.Button):
         if not self.parent:
             return
 
@@ -441,7 +486,7 @@ class ModChoiceButton(ui.Button):
         self.bot = ctx.bot
         self.view: ModChoiceView
 
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, interaction: Interaction):
         await interaction.response.defer()
         cfg = getattr(self.ctx, f"{self.custom_id}_config")
         view = ConfigMenuView(self.ctx, cfg, self.view)  #  type: ignore

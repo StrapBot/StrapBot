@@ -351,7 +351,7 @@ class Config:
                 modified = True
                 entry[k] = self.types[k](v, self.bot)
 
-        if modified or not update:
+        if modified or update:
             if modified:
                 await self.db.update_one({"_id": self.id}, {"$set": entry})  # type: ignore
             self._data: dict = await self.db.find_one({"_id": self.id})  # type: ignore

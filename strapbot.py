@@ -88,9 +88,7 @@ class StrapBot(commands.Bot):
 
         return pfixes
 
-    def give_prefixes(
-        self, bot, message: typing.Optional[Message]
-    ) -> typing.List[str]:
+    def give_prefixes(self, bot, message: typing.Optional[Message]) -> typing.List[str]:
         p = self.do_give_prefixes(bot, message)
         return commands.when_mentioned_or(*p)(bot, message)  # type: ignore
 
@@ -295,7 +293,9 @@ class StrapBot(commands.Bot):
         if self.use_repl and not self.debugging:
             self.repl_thread.start()
 
-    async def get_context(self, origin: Union[Message, Interaction[Self]], /, *, cls=StrapContext):
+    async def get_context(
+        self, origin: Union[Message, Interaction[Self]], /, *, cls=StrapContext
+    ):
         if not issubclass(cls, StrapContext):
             raise TypeError("context class must inherit from StrapContext")
 
@@ -304,8 +304,8 @@ class StrapBot(commands.Bot):
         else:
             author = origin.author
 
-        user_config: UserConfig = await self.get_config(author) # type: ignore
-        guild_config: GuildConfig = await self.get_config(origin.guild) # type: ignore
+        user_config: UserConfig = await self.get_config(author)  #  type: ignore
+        guild_config: GuildConfig = await self.get_config(origin.guild)  # type: ignore
         return await super().get_context(
             origin, cls=cls.configure(user_config, guild_config)
         )
