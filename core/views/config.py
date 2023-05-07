@@ -309,7 +309,6 @@ class SelectPropertyView(PropertyView):
         if self.menu_type.min_values == 1 and self.menu_type.max_values == 1:
             val = val[0]
 
-
         if self.menu_type.type == MenuType.string:
             items: ui.Select = discord.utils.get(
                 self.children, custom_id="select"  #  type: ignore
