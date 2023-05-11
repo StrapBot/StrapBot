@@ -3,9 +3,7 @@ A multifunction Discord bot, with multiple languages support, music, moderation,
 
 The bot is still being rewritten at the moment, not all features of the old one have been implemented yet.
 
-## Features to be added
-- Moderation commands;
-- Music commands (without YouTube) [unlikely though].
+Moderation commands are yet to be added.
 
 ## Translating
 Translations are always welcome! You can send a pull request to [the languages repository](https://github.com/StrapBot/languages.git) translating the bot to your language.

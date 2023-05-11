@@ -9,6 +9,7 @@ from discord.ext import commands
 from core.context import StrapContext
 from typing import Literal, Optional
 from datetime import datetime
+from strapbot import StrapBot
 
 logger = get_logger(__name__)
 
@@ -16,10 +17,8 @@ logger = get_logger(__name__)
 class Owners(commands.Cog):
     emoji = "\N{octagonal sign}"
 
-    def __init__(self, bot):
-        from strapbot import StrapBot
-
-        self.bot: StrapBot = bot
+    def __init__(self, bot: StrapBot):
+        self.bot = bot
 
     async def cog_check(self, ctx):
         return await self.bot.is_owner(ctx.author)
@@ -197,5 +196,5 @@ class Owners(commands.Cog):
         await self.do_sync_tree(ctx, self.bot.main_guild)
 
 
-async def setup(bot):
+async def setup(bot: StrapBot):
     await bot.add_cog(Owners(bot))

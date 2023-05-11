@@ -9,6 +9,7 @@ from aenum import Enum
 from discord.app_commands import Range as AppRange
 from discord.ext.commands import Range
 from typing import Union
+from strapbot import StrapBot
 
 
 class RockPaperScissors(Enum):
@@ -41,10 +42,8 @@ class Fun(commands.Cog):
 
     emoji = "\N{face with tears of joy}"
 
-    def __init__(self, bot):
-        from strapbot import StrapBot
-
-        self.bot: StrapBot = bot
+    def __init__(self, bot: StrapBot):
+        self.bot = bot
 
     @commands.hybrid_command()
     async def inspirobot(self, ctx: StrapContext):
@@ -228,5 +227,5 @@ class Fun(commands.Cog):
         await ctx.send(ret, file=file)
 
 
-async def setup(bot: commands.Bot):
+async def setup(bot: StrapBot):
     await bot.add_cog(Fun(bot))

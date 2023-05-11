@@ -6,6 +6,7 @@ from core.help import StrapBotHelp
 from core.context import StrapContext
 from core.views import ConfigMenuView, ModChoiceView, YouTubeView
 from datetime import datetime
+from strapbot import StrapBot
 
 
 def server_online():
@@ -22,7 +23,7 @@ class Utilities(commands.Cog):
 
     emoji = "\N{hammer and wrench}"
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: StrapBot):
         self.bot = bot
         self._original_help_command = bot.help_command
         bot.help_command = StrapBotHelp()
@@ -101,5 +102,5 @@ class Utilities(commands.Cog):
         await ctx.send(content, view=view)
 
 
-async def setup(bot):
+async def setup(bot: StrapBot):
     await bot.add_cog(Utilities(bot))

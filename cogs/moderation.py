@@ -1,15 +1,16 @@
 import discord
 from discord.ext import commands
+from strapbot import StrapBot
 
 
 class Moderation(commands.Cog):
     """Commands to moderate your server."""
 
-    def __init__(self, bot):
-        from strapbot import StrapBot
+    emoji = "\N{shield}"
 
-        self.bot: StrapBot = bot
+    def __init__(self, bot: StrapBot):
+        self.bot = bot
 
 
-async def setup(bot):
+async def setup(bot: StrapBot):
     await bot.add_cog(Moderation(bot))

@@ -141,6 +141,16 @@ class GuildLangOverrideType(GuildConfigType):
         return isinstance(val, bool)
 
 
+class MutedRoleType(GuildConfigType):
+    key = "muted_role_id"
+    emoji = "\N{speaker with cancellation stroke}"
+    select_menu_type = SelectMenuType(
+        MenuType.role,
+        1,
+        1,
+    )
+
+
 class LogChannelType(GuildConfigType):
     key = "log_channel_id"
     emoji = "\N{page facing up}"
