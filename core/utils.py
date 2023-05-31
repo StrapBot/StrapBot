@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import json
 import random
@@ -10,6 +11,7 @@ from rich.logging import RichHandler
 from typing import Dict, List, Optional, Union
 from pyfiglet import Figlet
 from discord.ext import commands
+from datetime import timedelta
 from discord.app_commands import (
     Translator,
     locale_str,
@@ -44,6 +46,9 @@ AnyCommand = Union[
 
 # app commands' Group isn't here because it misses cog
 AnyGroup = Union[HybridGroup, Group]
+
+time_regex = re.compile(r"(\d{1,5}(?:[.,]?\d{1,5})?)([smhd])")
+time_dict = {"h": 3600, "s": 1, "m": 60, "d": 86400, "w": 604800}
 
 DEFAULT_LANG_ENV = "DEFAULT_LANGUAGE"
 LANGS_PATH = os.path.abspath("./langs")
@@ -325,6 +330,33 @@ class MyTranslator(Translator):
 
 
 # Other
+
+
+class TimeConverter(commands.Converter):
+    def __init__(self, return_arg=False):
+        self.return_arg = return_arg
+
+    async def convert(self, ctx: commands.Context, argument: str):
+        matches = time_regex.findall(argument.lower())
+        time = 0
+        if not matches and self.return_arg:
+            return argument
+
+        for v, k in matches:
+            try:
+                time += time_dict[k] * float(v)
+            except KeyError:
+                raise commands.BadArgument(
+                    f"{k} is an invalid time-key! h/m/s/d/w are valid!"
+                )
+            except ValueError:
+                raise commands.BadArgument(f"{v} is not a number!")
+        return timedelta(seconds=time)
+
+
+class StringOrTimeConverter(TimeConverter):
+    def __init__(self):
+        super().__init__(return_arg=True)
 
 
 def paginate_list(lst: list, items: int):

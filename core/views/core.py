@@ -19,7 +19,9 @@ class View(ui.View):
             self.format_items()
 
     def format_items(self):
-        assert self.ctx != None, "ctx must not be None"
+        if self.ctx == None:
+            raise TypeError("ctx must not be None")
+
         if isinstance(self, Modal):
             children = self.__modal_children_items__.values()
         else:

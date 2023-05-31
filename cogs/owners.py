@@ -121,28 +121,29 @@ class Owners(commands.Cog):
     async def load_ext(
         self, ctx: StrapContext, action_: Literal["reload", "unload", "load"], ext: str
     ):
-        action = action_.lower()
-        extension = "cogs."
+        async with ctx.typing():
+            action = action_.lower()
+            extension = "cogs."
 
-        if ext.startswith(".."):
-            ext = ext.replace("..", "", 1)
-            extension = ""
+            if ext.startswith(".."):
+                ext = ext.replace("..", "", 1)
+                extension = ""
 
-        extension += ext
+            extension += ext
 
-        logger.debug(f"Trying to {action} {extension}...")
-        if action not in ["reload", "unload", "load"]:
-            raise ValueError('action must be one of "load", "unload" and "reload".')
+            logger.debug(f"Trying to {action} {extension}...")
+            if action not in ["reload", "unload", "load"]:
+                raise ValueError('action must be one of "load", "unload" and "reload".')
 
-        try:
-            await getattr(self.bot, f"{action}_extension")(extension)
-        except Exception:
-            logger.error(f"Couldn't {action} {extension}")
-            await ctx.send("error", extension=extension)
-            raise
+            try:
+                await getattr(self.bot, f"{action}_extension")(extension)
+            except Exception:
+                logger.error(f"Couldn't {action} {extension}")
+                await ctx.send("error", extension=extension)
+                raise
 
-        logger.info(f"Successfully {action}ed {extension}")
-        await ctx.send("done", extension=extension)
+            logger.info(f"Successfully {action}ed {extension}")
+            await ctx.send("done", extension=extension)
 
     @commands.command()
     async def load(self, ctx: StrapContext, ext: str):

@@ -4,10 +4,21 @@ import discord
 import json
 from discord.ext import commands
 from discord.ext.commands.view import StringView
+from discord.ext.commands.context import DeferTyping as OriginalDeferTyping
 from .utils import get_lang
 from typing_extensions import Self
 from discord.utils import MISSING
 from .config import GuildConfig, UserConfig
+from discord.context_managers import Typing
+from typing import Union, Any, Generator, Optional
+
+
+class DeferTyping(OriginalDeferTyping):
+    def __await__(self) -> Generator[Any, None, None]:
+        return commands.Context.defer(self.ctx, ephemeral=self.ephemeral).__await__()
+
+    async def __aenter__(self) -> None:
+        await commands.Context.defer(self.ctx, ephemeral=self.ephemeral)
 
 
 class StrapContext(commands.Context):
@@ -24,16 +35,16 @@ class StrapContext(commands.Context):
         view: StringView,
         args: typing.List[typing.Any] = MISSING,
         kwargs: typing.Dict[str, typing.Any] = MISSING,
-        prefix: typing.Optional[str] = None,
-        command: typing.Optional[commands.Command] = None,
-        invoked_with: typing.Optional[str] = None,
+        prefix: Optional[str] = None,
+        command: Optional[commands.Command] = None,
+        invoked_with: Optional[str] = None,
         invoked_parents: typing.List[str] = MISSING,
-        invoked_subcommand: typing.Optional[commands.Command] = None,
-        subcommand_passed: typing.Optional[str] = None,
+        invoked_subcommand: Optional[commands.Command] = None,
+        subcommand_passed: Optional[str] = None,
         command_failed: bool = False,
-        current_parameter: typing.Optional[commands.Parameter] = None,
-        current_argument: typing.Optional[str] = None,
-        interaction: typing.Optional[discord.Interaction] = None,
+        current_parameter: Optional[commands.Parameter] = None,
+        current_argument: Optional[str] = None,
+        interaction: Optional[discord.Interaction] = None,
     ):
         super().__init__(
             message=message,
@@ -91,16 +102,28 @@ class StrapContext(commands.Context):
         return self.__guild_config
 
     @property
-    def lang(self) -> typing.Optional[dict]:
+    def lang(self) -> Optional[dict]:
         return get_lang(self.language_to_use, cog=self.cog, command=self.command)
 
     @property
-    def guild_lang(self) -> typing.Optional[dict]:
+    def guild_lang(self) -> Optional[dict]:
         return get_lang(self.guild_config.lang, cog=self.cog, command=self.command)
 
     @property
-    def user_lang(self) -> typing.Optional[dict]:
+    def user_lang(self) -> Optional[dict]:
         return get_lang(self.config.lang, cog=self.cog, command=self.command)
+
+    @property
+    def cog_lang(self) -> Optional[dict]:
+        return get_lang(self.language_to_use, cog=self.cog)
+
+    @property
+    def guild_cog_lang(self) -> Optional[dict]:
+        return get_lang(self.guild_config.lang, cog=self.cog)
+
+    @property
+    def user_cog_lang(self) -> Optional[dict]:
+        return get_lang(self.config.lang, cog=self.cog)
 
     @property
     def language_to_use(self) -> str:
@@ -110,27 +133,24 @@ class StrapContext(commands.Context):
 
         return val
 
-    def format_message(
-        self, key, format: dict = {}, *, lang: typing.Optional[dict] = None
-    ):
+    def format_message(self, key, format: dict = {}, *, lang: Optional[dict] = None):
         lang = lang or self.lang
-        if not lang:
-            return key
+        if lang:
+            lang.pop("name", "")
+            lang.pop("short_doc", "")
+            lang.pop("details", "")
+            if key in lang:
+                return lang[key].format(**format)
 
-        lang.pop("name", "")
-        lang.pop("short_doc", "")
-        lang.pop("details", "")
-        if key in lang:
-            return lang[key].format(**format)
-
-        return key
+        fmt = " ".join(f"{k}={v!r}" for k, v in format.items())
+        return f"{key} {fmt}"
 
     def format_embed(
         self,
         embed: discord.Embed,
         format: dict = {},
         *,
-        lang: typing.Optional[dict] = None,
+        lang: Optional[dict] = None,
     ):
         # apparently converting the embed to
         # dict is the only way to modify fields
@@ -161,7 +181,7 @@ class StrapContext(commands.Context):
         embeds: typing.Sequence[discord.Embed],
         format: dict = {},
         *,
-        lang: typing.Optional[dict] = None,
+        lang: Optional[dict] = None,
     ):
         for embed in embeds:
             self.format_embed(embed, format, lang=lang)
@@ -170,33 +190,32 @@ class StrapContext(commands.Context):
 
     async def send(
         self,
-        content: typing.Optional[str] = None,
+        content: Optional[str] = None,
         *,
         tts: bool = False,
-        embed: typing.Optional[discord.Embed] = None,
-        embeds: typing.Optional[typing.Sequence[discord.Embed]] = None,
-        file: typing.Optional[discord.File] = None,
-        files: typing.Optional[typing.Sequence[discord.File]] = None,
-        stickers: typing.Optional[
-            typing.Sequence[typing.Union[discord.GuildSticker, discord.StickerItem]]
+        embed: Optional[discord.Embed] = None,
+        embeds: Optional[typing.Sequence[discord.Embed]] = None,
+        file: Optional[discord.File] = None,
+        files: Optional[typing.Sequence[discord.File]] = None,
+        stickers: Optional[
+            typing.Sequence[Union[discord.GuildSticker, discord.StickerItem]]
         ] = None,
-        delete_after: typing.Optional[float] = None,
-        nonce: typing.Optional[typing.Union[str, int]] = None,
-        allowed_mentions: typing.Optional[discord.AllowedMentions] = None,
-        reference: typing.Optional[
-            typing.Union[
-                discord.Message, discord.MessageReference, discord.PartialMessage
-            ]
+        delete_after: Optional[float] = None,
+        nonce: Optional[Union[str, int]] = None,
+        allowed_mentions: Optional[discord.AllowedMentions] = None,
+        reference: Optional[
+            Union[discord.Message, discord.MessageReference, discord.PartialMessage]
         ] = None,
-        mention_author: typing.Optional[bool] = None,
-        view: typing.Optional[discord.ui.View] = None,
+        mention_author: Optional[bool] = None,
+        view: Optional[discord.ui.View] = None,
         suppress_embeds: bool = False,
         ephemeral: bool = False,
+        lang_to_use: Optional[dict] = None,
         **kws,
     ) -> discord.Message:
 
         if not isinstance(content, str) and content != None:
-            raise TypeError(f"Expected None or an str object, got {content!r}")
+            content = str(content)
 
         if embed and embeds:
             raise TypeError("Cannot mix embed and embeds keyword arguments.")
@@ -212,13 +231,14 @@ class StrapContext(commands.Context):
             else:
                 allowed_mentions = discord.AllowedMentions.none().merge(new)
 
+        lang = lang_to_use or self.lang
         if content and len(content.strip().split()) == 1:
-            content = self.format_message(content, kws)
+            content = self.format_message(content, kws, lang=lang)
 
         if embed:
-            embed = self.format_embed(embed, kws)
+            embed = self.format_embed(embed, kws, lang=lang)
         elif embeds:
-            embeds = self.format_embeds(embeds, kws)
+            embeds = self.format_embeds(embeds, kws, lang=lang)
 
         return await super().send(
             content=content,
@@ -240,26 +260,24 @@ class StrapContext(commands.Context):
 
     async def send_as_help(
         self,
-        content: typing.Optional[str] = None,
+        content: Optional[str] = None,
         *,
         tts: bool = False,
-        embed: typing.Optional[discord.Embed] = None,
-        embeds: typing.Optional[typing.Sequence[discord.Embed]] = None,
-        file: typing.Optional[discord.File] = None,
-        files: typing.Optional[typing.Sequence[discord.File]] = None,
-        stickers: typing.Optional[
-            typing.Sequence[typing.Union[discord.GuildSticker, discord.StickerItem]]
+        embed: Optional[discord.Embed] = None,
+        embeds: Optional[typing.Sequence[discord.Embed]] = None,
+        file: Optional[discord.File] = None,
+        files: Optional[typing.Sequence[discord.File]] = None,
+        stickers: Optional[
+            typing.Sequence[Union[discord.GuildSticker, discord.StickerItem]]
         ] = None,
-        delete_after: typing.Optional[float] = None,
-        nonce: typing.Optional[typing.Union[str, int]] = None,
-        allowed_mentions: typing.Optional[discord.AllowedMentions] = None,
-        reference: typing.Optional[
-            typing.Union[
-                discord.Message, discord.MessageReference, discord.PartialMessage
-            ]
+        delete_after: Optional[float] = None,
+        nonce: Optional[Union[str, int]] = None,
+        allowed_mentions: Optional[discord.AllowedMentions] = None,
+        reference: Optional[
+            Union[discord.Message, discord.MessageReference, discord.PartialMessage]
         ] = None,
-        mention_author: typing.Optional[bool] = None,
-        view: typing.Optional[discord.ui.View] = None,
+        mention_author: Optional[bool] = None,
+        view: Optional[discord.ui.View] = None,
         suppress_embeds: bool = False,
         ephemeral: bool = False,
         **kws,
@@ -306,14 +324,14 @@ class StrapContext(commands.Context):
         event: str,
         /,
         *,
-        check: typing.Optional[typing.Callable[..., bool]] = None,
-        timeout: typing.Optional[float] = None,
+        check: Optional[typing.Callable[..., bool]] = None,
+        timeout: Optional[float] = None,
     ) -> typing.Any:
         return await self.bot.wait_for(event, check=check, timeout=timeout)
 
     @staticmethod
     def get_command_signature(
-        command: typing.Union[
+        command: Union[
             commands.Command,
             commands.HybridCommand,
             commands.Group,
@@ -341,7 +359,7 @@ class StrapContext(commands.Context):
                 param.converter.converter if greedy else param.converter
             )
             origin = getattr(annotation, "__origin__", None)
-            if not greedy and origin is typing.Union:
+            if not greedy and origin is Union:
                 none_cls = type(None)
                 union_args = annotation.__args__
                 optional = union_args[-1] is none_cls
@@ -361,7 +379,7 @@ class StrapContext(commands.Context):
                     result.append(f"<{name} (file)>")
                 continue
 
-            # for typing.Literal[...], typing.Optional[typing.Literal[...]], and Greedy[typing.Literal[...]], the
+            # for typing.Literal[...], Optional[typing.Literal[...]], and Greedy[typing.Literal[...]], the
             # parameter signature is a literal list of it's values
             if origin is typing.Literal:
                 name = "|".join(
@@ -401,3 +419,12 @@ class StrapContext(commands.Context):
             return ""
 
         return self.get_command_signature(self.command, self.config.lang)
+
+    async def defer(self, *, ephemeral: bool = False) -> Union[Typing, DeferTyping]:
+        return await self.typing(ephemeral=ephemeral)  #  type: ignore
+
+    def typing(self, *, ephemeral: bool = False) -> Union[Typing, DeferTyping]:
+        if self.interaction is None:
+            return Typing(self)
+
+        return DeferTyping(self, ephemeral=ephemeral)

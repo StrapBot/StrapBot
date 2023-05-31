@@ -150,6 +150,10 @@ class MutedRoleType(GuildConfigType):
         1,
     )
 
+    @staticmethod
+    def validate(val: discord.Role, bot: commands.Bot) -> bool:
+        return isinstance(val, discord.Role)
+
 
 class LogChannelType(GuildConfigType):
     key = "log_channel_id"
@@ -371,10 +375,12 @@ class Config:
         return self._data
 
     @classmethod
-    async def create_config(cls, bot, target: Union[discord.User, discord.Guild, None]):
+    async def create_config(
+        cls, bot, target: Union[discord.User, discord.Guild]
+    ) -> Union["Config", "GuildConfig", "UserConfig"]:
         """Create a config class"""
         if not target:
-            return
+            raise Exception
         db = bot.get_db("Configurations", cog=False)
         entry = await db.find_one({"_id": target.id})
         if not entry:

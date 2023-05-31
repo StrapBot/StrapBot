@@ -94,7 +94,7 @@ class StrapBot(commands.Bot):
 
     async def get_config(
         self, target: typing.Union[discord.Guild, discord.User, discord.Member, int]
-    ) -> typing.Optional[AnyConfig]:
+    ) -> AnyConfig:
         """Get a Config instance for a guild or user"""
         ret: typing.Union[discord.Guild, discord.User, None] = None
         if isinstance(target, int):
@@ -111,6 +111,9 @@ class StrapBot(commands.Bot):
             name = "cog." + name
 
         return self.mongodb[name]
+
+    def get_cog_db(self, cog: commands.Cog):
+        return self.get_db(type(cog).__name__, True)
 
     async def setup_hook(self):
         if __name__ == "__main__":

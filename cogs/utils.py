@@ -22,6 +22,7 @@ class Utilities(commands.Cog):
     """Other uncategorized commands that could be useful."""
 
     emoji = "\N{hammer and wrench}"
+    invite_url = "https://discord.com/oauth2/authorize?client_id={}&permissions=395945573431&scope=bot"
 
     def __init__(self, bot: StrapBot):
         self.bot = bot
@@ -39,19 +40,19 @@ class Utilities(commands.Cog):
     @commands.hybrid_command()
     async def config(self, ctx: StrapContext):
         """Change the bot's settings."""
-        await ctx.defer()
-        perms = ctx.channel.permissions_for(ctx.author)  # type: ignore
-        if perms.administrator or perms.manage_guild:
-            view = ModChoiceView(ctx)
-            message = "mod_choice"
-        else:
-            view = ConfigMenuView(ctx, ctx.config)
-            message = "choose_config"
+        async with ctx.typing():
+            perms = ctx.channel.permissions_for(ctx.author)  # type: ignore
+            if perms.administrator or perms.manage_guild:
+                view = ModChoiceView(ctx)
+                message = "mod_choice"
+            else:
+                view = ConfigMenuView(ctx, ctx.config)
+                message = "choose_config"
 
-        await ctx.reply(
-            message,
-            view=view,
-        )
+            await ctx.send(
+                message,
+                view=view,
+            )
 
     @commands.hybrid_command()
     async def ping(self, ctx: StrapContext):
@@ -73,7 +74,7 @@ class Utilities(commands.Cog):
     @commands.hybrid_command()
     async def invite(self, ctx: StrapContext):
         """Invite me to your server!"""
-        url = f"https://discord.com/oauth2/authorize?client_id={ctx.me.id}&permissions=395945573431&scope=bot"
+        url = self.invite_url.format(ctx.me.id)
         support = "https://discord.gg/G4de45Bywg"
         official = os.getenv("OFFICIAL", "0") == "1"
         await ctx.send(
@@ -94,12 +95,13 @@ class Utilities(commands.Cog):
     @commands.hybrid_command()
     @server_online()
     async def youtube(self, ctx: StrapContext):
-        if not ctx.guild_config.yt_news_channel_id:
-            await ctx.send("missing_config")
-            return
-        content = "main_menu"
-        view = YouTubeView(ctx, content)
-        await ctx.send(content, view=view)
+        async with ctx.typing():
+            if not ctx.guild_config.yt_news_channel_id:
+                await ctx.send("missing_config")
+                return
+            content = "main_menu"
+            view = YouTubeView(ctx, content)
+            await ctx.send(content, view=view)
 
 
 async def setup(bot: StrapBot):

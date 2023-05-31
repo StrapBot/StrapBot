@@ -177,21 +177,22 @@ class StrapBotHelp(commands.HelpCommand):
         )
 
     async def send_bot_help(self, mapping: dict[commands.Cog, list]):
-        for cog in mapping.copy().keys():
-            # please always add commands to a cog, at least to Utilities
-            if not cog:
-                continue
-            check = await discord.utils.maybe_coroutine(cog.cog_check, self.context)
-            if not check:
-                mapping.pop(cog)
+        async with self.context.typing():
+            for cog in mapping.copy().keys():
+                # please always add commands to a cog, at least to Utilities
+                if not cog:
+                    continue
+                check = await discord.utils.maybe_coroutine(cog.cog_check, self.context)
+                if not check:
+                    mapping.pop(cog)
 
-        # for future forkers,
-        # NOTE: Only write code from this comment on:
-        #       the code above removes the cogs that
-        #       the user can't run from mapping.
-        await self.context.send_as_help(
-            embed=self.get_bot_help(mapping), view=HelpView(mapping, self)
-        )
+            # for future forkers,
+            # NOTE: Only write code from this comment on:
+            #       the code above removes the cogs that
+            #       the user can't run from mapping.
+            await self.context.send_as_help(
+                embed=self.get_bot_help(mapping), view=HelpView(mapping, self)
+            )
 
     async def get_cog_help(self, cog: commands.Cog):
         p = self.context.clean_prefix
@@ -228,7 +229,8 @@ class StrapBotHelp(commands.HelpCommand):
         return ret
 
     async def send_cog_help(self, cog: commands.Cog):
-        await self.context.send_as_help(embed=await self.get_cog_help(cog))
+        async with self.context.typing():
+            await self.context.send_as_help(embed=await self.get_cog_help(cog))
 
     def get_command_signature(
         self,
@@ -320,12 +322,14 @@ class StrapBotHelp(commands.HelpCommand):
     async def send_group_help(
         self, group: typing.Union[commands.Group, commands.HybridGroup]
     ) -> None:
-        await self.context.send_as_help(embed=await self.get_command_help(group))
+        async with self.context.typing():
+            await self.context.send_as_help(embed=await self.get_command_help(group))
 
     async def send_command_help(
         self, command: typing.Union[commands.Command, commands.HybridCommand]
     ):
-        await self.context.send_as_help(embed=await self.get_command_help(command))
+        async with self.context.typing():
+            await self.context.send_as_help(embed=await self.get_command_help(command))
 
     def get_cog_translations(self, cog: commands.Cog) -> typing.Dict[str, commands.Cog]:
         cog_name = type(cog).__name__
@@ -381,15 +385,16 @@ class StrapBotHelp(commands.HelpCommand):
     async def send_error_message(
         self, error: typing.Optional[typing.Union[str, typing.Dict[str, typing.Any]]], /
     ) -> None:
-        fmt = {}
-        if isinstance(error, str):
-            text = error
-        elif isinstance(error, dict):
-            text = error.pop("text", None)
-            fmt = error
-            if text == None:
+        async with self.context.typing():
+            fmt = {}
+            if isinstance(error, str):
+                text = error
+            elif isinstance(error, dict):
+                text = error.pop("text", None)
+                fmt = error
+                if text == None:
+                    return
+            else:
                 return
-        else:
-            return
 
-        await self.context.send_as_help(text, **fmt)
+            await self.context.send_as_help(text, **fmt)
