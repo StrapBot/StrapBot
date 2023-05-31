@@ -1,5 +1,6 @@
 # StrapBot
 [![Server](https://img.shields.io/discord/778341184007438377?label=Server&logo=Discord&colorB=5865F2)](https://discord.gg/G4de45Bywg)
+
 A multifunction Discord bot, with multiple languages support, music, moderation, fun commands and YouTube news!
 
 The bot is still being rewritten at the moment, not all features of the old one have been implemented yet.
