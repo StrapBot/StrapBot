@@ -9,6 +9,10 @@ from typing import Optional, Union, Type, List, Dict, Any
 from functools import partial
 
 
+class ConfigValueError(ValueError):
+    pass
+
+
 class MenuType(Enum):
     string = ComponentType.select
     user = ComponentType.user_select
@@ -66,8 +70,11 @@ class ConfigType:
     def __new__(cls, value: Any, bot: commands.Bot) -> Optional[Any]:
         if cls.validate(value, bot):
             return value
-        else:
-            raise ValueError(f"Value {value!r} is not valid for config {cls.key}.")
+        elif value != None:
+            # the configuration has been set but the value isn't valid
+            raise ConfigValueError(
+                f"Value {value!r} is not valid for config {cls.key}."
+            )
 
     @staticmethod
     def validate(val: Any, bot: commands.Bot):
@@ -151,8 +158,25 @@ class MutedRoleType(GuildConfigType):
     )
 
     @staticmethod
-    def validate(val: discord.Role, bot: commands.Bot) -> bool:
-        return isinstance(val, discord.Role) or val == None
+    def validate(val: int, bot: commands.Bot) -> bool:
+        if not isinstance(val, discord.Role):
+            if not isinstance(val, int):
+                return False
+
+            guild = discord.utils.find(lambda g: g.get_role(val), bot.guilds)
+            val = guild.get_role(val)
+
+        return val.guild.me.top_role.position > val.position
+
+
+class TimeoutType(GuildConfigType):
+    key = "timeout"
+    default = False
+    emoji = "\N{hourglass}"
+
+    @staticmethod
+    def validate(val: bool, bot: commands.Bot):
+        return isinstance(val, bool)
 
 
 class LogChannelType(GuildConfigType):
@@ -277,7 +301,7 @@ class YouTubeNewsChannelType(GuildConfigType):
 class YouTubeNewsMessageType(GuildConfigType):
     key = "yt_news_message"
     emoji = "\N{memo}"
-    default = "{link}"
+    default = "{video}"
     custom = True
     text_style = TextStyle.paragraph
 

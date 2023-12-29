@@ -1,10 +1,8 @@
 import os
 import discord
 from discord import ui, Interaction
-from discord.utils import MISSING
-from core.context import StrapContext
 from . import View, Modal
-from ..config import AnyConfig, SelectMenuType, MenuType
+from ..config import AnyConfig, SelectMenuType, MenuType, ConfigValueError
 from ..utils import get_lang_config_names, DEFAULT_LANG_ENV
 from ..context import StrapContext
 from typing import Optional, Union, Type, Any, Dict, List
@@ -56,16 +54,30 @@ class PropertyView(ConfigView):
 
     async def set(self, value: Any, interaction: Optional[Interaction] = None):
         original_value = self.config[self.key]
-        await self.set_disabled_items(True, interaction)
-        ret = await self.config.set(**{self.key: value})
+        try:
+            ret = await self.config.set(**{self.key: value})
+        except ConfigValueError:
+            content = interaction.message.content
+            err = self.ctx.format_message("value_error")
+
+            # this is not the best way, but I'm keeping this for now
+            if not content.endswith(err):
+                content += f"\n\n{err}"
+
+            await self.set_disabled_items(False, interaction)
+            await interaction.followup.edit_message(
+                interaction.message.id, content=content
+            )
+            raise
+
         try:
             await self.config.types[self.key].setup(self.ctx, value)
         except Exception:
             await self.config.set(**{self.key: original_value})
             await self.set_disabled_items(True, interaction, keep_back=True)
             raise
-        else:
-            await self.config.fetch()
+
+        await self.config.fetch()
 
         # this time we're not editing the message because
         # it'll be edited later in this View's subclasses
@@ -321,6 +333,8 @@ class SelectPropertyView(PropertyView):
 
         try:
             await self.set(val, interaction)
+        except ConfigValueError:
+            return
         except Exception:
             select.disabled = True
             await interaction.followup.edit_message(

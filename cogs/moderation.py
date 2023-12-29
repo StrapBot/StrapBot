@@ -3,7 +3,7 @@ from discord.ext import commands
 from strapbot import StrapBot
 from core.context import StrapContext
 from typing import Optional, Union
-from datetime import datetime
+from datetime import datetime, timedelta
 from core.utils import get_lang, StringOrTimeConverter
 from .utils import Utilities
 
@@ -72,13 +72,55 @@ class Moderation(commands.Cog):
     ):
         """this is just a placeholder"""
 
+    async def mute_user(
+        self,
+        ctx: StrapContext,
+        member: discord.Member,
+        *,
+        reason: Optional[str] = None,
+        time: Optional[timedelta] = None,
+    ):
+        async def do_role_mute():
+            role = ctx.guild.get_role(ctx.guild_config.muted_role_id)
+            await member.add_roles(role, reason=reason)
+
+        if time == None:
+            await do_role_mute()
+            return
+
+        if ctx.guild_config.timeout:
+            try:
+                await member.timeout(time, reason=reason)
+            except discord.errors.HTTPException:
+                # Discord returns an error either if the timeout time is
+                # longer than 28 days or the bot is trying to timeout
+                # someone with admin permissions; if that's the case
+                # then it'll be handled here with the muted role
+                await do_role_mute()
+
+            return
+
+        await do_role_mute()
+
+    async def unmute_user(
+        self, ctx: StrapContext, member: discord.Member, *, reason: Optional[str] = None
+    ):
+        role = ctx.guild.get_role(ctx.guild_config.muted_role_id)
+        await member.timeout(None, reason=reason)
+        await member.remove_roles(role, reason=reason)
+
     async def kick_user(
         self, ctx: StrapContext, member: discord.Member, *, reason: Optional[str] = None
     ):
         await member.kick(reason=reason)
 
     async def ban_user(
-        self, ctx: StrapContext, member: discord.Member, *, reason: Optional[str] = None
+        self,
+        ctx: StrapContext,
+        member: discord.Member,
+        *,
+        reason: Optional[str] = None,
+        time: Optional[timedelta] = None,
     ):
         # TODO: make a configuration for message delete seconds and days
         await member.ban(reason=reason, delete_message_days=0, delete_message_seconds=0)
@@ -127,8 +169,12 @@ class Moderation(commands.Cog):
         if func == None:
             raise KeyError(action)
 
+        permact = f"{action}"
+        if action in ["mute", "unmute"]:
+            permact = "manage_roles"
+
         perms = ctx.channel.permissions_for(ctx.me)  # type: ignore
-        perm = getattr(perms, f"{action}_members", None)
+        perm = getattr(perms, permact, None)
 
         if perm != None and (perm or perms.administrator):
             if member.id == ctx.me.id:
@@ -150,7 +196,7 @@ class Moderation(commands.Cog):
             await ctx.send("bot_missing_perms")
             return
         elif member.id != ctx.me.id:
-            # if it goes there, then it must be
+            # if it goes here, then it must be
             # because of warn or any placeholder
             # func that might have been added later
             try:
@@ -182,6 +228,50 @@ class Moderation(commands.Cog):
 
     @commands.hybrid_command()
     @commands.guild_only()
+    @commands.has_permissions(manage_roles=True)
+    async def mute(
+        self,
+        ctx: StrapContext,
+        member: discord.Member,
+        time: Optional[StringOrTimeConverter] = None,
+        *,
+        reason: Optional[str] = None,
+    ):
+        if not ctx.guild.get_role(ctx.guild_config.muted_role_id):
+            await ctx.send("not_configured")
+            return
+
+        reason = reason or ""
+        if isinstance(time, str):
+            reason = time + " " + reason
+            time = None
+
+        reason = reason.strip()
+        if not reason:
+            reason = None
+
+        async with ctx.typing():
+            await self.take_action(ctx, "mute", member, time=time, reason=reason)
+
+    @commands.hybrid_command()
+    @commands.guild_only()
+    @commands.has_permissions(manage_roles=True)
+    async def unmute(
+        self,
+        ctx: StrapContext,
+        member: discord.Member,
+        *,
+        reason: Optional[str] = None,
+    ):
+        if not ctx.guild.get_role(ctx.guild_config.muted_role_id):
+            await ctx.send("not_configured")
+            return
+
+        async with ctx.typing():
+            await self.take_action(ctx, "unmute", member, reason=reason)
+
+    @commands.hybrid_command()
+    @commands.guild_only()
     @commands.has_permissions(kick_members=True)
     async def kick(
         self, ctx: StrapContext, member: discord.Member, *, reason: Optional[str] = None
@@ -210,7 +300,8 @@ class Moderation(commands.Cog):
         if not reason:
             reason = None
 
-        await self.take_action(ctx, "ban", member, time=time, reason=reason)
+        async with ctx.typing():
+            await self.take_action(ctx, "ban", member, time=time, reason=reason)
 
 
 async def setup(bot: StrapBot):
