@@ -152,7 +152,7 @@ class MutedRoleType(GuildConfigType):
 
     @staticmethod
     def validate(val: discord.Role, bot: commands.Bot) -> bool:
-        return isinstance(val, discord.Role)
+        return isinstance(val, discord.Role) or val == None
 
 
 class LogChannelType(GuildConfigType):

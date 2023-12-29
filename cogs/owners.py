@@ -24,9 +24,9 @@ class Owners(commands.Cog):
         return await self.bot.is_owner(ctx.author)
 
     @commands.hybrid_command()
-    async def raisa(self, ctx):
+    async def test_error(self, ctx, message: Optional[str] = None):
         """Raise an exception"""
-        raise Exception(ctx.author.name + " è mona")
+        raise Exception(message or "This is a test exception.")
 
     @staticmethod
     async def try_add_reaction(message, reaction, do: bool = True):

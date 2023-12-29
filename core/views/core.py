@@ -31,7 +31,7 @@ class View(ui.View):
             self.title = self.ctx.format_message(self.title)
 
         for child in children:
-            if hasattr(child, "label"):
+            if hasattr(child, "label") and child.label != None:
                 child.label = self.ctx.format_message(child.label)  # type: ignore
 
     async def on_error(
@@ -47,7 +47,7 @@ class View(ui.View):
         if self.ctx:
             author_id = self.ctx.author.id
         else:
-            # if ctx == None this check is practically
+            # at this point this check is practically
             # useless, but at least the view still works
             author_id = interaction.user.id
 

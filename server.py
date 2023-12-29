@@ -109,6 +109,7 @@ async def send_new_video(
                     channel_url=channel_url,
                     url=url,
                     video=video,
+                    link=url,
                 ),
                 allowed_mentions=AllowedMentions(
                     everyone=True, users=False, roles=True

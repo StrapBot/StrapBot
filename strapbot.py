@@ -10,7 +10,7 @@ import dotenv
 import logging
 from aiohttp import ClientSession
 from discord.ext import commands
-from typing import Union
+from typing import Union, Dict
 from typing_extensions import Self
 from discord import Message, Interaction
 from motor.core import AgnosticClient, AgnosticCollection, AgnosticDatabase
@@ -65,6 +65,7 @@ class StrapBot(commands.Bot):
             allowed_mentions=allowed_mentions,
             **options,
         )
+        self.__cached_configs: Dict[int, AnyConfig] = {}
         self.mongoclient: AgnosticClient
         self.mongodb: AgnosticDatabase
         self.session: ClientSession
@@ -92,18 +93,30 @@ class StrapBot(commands.Bot):
         p = self.do_give_prefixes(bot, message)
         return commands.when_mentioned_or(*p)(bot, message)  # type: ignore
 
+    def get_cached_config(self, id: int):
+        if id in self.__cached_configs:
+            return self.__cached_configs[id]
+
     async def get_config(
         self, target: typing.Union[discord.Guild, discord.User, discord.Member, int]
     ) -> AnyConfig:
         """Get a Config instance for a guild or user"""
-        ret: typing.Union[discord.Guild, discord.User, None] = None
-        if isinstance(target, int):
-            ret = self.get_guild(target) or self.get_user(target)
+        if not isinstance(target, int):
+            id = target.id
 
-        if isinstance(target, discord.Member):
-            ret = self.get_user(target.id)  # must be User and not Member
+        cfg = self.get_cached_config(id)
+        if not cfg:
+            ret: typing.Union[discord.Guild, discord.User, None] = None
+            if isinstance(target, int):
+                ret = self.get_guild(target) or self.get_user(target)
 
-        return await Config.create_config(self, ret or target)  #  type: ignore
+            if isinstance(target, discord.Member):
+                ret = self.get_user(target.id)  # must be User and not Member
+
+            cfg = await Config.create_config(self, ret or target)  #  type: ignore
+            self.__cached_configs[id] = cfg
+
+        return cfg
 
     def get_db(self, dbname, cog=True):
         name = dbname
@@ -116,6 +129,7 @@ class StrapBot(commands.Bot):
         return self.get_db(type(cog).__name__, True)
 
     async def setup_hook(self):
+        """Various startup configurations."""
         if __name__ == "__main__":
             # remove variables that are not needed anymore
             global token
@@ -155,7 +169,7 @@ class StrapBot(commands.Bot):
         if self.use_repl:
             if self.debugging:
                 self.use_repl = False
-                # modify pydevd to have the bot and its loop inside its REPL
+                # modify pydevd to have the bot and its loop inside its debug console
                 _vars = sys.modules["_pydevd_bundle"].pydevd_vars
                 self._original_eval_exp = _vars.evaluate_expression
                 self._original_eval_class = _vars._EvalAwaitInNewEventLoop
@@ -217,6 +231,11 @@ class StrapBot(commands.Bot):
             self.tree.copy_global_to(guild=g)
 
     async def check_youtube_news(self, log: bool = False) -> bool:
+        """
+        Function that checks if the YouTube news
+        server has been configured and is running.
+        """
+
         def _maybe_log(level, *args, **kwargs):
             if log:
                 logger.log(level, *args, **kwargs)
@@ -224,7 +243,7 @@ class StrapBot(commands.Bot):
         _maybe_log(logging.DEBUG, "Checking if the server is running...")
         internal = self.get_db("Internal", cog=False)
         data = await internal.find_one({"_id": "server"})  #  type: ignore
-        yt_msg = "You didn't setup the server. YouTube news will not work."
+        yt_msg = "The server hasn't been set up yet. YouTube news will not work."
         if data == None or (data and data.get("request_url", None) == None):
             _maybe_log(logging.WARNING, yt_msg)
             return False
@@ -266,6 +285,7 @@ class StrapBot(commands.Bot):
     async def request_pubsubhubbub(
         self, channel_id: str, subscribe: bool, raise_for_status: bool = True
     ):
+        """Sends a request to Google's PubSubHubbub Hub."""
         assert await self.check_youtube_news(), "The server is down."
         internal = self.get_db("Internal", cog=False)
         serverdata = await internal.find_one({"_id": "server"})  #  type: ignore

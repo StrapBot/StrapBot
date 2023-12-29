@@ -23,7 +23,10 @@ def _get_lang_props(lang: str, key: Any):
     if key not in props:
         props = _()
         if key not in props:
-            return {"name": key, "description": f"Properties for `{key}` not found."}
+            return {
+                "name": key,
+                "description": f"Information for configuration `{key}` not found.",
+            }
 
     return props[key]  # type: ignore
 
@@ -62,7 +65,7 @@ class PropertyView(ConfigView):
             await self.set_disabled_items(True, interaction, keep_back=True)
             raise
         else:
-            await self.config.fetch(True)
+            await self.config.fetch()
 
         # this time we're not editing the message because
         # it'll be edited later in this View's subclasses
@@ -355,7 +358,7 @@ class SelectPropertyView(PropertyView):
     @staticmethod
     def get_current_configs(menu_type: SelectMenuType, ctx: StrapContext, current):
         ret = []
-        # MenuType.mentionable is to be implemented yet
+        # TODO: implement MenuType.mentionable
         if (
             menu_type.type in [MenuType.channel, MenuType.user, MenuType.role]
             and ctx.guild
