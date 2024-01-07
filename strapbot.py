@@ -73,6 +73,7 @@ class StrapBot(commands.Bot):
         self.webhook_url = webhook_url
         self.main_guild: typing.Optional[discord.Guild] = None
         self.use_repl = use_repl
+        self.console = None
 
     @property
     def debugging(self) -> bool:
@@ -455,7 +456,7 @@ class StrapBot(commands.Bot):
         await self.handle_errors(exc, ctx.command.qualified_name, "command")  # type: ignore
 
     async def close(self):
-        if self.use_repl and not self.debugging:
+        if self.use_repl and not self.debugging and self.console:
             self.console.stop()
         await self.session.close()
         return await super().close()
