@@ -133,17 +133,24 @@ class StrapContext(commands.Context):
 
         return val
 
-    def format_message(self, key, format: dict = {}, *, lang: Optional[dict] = None):
+    def format_message_(self, key, format: dict = {}, *, lang: Optional[dict] = None):
+        if key != key.lower():
+            # most likely means it's not a string to format
+            return (key, False)
+
         lang = lang or self.lang
         if lang:
             lang.pop("name", "")
             lang.pop("short_doc", "")
             lang.pop("details", "")
             if key in lang:
-                return lang[key].format(**format)
+                return (lang[key].format(**format), lang[key] == lang[key].format(**format))
 
         fmt = " ".join(f"{k}={v!r}" for k, v in format.items())
-        return f"{key} {fmt}"
+        return (f"{key} {fmt}", False)
+
+    def format_message(self, key, format: dict = {}, *, lang: Optional[dict] = None):
+        return self.format_message_(key, format, lang=lang)[0]
 
     def format_embed(
         self,
