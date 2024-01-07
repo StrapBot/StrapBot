@@ -145,9 +145,13 @@ class StrapBot(commands.Bot):
         # some cogs might need the mongodb in the class
         mongodb = "[bold #4DB33D]MongoDB[/bold #4DB33D]"
         logger.debug(f"Connecting to {mongodb} database...")
+        dbname = self.mongodb_uri.split("/")[-1]
+        if "@" in dbname or ":" in dbname or not dbname:
+            dbname = "strapbot"
+
         self.session = ClientSession(loop=self.loop)
         self.mongoclient = AsyncIOMotorClient(self.mongodb_uri, io_loop=self.loop)
-        self.mongodb = self.mongoclient.strapbotrew
+        self.mongodb = self.mongoclient[dbname]
         await self.mongodb.command({"ping": 1})  # type: ignore
 
         cache = self.get_db("Cache", cog=False)

@@ -180,6 +180,24 @@ class StrapBotHelp(commands.HelpCommand):
             .set_author(name="title", icon_url=self.context.me.avatar)
         )
 
+    async def get_runnable_commands(self, cog: commands.Cog):
+        ret = []
+        for cmd in cog.walk_commands():
+            if cmd.parent:
+                continue
+
+            check = True
+            for chk in cmd.checks:
+                try:
+                    check = check and await discord.utils.maybe_coroutine(chk, self.context)
+                except Exception:
+                    check = False
+            
+            if check:
+                ret.append(cmd)
+            
+        return ret
+
     async def send_bot_help(self, mapping: dict[commands.Cog, list]):
         async with self.context.typing():
             for cog in mapping.copy().keys():
@@ -187,7 +205,7 @@ class StrapBotHelp(commands.HelpCommand):
                 if not cog:
                     continue
                 check = await discord.utils.maybe_coroutine(cog.cog_check, self.context)
-                if not check:
+                if not check or not await self.get_runnable_commands(cog):
                     mapping.pop(cog)
 
             # for future forkers,
@@ -202,18 +220,9 @@ class StrapBotHelp(commands.HelpCommand):
         p = self.context.clean_prefix
         check = await discord.utils.maybe_coroutine(cog.cog_check, self.context)
         cmds = []
-        for cmd in cog.walk_commands():
-            if cmd.parent:
-                continue
-
-            chks = check
-            for chk in cmd.checks:
-                chks = chks and await discord.utils.maybe_coroutine(chk, self.context)
-
-            if not chks:
-                continue
-
-            cmds.append(f"`{p}{cmd.qualified_name}`")
+        if check:
+            for cmd in await self.get_runnable_commands(cog):
+                cmds.append(f"`{p}{cmd.qualified_name}`")
 
         commands_ = f", ".join(cmds)
         footer = self.context.format_message(
