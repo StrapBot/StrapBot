@@ -163,3 +163,5 @@ cython_debug/
 
 .vscode/
 !.vscode/launch.json
+custom/**/*
+!custom/**/*.example
