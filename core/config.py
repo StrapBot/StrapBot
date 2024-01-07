@@ -1,6 +1,6 @@
 import os
 import discord
-from .utils import lang_exists, get_langs_properties, get_flag_emoji
+from .utils import lang_exists, get_langs_properties, get_flag_emoji, get_logger
 from discord.ext import commands
 from discord import TextChannel, Thread, ChannelType, SelectOption
 from discord.enums import ComponentType, TextStyle
@@ -229,7 +229,7 @@ class LogChannelType(GuildConfigType):
 class YouTubeNewsChannelType(GuildConfigType):
     key = "yt_news_channel_id"
     emoji = "\N{public address loudspeaker}"
-    select_menu_type = select_menu_type = SelectMenuType(
+    select_menu_type = SelectMenuType(
         MenuType.channel,
         1,
         1,
@@ -320,6 +320,12 @@ class PingOnReplyType(UserConfigType):
     def validate(val: bool, bot: commands.Bot):
         return isinstance(val, bool)
 
+try:
+    from custom.configs import *
+except ImportError:
+    get_logger().debug("Custom configurations not found.")
+except Exception as e:
+    get_logger().error("Could not load custom configurations.", exc_info=e)
 
 class Config:
     def __init__(

@@ -7,6 +7,9 @@ The bot is still being rewritten at the moment, not all features of the old one 
 
 Moderation commands are yet to be added.
 
+## License
+This bot is licensed under the **GPLv3 License**, except for the `custom` folder, where you can add your very own code to add features to the bot that do NOT modify the core functionality of it.
+
 ## Translating
 Translations are always welcome! You can send a pull request to [the languages repository](https://github.com/StrapBot/languages.git) translating the bot to your language.
 

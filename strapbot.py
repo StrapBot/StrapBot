@@ -190,29 +190,59 @@ class StrapBot(commands.Bot):
         # Extensions
         logger.debug("Loading extensions...")
         exts = set()
+        cexts = set()
         for ext in os.listdir("cogs"):
             ext = os.path.splitext(ext)
             if ext[1] == ".py":
                 exts.add(f"cogs.{ext[0]}")
 
+        if os.path.exists("custom/cogs"):
+            for ext in os.listdir("custom/cogs"):
+                ext = os.path.splitext(ext)
+                if ext[1] == ".py":
+                    cexts.add(f"custom.cogs.{ext[0]}")
+
         errors = 0
-        for ext in exts:
+        cerrors = 0
+        for ext in set(list(exts) + list(cexts)):
+            custom = ext in cexts
+            text = "custom extension" if custom else "extension"
             try:
                 await self.load_extension(ext)
             except Exception as e:
-                errors += 1
+                if custom:
+                    cerrors += 1
+                else:
+                    errors += 1
                 e = getattr(e, "original", e)
-                logger.error(f"Error loading [red bold]{ext}[/]", exc_info=e)
+                logger.error(f"Error loading {text} [red bold]{ext}[/]", exc_info=e)
             else:
-                logger.debug(f"Extension [bold]{ext}[/] loaded successfully.")
+                logger.debug(f"{text.capitalize()} [bold]{ext}[/] loaded successfully.")
 
         additional = " with [bold]no errors[/]"
         if errors:
             additional = f", [bold]could not load[/] [bold red]{errors}[/] extension"
             additional += "s" if errors != 1 else ""
 
+        if cerrors:
+            if errors:
+                additional += " and "
+            else:
+                additional += ", [bold]could not load[/] "
+            
+            additional += f"[bold red]{cerrors}[/] custom extension"
+            additional += "s" if cerrors != 1 else ""
+
+        loaded = len(exts) - errors
+        cloaded = len(cexts) - cerrors
+        c = "s" if loaded != 1 else ""
+        if cexts:
+            c += f" and [bold green]{cloaded}[/] custom extension"
+            c += "s" if cloaded != 1 else ""
+
+
         logger.info(
-            f"[bold green]{len(exts) - errors}[/] extensions loaded successfully{additional}.",
+            f"[bold green]{loaded}[/] extension{c} loaded successfully{additional}.",
             extra={"highlighter": None},
         )
 

@@ -292,7 +292,7 @@ class StrapContext(commands.Context):
         if help_command == None:
             raise ValueError("The help command is not set.")
 
-        l = get_lang(self.config.lang, cog=help_command.cog, command=help_command)
+        l = get_lang(self.language_to_use, cog=help_command.cog, command=help_command)
         if content and len(content.strip().split()) == 1:
             content = self.format_message(content, kws, lang=l)
 
@@ -418,7 +418,7 @@ class StrapContext(commands.Context):
         if self.command == None:
             return ""
 
-        return self.get_command_signature(self.command, self.config.lang)
+        return self.get_command_signature(self.command, self.language_to_use)
 
     async def defer(self, *, ephemeral: bool = False) -> Union[Typing, DeferTyping]:
         return await self.typing(ephemeral=ephemeral)  #  type: ignore

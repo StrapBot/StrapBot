@@ -1,0 +1,85 @@
+from core.config import (
+    GlobalConfigType,
+    GuildConfigType,
+    UserConfigType,
+    SelectMenuType,
+    MenuType,
+)
+from discord import TextStyle, ChannelType, TextChannel
+from discord.ext import commands
+
+# Custom configurations file.
+# In this file, you can create your own configurations for the `config` command.
+
+# Examples:
+
+# Custom configuration (the bot will open a modal):
+class MyCustomConfigType(GlobalConfigType):  # or GuildConfigType or UserConfigType
+    key = "my_conf"  # this is the database entry name
+    emoji = "\N{waving hand sign}"  # the emoji shown in the config command
+    custom = True
+    default = "hello!"  # a default value, you can also set this to None
+    text_style = TextStyle.short  # or TextStyle.long
+
+    @staticmethod
+    def validate(val, bot: commands.Bot):
+        # when a new value is submitted, this function gets called.
+        # by default, this function always returns True.
+        return val == val.lower()
+
+    @classmethod
+    async def setup(cls, ctx: commands.Context, value):
+        # when a new value is submitted and is valid, this function gets called.
+        # you can do whatever you want here.
+        pass
+
+
+# Select menu configuration:
+class MyCustomChannelType(UserConfigType):
+    key = "custom_channel"  # this is the database entry name
+    emoji = "\N{fish}"  # the emoji shown in the config command
+    select_menu_type = SelectMenuType(
+        MenuType.channel,  # or MenuType.string, MenuType.user, MenuType.channel, MenuType.role
+        1,  # min values
+        1,  # max values
+        [ChannelType.text],
+    )
+
+    @classmethod
+    def validate(cls, val: int, bot: commands.Bot):
+        # when a new value is submitted, this function gets called.
+        # by default, this function always returns True.
+
+        # in this case we're checking if the channel is a valid text channel.
+        if val == None:
+            return True  # value might be not set yet
+
+        if not isinstance(val, TextChannel):
+            if not isinstance(val, int):
+                return False
+
+            val = bot.get_channel(val)
+
+        return isinstance(val, TextChannel)
+
+    @classmethod
+    async def get_valid_values(cls, ctx: commands.Context) -> list:
+        # this function is for select menus to know what the possible values are.
+        # we can't take for granted that we can access the guild's channels,
+        # because `ctx.guild` could be None in interactions.
+        return getattr(ctx.guild, "channels", [])
+
+
+# Boolean configuration:
+class CoolBoolType(GuildConfigType):
+    key = "cool_bool"
+    emoji = "\N{level slider}"
+    default = False
+
+    @staticmethod
+    def validate(val: bool, bot: commands.Bot):
+        # when a new value is submitted, this function gets called.
+        # by default, this function always returns True.
+
+        # in this case we're checking if the new value is going to be a boolean
+        return isinstance(val, bool)

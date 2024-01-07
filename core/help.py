@@ -100,14 +100,14 @@ class StrapBotHelp(commands.HelpCommand):
 
     @property
     def lang(self):
-        return get_lang(self.context.config.lang, cog=self.cog, command=self)
+        return get_lang(self.context.language_to_use, cog=self.cog, command=self)
 
     def _get_cog_path(
         self, cog: commands.Cog, lang: typing.Optional[str] = None
     ) -> str:
         p = os.path.abspath("./langs")
         cname = type(cog).__name__
-        return os.path.join(p, lang or self.context.config.lang, "cogs", cname)
+        return os.path.join(p, lang or self.context.language_to_use, "cogs", cname)
 
     def _get_cog_lang_file(self, cog: commands.Cog, path: str) -> str:
         fp = os.path.join(self._get_cog_path(cog), path)
@@ -151,7 +151,11 @@ class StrapBotHelp(commands.HelpCommand):
         my_guild = self.context.format_message(
             "my_server", {"my_guild": "https://discord.gg/G4de45Bywg"}, lang=self.lang
         )
-        path = f"langs/{self.context.config.lang}/help.md"
+        path = f"langs/{self.context.language_to_use}/help.md"
+        if not os.path.exists(path):
+            deflang = os.getenv(DEFAULT_LANG_ENV, "en")
+            path = f"langs/{deflang}/help.md"
+
         ret = (
             open(path)
             .read()
@@ -262,7 +266,7 @@ class StrapBotHelp(commands.HelpCommand):
             alias = command.name if not parent_sig else parent_sig + " " + command.name
 
         signature = self.context.get_command_signature(
-            command, self.context.config.lang
+            command, self.context.language_to_use
         )
         return f"{self.context.clean_prefix}{alias} {signature}"
 
@@ -275,7 +279,7 @@ class StrapBotHelp(commands.HelpCommand):
             commands.HybridGroup,
         ],
     ):
-        lang = get_lang(self.context.config.lang, command=command) or {}
+        lang = get_lang(self.context.language_to_use, command=command) or {}
         desc = lang.get("short_doc", command.short_doc)
         if "details" in lang:
             desc += f"\n{lang['details']}"
@@ -339,7 +343,7 @@ class StrapBotHelp(commands.HelpCommand):
             cog_name.lower(): cog,
             cog.__cog_name__.lower(): cog,
         }
-        lang = self.context.config.lang
+        lang = self.context.language_to_use
         default_lang = os.getenv(DEFAULT_LANG_ENV, "en")
         lpaths = [
             os.path.join(LANGS_PATH, lang),
