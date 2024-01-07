@@ -7,6 +7,8 @@ from core.context import StrapContext
 from core.views import ConfigMenuView, ModChoiceView, YouTubeView
 from datetime import datetime
 from strapbot import StrapBot
+from ipaddress import ip_address
+from mcstatus import JavaServer, BedrockServer
 
 
 def server_online():
@@ -102,6 +104,51 @@ class Utilities(commands.Cog):
             content = "main_menu"
             view = YouTubeView(ctx, content)
             await ctx.send(content, view=view)
+
+    @commands.hybrid_command(aliases=["mcstatus", "mcstat", "mc"])
+    async def minecraft(self, ctx: StrapContext, server: str):
+        allow_local_ip = os.getenv("MCSTATUS_LOCAL_IP", "false").lower() in [
+            "true",
+            "1",
+        ]
+        if not allow_local_ip:
+            host = server.lower().split(":")[0].split("/")[0]
+
+            try:
+                if host == "localhost" or ip_address(host).is_private:
+                    await ctx.send("invalid")
+                    return
+            except ValueError:
+                # it can't be a private IP
+                pass
+
+        srv = await JavaServer.async_lookup(server)
+        bedrock = False
+        try:
+            status = await srv.async_status()
+        except Exception:
+            bedrock = True
+            srv = await self.bot.loop.run_in_executor(
+                None, BedrockServer.lookup, server
+            )
+            try:
+                status = await srv.async_status()
+            except Exception:
+                # The server either doesn't exist or is offline
+                await ctx.send("offline")
+                return
+
+        # remove formattings and colors
+        clean_motd = "".join(
+            part for part in status.motd.parsed if isinstance(part, str)
+        )
+
+        await ctx.send(
+            f"{'bedrock_' if bedrock else ''}online",
+            players=status.players.online,
+            max_players=status.players.max,
+            motd=clean_motd,
+        )
 
 
 async def setup(bot: StrapBot):
