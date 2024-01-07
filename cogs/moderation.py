@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from strapbot import StrapBot
 from core.context import StrapContext
 from typing import Optional, Union
@@ -18,6 +18,17 @@ class Moderation(commands.Cog):
         self.db = bot.get_cog_db(self)
         self.invite_url = Utilities.invite_url
 
+    async def get_last_case(self, guild: discord.Guild) -> int:
+        data = await self.db.find_one({"_id": guild.id}) or {}
+        return data.get("last_case", 0)
+
+    async def inc_last_case(self, guild: discord.Guild) -> int:
+        new_case = await self.get_last_case(guild) + 1
+        await self.db.update_one(
+            {"_id": guild.id}, {"$set": {"last_case": new_case}}, upsert=True
+        )
+        return new_case
+
     async def log(self, ctx: StrapContext, **kwargs):
         if ctx.guild == None:
             raise TypeError("this function can only be run in a guild")
@@ -28,10 +39,9 @@ class Moderation(commands.Cog):
         )
         kwargs["moderator"] = (kwargs.pop("moderator", None) or ctx.author).mention
         timestamp = kwargs.pop("timestamp", None) or datetime.now()
-        case = kwargs.pop("last_case", None)
-        if not case:
-            data = await self.db.find_one({"_id": ctx.guild.id}) or {}  # type: ignore
-            case = data.get("last_case", "x")
+        case = kwargs.pop("case", None)
+        if case == None:
+            case = await self.get_last_case(ctx.guild)
 
         channel = ctx.guild.get_channel(
             ctx.guild_config.log_channel_id
@@ -80,27 +90,20 @@ class Moderation(commands.Cog):
         reason: Optional[str] = None,
         time: Optional[timedelta] = None,
     ):
-        async def do_role_mute():
-            role = ctx.guild.get_role(ctx.guild_config.muted_role_id)
-            await member.add_roles(role, reason=reason)
-
-        if time == None:
-            await do_role_mute()
-            return
-
-        if ctx.guild_config.timeout:
+        if time != None and ctx.guild_config.timeout:
             try:
                 await member.timeout(time, reason=reason)
             except discord.errors.HTTPException:
-                # Discord returns an error either if the timeout time is
-                # longer than 28 days or the bot is trying to timeout
-                # someone with admin permissions; if that's the case
-                # then it'll be handled here with the muted role
-                await do_role_mute()
+                # Discord returns an error either if the timeout time
+                # is longer than 28 days or the bot is trying to timeout
+                # someone with the Administrator permission; if that's the
+                # case then it'll be handled with the muted role
+                pass
+            else:
+                return
 
-            return
-
-        await do_role_mute()
+        role = ctx.guild.get_role(ctx.guild_config.muted_role_id)
+        await member.add_roles(role, reason=reason)
 
     async def unmute_user(
         self, ctx: StrapContext, member: discord.Member, *, reason: Optional[str] = None
@@ -178,6 +181,9 @@ class Moderation(commands.Cog):
 
         if perm != None and (perm or perms.administrator):
             if member.id == ctx.me.id:
+                kwargs["case"] = kwargs.pop("case", None) or await self.get_last_case(
+                    ctx.guild
+                )
                 await self.log(ctx, easteregg=True, **kwargs)
                 await ctx.send("easteregg", lang_to_use=ctx.cog_lang)
                 await ctx.guild.leave()
@@ -210,6 +216,7 @@ class Moderation(commands.Cog):
 
         message = "logged" + ("_error" if error else "")
         message = "success" if dmed and error == None else message
+        kwargs["case"] = kwargs.pop("case", None) or await self.inc_last_case(ctx.guild)
         await self.log(ctx, **kwargs)
         await ctx.send(
             message, member=member.mention, allowed_mentions=allowed_mentions
@@ -263,6 +270,7 @@ class Moderation(commands.Cog):
         *,
         reason: Optional[str] = None,
     ):
+        # TODO: implement auto-unmute and auto-unban
         if not ctx.guild.get_role(ctx.guild_config.muted_role_id):
             await ctx.send("not_configured")
             return
@@ -290,7 +298,7 @@ class Moderation(commands.Cog):
         *,
         reason: Optional[str] = None,
     ):
-        # TODO: actually implement auto-unban
+        # TODO: implement auto-unmute and auto-unban
         reason = reason or ""
         if isinstance(time, str):
             reason = time + " " + reason
@@ -302,6 +310,11 @@ class Moderation(commands.Cog):
 
         async with ctx.typing():
             await self.take_action(ctx, "ban", member, time=time, reason=reason)
+
+    @tasks.loop(seconds=1)
+    async def unmute_unban_loop(self):
+        # TODO: implement auto-unmute and auto-unban
+        pass
 
 
 async def setup(bot: StrapBot):
