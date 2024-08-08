@@ -171,11 +171,12 @@ class StrapBot(commands.Bot):
         logger.info(f"Connected to {mongodb} database.")
 
         # REPL and debugging
-        if self.use_repl:
+        if self.use_repl or self.debugging:
             if self.debugging:
                 self.use_repl = False
                 # modify pydevd to have the bot and its loop inside its debug console
                 _vars = sys.modules["_pydevd_bundle"].pydevd_vars
+                
                 self._original_eval_exp = _vars.evaluate_expression
                 self._original_eval_class = _vars._EvalAwaitInNewEventLoop
                 _vars.evaluate_expression = get_debug_evaluate_expression(self)
@@ -478,6 +479,7 @@ if __name__ == "__main__":
     webhook = raise_if_no_env(
         "ERRORS_WEBHOOK_URL", KeyError("A webhook URL for errors logging is required.")
     )
+    use_repl = os.getenv("USE_REPL", "false").lower() in ["true", "1", "yes", "y", "on"]
 
-    bot = StrapBot(mongodb_uri=mongodb, webhook_url=webhook, use_repl=IS_TERMINAL)
+    bot = StrapBot(mongodb_uri=mongodb, webhook_url=webhook, use_repl=use_repl and IS_TERMINAL)
     bot.run(token, log_handler=None)

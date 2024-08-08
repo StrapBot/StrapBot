@@ -219,7 +219,8 @@ class REPLThread(threading.Thread):
             banner = (
                 "Welcome to the StrapBot REPL!\n"
                 f'Just like "{p}eval", you can evaluate Python codes from here.\n'
-                'You can access the bot with "bot". Have fun!'
+                "Warning: This is a powerful yet unstable tool. Use with caution and expect bugs.\n"
+                'You can access the bot instance with "bot". Have fun!'
             )
 
             self.bot.console.interact(banner=banner)
