@@ -219,19 +219,19 @@ def get_command_lang_file(
             return ret
 
 
-def get_lang_properties_file(lang: str, file: str) -> Optional[dict]:
+def get_lang_properties_file(lang: str, file: str) -> dict:
     lang = try_lang(lang)
 
     path = lambda l: os.path.join(LANGS_PATH, l, file)
     if not os.path.exists(path(lang)):
         lang = os.getenv(DEFAULT_LANG_ENV, "en")
         if not os.path.exists(path(lang)):
-            return
+            return {}
 
     return json.load(open(path(lang)))
 
 
-def get_lang_properties(lang: str) -> Optional[dict]:
+def get_lang_properties(lang: str) -> dict:
     return get_lang_properties_file(lang, "__data__.json")
 
 
@@ -239,7 +239,7 @@ def get_langs_properties() -> List[dict]:
     return [get_lang_properties(lang) for lang in get_langs()]  # type: ignore
 
 
-def get_lang_config_names(lang: str) -> Optional[dict]:
+def get_lang_config_names(lang: str) -> dict:
     return get_lang_properties_file(lang, "configs.json")
 
 
