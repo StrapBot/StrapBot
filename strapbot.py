@@ -234,7 +234,7 @@ class StrapBot(commands.Bot):
                 additional += " and "
             else:
                 additional += ", [bold]could not load[/] "
-            
+
             additional += f"[bold red]{cerrors}[/] custom extension"
             additional += "s" if cerrors != 1 else ""
 
@@ -244,7 +244,6 @@ class StrapBot(commands.Bot):
         if cexts:
             c += f" and [bold green]{cloaded}[/] custom extension"
             c += "s" if cloaded != 1 else ""
-
 
         logger.info(
             f"[bold green]{loaded}[/] extension{c} loaded successfully{additional}.",

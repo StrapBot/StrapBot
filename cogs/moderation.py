@@ -44,7 +44,7 @@ class Moderation(commands.Cog):
             case = await self.get_last_case(ctx.guild)
 
         channel = ctx.guild.get_channel(
-            ctx.guild_config.log_channel_id
+            ctx.guild_config.moderation["log_channel_id"]
         )  #  type: ignore
         if channel == None:
             return
@@ -90,7 +90,7 @@ class Moderation(commands.Cog):
         reason: Optional[str] = None,
         time: Optional[timedelta] = None,
     ):
-        if time != None and ctx.guild_config.timeout:
+        if time != None and ctx.guild_config.moderation["timeout"]:
             try:
                 await member.timeout(time, reason=reason)
             except discord.errors.HTTPException:
@@ -102,13 +102,13 @@ class Moderation(commands.Cog):
             else:
                 return
 
-        role = ctx.guild.get_role(ctx.guild_config.muted_role_id)
+        role = ctx.guild.get_role(ctx.guild_config.moderation["muted_role_id"])
         await member.add_roles(role, reason=reason)
 
     async def unmute_user(
         self, ctx: StrapContext, member: discord.Member, *, reason: Optional[str] = None
     ):
-        role = ctx.guild.get_role(ctx.guild_config.muted_role_id)
+        role = ctx.guild.get_role(ctx.guild_config.moderation["muted_role_id"])
         await member.timeout(None, reason=reason)
         await member.remove_roles(role, reason=reason)
 
@@ -244,7 +244,7 @@ class Moderation(commands.Cog):
         *,
         reason: Optional[str] = None,
     ):
-        if not ctx.guild.get_role(ctx.guild_config.muted_role_id):
+        if not ctx.guild.get_role(ctx.guild_config.moderation["muted_role_id"]):
             await ctx.send("not_configured")
             return
 
@@ -271,7 +271,7 @@ class Moderation(commands.Cog):
         reason: Optional[str] = None,
     ):
         # TODO: implement auto-unmute and auto-unban
-        if not ctx.guild.get_role(ctx.guild_config.muted_role_id):
+        if not ctx.guild.get_role(ctx.guild_config.moderation["muted_role_id"]):
             await ctx.send("not_configured")
             return
 

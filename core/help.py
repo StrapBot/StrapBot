@@ -189,13 +189,15 @@ class StrapBotHelp(commands.HelpCommand):
             check = True
             for chk in cmd.checks:
                 try:
-                    check = check and await discord.utils.maybe_coroutine(chk, self.context)
+                    check = check and await discord.utils.maybe_coroutine(
+                        chk, self.context
+                    )
                 except Exception:
                     check = False
-            
+
             if check:
                 ret.append(cmd)
-            
+
         return ret
 
     async def send_bot_help(self, mapping: dict[commands.Cog, list]):

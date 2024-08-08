@@ -2,7 +2,13 @@ import os
 import discord
 from discord import ui, Interaction
 from . import View, Modal
-from ..config import AnyConfig, SelectMenuType, MenuType, ConfigValueError
+from ..config import (
+    AnyConfig,
+    SelectMenuType,
+    MenuType,
+    ConfigValueError,
+    FolderConfigData,
+)
 from ..utils import get_lang_config_names, DEFAULT_LANG_ENV
 from ..context import StrapContext
 from typing import Optional, Union, Type, Any, Dict, List
@@ -12,9 +18,38 @@ BACK_BUTTON_PROPS = dict(style=ButtonStyle.primary, emoji="⬅️", custom_id="b
 CONFIG_TEMPLATE = "**__{name}__**\n\n*{description}*"
 
 
-def _get_lang_props(lang: str, key: Any):
-    _ = lambda: get_lang_config_names(os.getenv(DEFAULT_LANG_ENV, "en"))
+async def items_back(self, interaction: Interaction, button: ui.Button):
+    if not self.parent or self._setting_prop:
+        return
+
+    for child in self.parent.children:
+        if not isinstance(child, ConfigButton):
+            continue
+
+        data = _get_lang_props(self.ctx.language_to_use, child.key, self.folder)
+
+        child.label = data["name"]
+
+    content = self.ctx.format_message(self.parent.content)
+    await interaction.response.edit_message(content=content, view=self.parent)
+
+
+def _get_lang_props(lang: str, key: Any, folder=None):
+    # _ = lambda: get_lang_config_names(os.getenv(DEFAULT_LANG_ENV, "en"))
+    def _():
+        if folder:
+            return (
+                get_lang_config_names(os.getenv(DEFAULT_LANG_ENV, "en"))
+                .get(folder.key, {})
+                .get("items", {})
+            )
+
+        return get_lang_config_names(os.getenv(DEFAULT_LANG_ENV, "en"))
+
     props = get_lang_config_names(lang)
+    if folder:
+        props = props.get(folder.key, {}).get("items", {})
+
     if not props:
         props = _()
 
@@ -43,19 +78,36 @@ class PropertyView(ConfigView):
         key: str,
         parent=None,
         *,
+        folder: Optional[FolderConfigData] = None,
         timeout: Optional[float] = 180,
     ):
         super().__init__(ctx, timeout=timeout)
         self.parent = parent
         self.config = config
-        self.value = config[key]
+
+        self.folder = folder
+        if folder:
+            self.value = config[folder.key][key]
+        else:
+            self.value = config[key]
+
         self.key = key
         self._setting_prop = False
 
     async def set(self, value: Any, interaction: Optional[Interaction] = None):
-        original_value = self.config[self.key]
+        if self.folder:
+            fld = self.config[self.folder.key].copy()
+            fld[self.key] = value
+            original_data = {self.folder.key: self.config[self.folder.key]}
+            data_to_set = {self.folder.key: fld}
+            conf_type = self.config.types[self.folder.key][self.key]
+        else:
+            original_data = {self.key: self.config[self.key]}
+            data_to_set = {self.key: value}
+            conf_type = self.config.types[self.key]
+
         try:
-            ret = await self.config.set(**{self.key: value})
+            ret = await self.config.set(**data_to_set)
         except ConfigValueError:
             content = interaction.message.content
             err = self.ctx.format_message("value_error")
@@ -71,9 +123,9 @@ class PropertyView(ConfigView):
             raise
 
         try:
-            await self.config.types[self.key].setup(self.ctx, value)
+            await conf_type.setup(self.ctx, value)
         except Exception:
-            await self.config.set(**{self.key: original_value})
+            await self.config.set(**original_data)
             await self.set_disabled_items(True, interaction, keep_back=True)
             raise
 
@@ -117,19 +169,7 @@ class PropertyView(ConfigView):
 
     @ui.button(**BACK_BUTTON_PROPS)
     async def back(self, interaction: Interaction, button: ui.Button):
-        if not self.parent or self._setting_prop:
-            return
-
-        for child in self.parent.children:
-            if not isinstance(child, ConfigButton):
-                continue
-
-            data = _get_lang_props(self.ctx.language_to_use, child.key)
-
-            child.label = data["name"]
-
-        content = self.ctx.format_message(self.parent.content)
-        await interaction.response.edit_message(content=content, view=self.parent)
+        return await items_back(self, interaction, button)
 
 
 class BooleanPropertyView(PropertyView):
@@ -140,9 +180,10 @@ class BooleanPropertyView(PropertyView):
         key: str,
         parent=None,
         *,
+        folder: Optional[FolderConfigData] = None,
         timeout: float = 180,
     ):
-        super().__init__(ctx, config, key, parent, timeout=timeout)
+        super().__init__(ctx, config, key, parent, folder=folder, timeout=timeout)
         self.update_button_name()
 
     def update_button_name(self):
@@ -155,7 +196,7 @@ class BooleanPropertyView(PropertyView):
         self.value = not self.value
         await interaction.response.defer()
         await self.set(self.value, interaction)
-        data = _get_lang_props(self.ctx.language_to_use, self.key)
+        data = _get_lang_props(self.ctx.language_to_use, self.key, self.folder)
         cont = CONFIG_TEMPLATE.format(
             name=data["name"], description=data["description"]
         )
@@ -168,15 +209,20 @@ class CustomPropertyModal(Modal):
         self, view: "CustomPropertyView", *, timeout: Optional[float] = None
     ) -> None:
         self.view = view
-        data = _get_lang_props(view.ctx.language_to_use, view.key)
+        data = _get_lang_props(view.ctx.language_to_use, view.key, view.folder)
         super().__init__(view.ctx, title=data["name"], timeout=timeout)
         self.ctx = view.ctx
 
     @classmethod
     def create(cls, view: "CustomPropertyView", *, timeout: Optional[float] = None):
-        cfg_type = view.config.types[view.key]
+        if view.folder:
+            cfg_type = view.config.types[view.folder.key][view.key]
+            value = view.config[view.folder.key][view.key]
+        else:
+            cfg_type = view.config.types[view.key]
+            value = view.config[view.key]
+
         style = cfg_type.text_style or discord.TextStyle.short
-        value = view.config[view.key]
         cls.value = ui.TextInput(
             label="value_input_label",
             style=style,
@@ -193,29 +239,26 @@ class CustomPropertyModal(Modal):
         value = self.value.value
         await self.view.set(value)
 
-        lang = _get_lang_props(self.ctx.language_to_use, self.view.key)
+        lang = _get_lang_props(
+            self.ctx.language_to_use, self.view.key, self.view.folder
+        )
         cont = CONFIG_TEMPLATE.format(
             name=lang["name"], description=lang["description"]
         )
         curr = self.view.get_current(
-            self.view.config.types[self.view.key].text_style,
+            (
+                self.view.config.types[self.view.folder.key][self.view.key].text_style
+                if self.view.folder
+                else self.view.config.types[self.view.key].text_style
+            ),
             value,
         )
         self.value.default = value
         m = self.ctx.format_message("current_conf", {"current": curr})
         cont += f"\n\n{m}"
 
-        # recreate the View so the modal will change value
-        self.view.stop()
-        view = CustomPropertyView(
-            self.ctx,
-            self.view.config,
-            self.view.key,
-            self.view.parent,
-            timeout=self.view.timeout,
-        )
         await interaction.followup.edit_message(
-            interaction.message.id, content=cont, view=view  #  type: ignore
+            interaction.message.id, content=cont, view=self.view  #  type: ignore
         )
 
 
@@ -267,14 +310,18 @@ class SelectPropertyView(PropertyView):
         key: str,
         parent=None,
         *,
+        folder: Optional[FolderConfigData] = None,
         options: Optional[List[SelectOption]] = None,
         timeout: float = 180,
     ):
-        super().__init__(ctx, config, key, parent, timeout=timeout)
+        super().__init__(ctx, config, key, parent, folder=folder, timeout=timeout)
         self.config = config
         self.key = key
         self.ctx = ctx
-        self.menu_type = tp = config.types[key].select_menu_type
+        if folder:
+            self.menu_type = tp = config.types[folder.key][key].select_menu_type
+        else:
+            self.menu_type = tp = config.types[key].select_menu_type
         self.remove_item(self.back)
         self.back.row = 1
         if tp:
@@ -299,7 +346,9 @@ class SelectPropertyView(PropertyView):
                     raise ValueError("options is required when MenuType is string")
 
                 for opt in options:
-                    opt.default = opt.value == config[key]
+                    opt.default = opt.value == (
+                        config[folder][key] if folder else config[key]
+                    )
                 kws["options"] = options
 
             self.add_item(menu(**kws))
@@ -311,6 +360,11 @@ class SelectPropertyView(PropertyView):
         if not self.menu_type:
             await self.back.callback(interaction)
             return
+
+        if self.folder:
+            val = self.config[self.folder.key][self.key]
+        else:
+            val = self.config[self.key]
 
         val = select.values
         if self.menu_type.type in [
@@ -347,15 +401,12 @@ class SelectPropertyView(PropertyView):
                     self.children, custom_id="select"  #  type: ignore
                 )
                 for opt in items.options:
-                    opt.default = opt.value == self.config[self.key]
-        lang = _get_lang_props(self.ctx.language_to_use, self.key)
+                    opt.default = opt.value == val
+        lang = _get_lang_props(self.ctx.language_to_use, self.key, self.folder)
         cont = CONFIG_TEMPLATE.format(
             name=lang["name"], description=lang["description"]
         )
-
-        currs = self.get_current_configs(
-            self.menu_type, self.ctx, self.config[self.key]
-        )
+        currs = self.get_current_configs(self.menu_type, self.ctx, val)
         if currs:
             if len(currs) == 1:
                 curr = currs[0]
@@ -393,32 +444,50 @@ class SelectPropertyView(PropertyView):
 
 
 class ConfigButton(ui.Button):
-    def __init__(self, ctx: StrapContext, config: AnyConfig, key: str):
-        self.data = _get_lang_props(ctx.language_to_use, key)
+    def __init__(
+        self,
+        ctx: StrapContext,
+        config: AnyConfig,
+        key: str,
+        folder: Optional[FolderConfigData] = None,
+    ):
+        self.config = config
+        self.key = key
+        self.folder = folder
+        self.ctx = ctx
+        emojis = config.emojis
+        self.data = _get_lang_props(ctx.language_to_use, key, folder)
+        if folder:
+            emojis = folder.emojis
+
         super().__init__(
             style=ButtonStyle.green,
             label=self.data["name"],
             custom_id=key,
-            emoji=config.emojis[key] or None,
+            emoji=emojis[key] or None,
         )
-        self.config = config
-        self.key = key
-        self.ctx = ctx
 
     async def callback(self, interaction: Interaction):
         await interaction.response.defer()
         await self.config.fetch()
-        self.data = _get_lang_props(self.ctx.language_to_use, self.key)
-        kwargs = {}
+        self.data = _get_lang_props(self.ctx.language_to_use, self.key, self.folder)
+        kwargs = {"folder": self.folder}
         viewtype: Type[PropertyView] = PropertyView
         content = CONFIG_TEMPLATE.format(
             name=self.data["name"], description=self.data["description"]
         )
         current = ""
-        conf = self.config[self.key]
-        conf_tp = self.config.types[self.key]
+        if self.folder:
+            conf = self.config[self.folder.key][self.key]
+            conf_tp = self.config.types[self.folder.key][self.key]
+        else:
+            conf = self.config[self.key]
+            conf_tp = self.config.types[self.key]
+
         if isinstance(conf, bool):
             viewtype = BooleanPropertyView
+        elif isinstance(conf_tp, dict):
+            viewtype = FolderView
         elif conf_tp.custom:
             viewtype = CustomPropertyView
             current = viewtype.get_current(conf_tp.text_style, conf)
@@ -460,7 +529,7 @@ class ConfigMenuView(ConfigView):
         if not parent:
             self.remove_item(self.back)
 
-        for k in self.config.data.keys():
+        for k in self.config.types.keys():
             button = ConfigButton(ctx, config, k)
             self.add_item(button)
 
@@ -474,6 +543,39 @@ class ConfigMenuView(ConfigView):
             child.label = self.ctx.format_message(child.label_to_format)
 
         await interaction.response.edit_message(content=content, view=self.parent)
+
+
+class FolderView(ConfigMenuView, PropertyView):
+    # the folder param is only added for compatibility,
+    # subfolders haven't been implemented yet
+    def __init__(
+        self,
+        ctx: StrapContext,
+        config: AnyConfig,
+        key: str,
+        parent=None,
+        *,
+        folder=None,
+    ):
+        PropertyView.__init__(self, ctx, config, key, parent)
+        self.config = config
+        self.key = key
+        self.parent = parent
+        self.data = _get_lang_props(ctx.language_to_use, key, folder)
+
+        for k in self.config.types[key].keys():
+            button = ConfigButton(ctx, self.config, k, self.config.types[key])
+            self.add_item(button)
+
+    @ui.button(**BACK_BUTTON_PROPS)
+    async def back(self, interaction: Interaction, button: ui.Button):
+        return await items_back(self, interaction, button)
+
+    @property
+    def content(self):
+        return CONFIG_TEMPLATE.format(
+            name=self.data["name"], description=self.data["description"]
+        )
 
 
 class ModChoiceButton(ui.Button):

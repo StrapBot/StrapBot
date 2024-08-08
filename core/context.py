@@ -144,7 +144,10 @@ class StrapContext(commands.Context):
             lang.pop("short_doc", "")
             lang.pop("details", "")
             if key in lang:
-                return (lang[key].format(**format), lang[key] == lang[key].format(**format))
+                return (
+                    lang[key].format(**format),
+                    lang[key] == lang[key].format(**format),
+                )
 
         fmt = " ".join(f"{k}={v!r}" for k, v in format.items())
         return (f"{key} {fmt}", False)

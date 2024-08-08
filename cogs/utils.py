@@ -43,6 +43,11 @@ class Utilities(commands.Cog):
     async def config(self, ctx: StrapContext):
         """Change the bot's settings."""
         async with ctx.typing():
+
+            # force updating the config
+            await ctx.config.fetch()
+            await ctx.guild_config.fetch()
+
             perms = ctx.channel.permissions_for(ctx.author)  # type: ignore
             if perms.administrator or perms.manage_guild:
                 view = ModChoiceView(ctx)

@@ -6,6 +6,7 @@ from discord import ui
 from . import View
 from core.context import StrapContext
 
+
 # subclass this when making a custom stop button
 class StopButton(ui.Button):
     def __init__(self, emoji: str = "⏹️"):
@@ -167,8 +168,9 @@ class PaginationView(View):
         await self.show_page(interaction, curr - 1)
 
     @ui.button(custom_id="nav_stop", row=3)
-    async def stop_button(self, interaction: discord.Interaction, button: ui.Button):
-        ...
+    async def stop_button(
+        self, interaction: discord.Interaction, button: ui.Button
+    ): ...
 
     @ui.button(emoji="▶️", custom_id="nav_next", row=3, style=ButtonStyle.green)
     async def next_page(self, interaction: discord.Interaction, button: ui.Button):

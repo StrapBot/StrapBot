@@ -9,6 +9,22 @@ from typing import Optional, Union, Type, List, Dict, Any
 from functools import partial
 
 
+def _make_base(d):
+    ret = {}
+    for k, t in d.items():
+        if (
+            t.select_menu_type
+            and t.select_menu_type.max_values > 1
+            and t.select_menu_type.min_values < t.select_menu_type.max_values
+            and t.default is None
+        ):
+            ret[k] = []
+        else:
+            ret[k] = t.default
+
+    return ret
+
+
 class ConfigValueError(ValueError):
     pass
 
@@ -93,10 +109,39 @@ class ConfigType:
         pass
 
 
+class FolderConfigType(ConfigType):
+    pass
+
+
+class FolderConfigData(dict):
+    def __init__(self, base: Type[FolderConfigType], data: dict, parent=None):
+        super().__init__(data)
+        self.__base = base
+        self.parent = parent
+
+    def __getattr__(self, item):
+        return getattr(self.__base, item)
+
+    def __call__(self, value: Any, bot: commands.Bot):
+        return self.__base(value, bot)
+
+    def validate(self, val: dict, bot: commands.Bot):
+        return all(a.validate(val.get(k, val.get(a.key)), bot) for k, a in self.items())
+
+    @property
+    def default(self):
+        return _make_base(self)
+
+    @property
+    def emojis(self):
+        return {k: a.emoji for k, a in self.items()}
+
+
 # NOTE: to create a new configuration, you have to
 #       subclass one of these three classes below,
 #       depending on the configuration you want to
 #       create.
+
 
 # Global configurations (for both users and guilds)
 class GlobalConfigType(ConfigType):
@@ -148,7 +193,12 @@ class GuildLangOverrideType(GuildConfigType):
         return isinstance(val, bool)
 
 
-class MutedRoleType(GuildConfigType):
+class ModerationConfigType(GuildConfigType, FolderConfigType):
+    key = "moderation"
+    emoji = "\N{shield}"
+
+
+class MutedRoleType(ModerationConfigType):
     key = "muted_role_id"
     emoji = "\N{speaker with cancellation stroke}"
     select_menu_type = SelectMenuType(
@@ -158,7 +208,7 @@ class MutedRoleType(GuildConfigType):
     )
 
     @staticmethod
-    def validate(val: int, bot: commands.Bot) -> bool:
+    def validate(val: Union[discord.Role, int], bot: commands.Bot) -> bool:
         if not isinstance(val, discord.Role):
             if not isinstance(val, int):
                 return False
@@ -169,7 +219,7 @@ class MutedRoleType(GuildConfigType):
         return val.guild.me.top_role.position > val.position
 
 
-class TimeoutType(GuildConfigType):
+class TimeoutType(ModerationConfigType):
     key = "timeout"
     default = False
     emoji = "\N{hourglass}"
@@ -179,7 +229,7 @@ class TimeoutType(GuildConfigType):
         return isinstance(val, bool)
 
 
-class LogChannelType(GuildConfigType):
+class LogChannelType(ModerationConfigType):
     key = "log_channel_id"
     emoji = "\N{page facing up}"
     select_menu_type = SelectMenuType(
@@ -205,7 +255,9 @@ class LogChannelType(GuildConfigType):
         return admin or (sm and el and af)
 
     @classmethod
-    def validate(cls, val: int, bot: commands.Bot):
+    def validate(
+        cls, val: Optional[Union[TextChannel, Thread, int]], bot: commands.Bot
+    ):
         if val == None:
             return True  # value might be not set yet
 
@@ -226,8 +278,13 @@ class LogChannelType(GuildConfigType):
         return list(filter(cls.chn_check, getattr(ctx.guild, "channels", [])))
 
 
-class YouTubeNewsChannelType(GuildConfigType):
-    key = "yt_news_channel_id"
+class YouTubeNewsType(GuildConfigType, FolderConfigType):
+    key = "yt_news"
+    emoji = "\N{film frames}"
+
+
+class YouTubeNewsChannelType(YouTubeNewsType):
+    key = "channel_id"
     emoji = "\N{public address loudspeaker}"
     select_menu_type = SelectMenuType(
         MenuType.channel,
@@ -274,9 +331,9 @@ class YouTubeNewsChannelType(GuildConfigType):
 
         webhook = await value.create_webhook(
             name=value.guild.me.name,
-            avatar=await value.guild.me.avatar.read()
-            if value.guild.me.avatar
-            else None,
+            avatar=(
+                await value.guild.me.avatar.read() if value.guild.me.avatar else None
+            ),
         )
 
         cfg = await db.find_one({"_id": value.guild.id})
@@ -298,8 +355,8 @@ class YouTubeNewsChannelType(GuildConfigType):
         )
 
 
-class YouTubeNewsMessageType(GuildConfigType):
-    key = "yt_news_message"
+class YouTubeNewsMessageType(YouTubeNewsType):
+    key = "message"
     emoji = "\N{memo}"
     default = "{video}"
     custom = True
@@ -320,12 +377,14 @@ class PingOnReplyType(UserConfigType):
     def validate(val: bool, bot: commands.Bot):
         return isinstance(val, bool)
 
+
 try:
     from custom.configs import *
 except ImportError:
     get_logger().debug("Custom configurations not found.")
 except Exception as e:
     get_logger().error("Could not load custom configurations.", exc_info=e)
+
 
 class Config:
     def __init__(
@@ -344,18 +403,42 @@ class Config:
         self.id = data["_id"]
         self.db = self.bot.get_db("Configurations", cog=False)
 
+    def __check(self, base, entry, types, force=False):
+        modified = False
+        for k, v in base.items():
+            if k not in types and force:
+                raise KeyError(k)
+
+            if k not in entry or force:
+                modified = True
+                entry[k] = types[k](v, self.bot)
+
+            if isinstance(v, dict):
+                ch = self.__check(base[k], entry[k], types[k], force)
+                modified = ch or modified
+
+        return modified
+
     @staticmethod
     def _create_types(
         tp: Optional[Union[Type[GuildConfigType], Type[UserConfigType]]] = None
     ) -> Dict[str, Type[ConfigType]]:
-        return {
+        ret = {
             t.key: t
             for t in GlobalConfigType.__subclasses__()
             + (tp.__subclasses__() if tp else [])
         }
 
+        for sc in FolderConfigType.__subclasses__():
+            if not issubclass(sc, GlobalConfigType) and (tp and not issubclass(sc, tp)):
+                continue
+
+            ret[sc.key] = FolderConfigData(sc, {t.key: t for t in sc.__subclasses__()})
+
+        return ret
+
     def _create_base(self) -> Dict[str, Any]:
-        return {k: t.default for k, t in self.types.items()}
+        return _make_base(self.types)
 
     @property
     def target(self) -> Union[discord.Guild, discord.User, None]:
@@ -388,12 +471,9 @@ class Config:
 
     async def fetch(self, update=False):
         """Update the entries to add new configurations."""
-        modified = False
         entry = self._data.copy()
-        for k, v in self.base.items():
-            if k not in entry:
-                modified = True
-                entry[k] = self.types[k](v, self.bot)
+
+        modified = self.__check(self.base, entry, self.types)
 
         if modified or update:
             if modified:
@@ -425,20 +505,14 @@ class Config:
             cls = GuildConfig
 
         ret = cls(bot, **entry)
-        await ret.fetch()
+        await ret.fetch(True)
 
         return ret
 
     async def set(self, **props):
         new = self._data.copy()
         new["type"] = type(self.target).__name__.lower()
-        modified = False
-        for key, value in props.items():
-            if key not in self.types:
-                raise KeyError(key)
-
-            new[key] = self.types[key](value, self.bot)
-            modified = True
+        modified = self.__check(props, new, self.types, True)
 
         ret = new.copy()
         if modified:
