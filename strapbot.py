@@ -9,7 +9,8 @@ import discord
 import dotenv
 import logging
 from aiohttp import ClientSession
-from discord.ext import commands
+from collections import defaultdict
+from discord.ext import commands, tasks
 from typing import Union, Dict
 from typing_extensions import Self
 from discord import Message, Interaction
@@ -26,6 +27,10 @@ from core.utils import (
     get_logger,
     MyTranslator,
     is_debugging,
+    MarkovChain,
+    load_chain_from_db,
+    save_chain_to_db,
+    CacheDict,
 )
 from discord.ext.commands.bot import _default
 from core.repl import InteractiveConsole, REPLThread
@@ -74,6 +79,10 @@ class StrapBot(commands.Bot):
         self.main_guild: typing.Optional[discord.Guild] = None
         self.use_repl = use_repl
         self.console = None
+        self.markov_learn_events: typing.Dict[int, asyncio.Event] = {}
+        self.__markov_guild_operations = defaultdict(asyncio.Lock)
+        self.__markov_loop_running = False
+        self.__markov_chains: CacheDict[int, MarkovChain] = CacheDict()
 
     @property
     def debugging(self) -> bool:
@@ -120,6 +129,7 @@ class StrapBot(commands.Bot):
         return cfg
 
     def get_db(self, dbname, cog=True):
+        """Get a MongoDB collection."""
         name = dbname
         if cog:
             name = "cog." + name
@@ -176,7 +186,7 @@ class StrapBot(commands.Bot):
                 self.use_repl = False
                 # modify pydevd to have the bot and its loop inside its debug console
                 _vars = sys.modules["_pydevd_bundle"].pydevd_vars
-                
+
                 self._original_eval_exp = _vars.evaluate_expression
                 self._original_eval_class = _vars._EvalAwaitInNewEventLoop
                 _vars.evaluate_expression = get_debug_evaluate_expression(self)
@@ -254,6 +264,9 @@ class StrapBot(commands.Bot):
         # YouTube news
         # It would have taken too long to start the bot in some cases
         self.loop.create_task(self.check_youtube_news(True))
+
+        # Loops
+        self.markov_cache_loop.start()
 
         # Application commands
         main_guild_id = os.getenv("MAIN_GUILD_ID", None)
@@ -350,6 +363,99 @@ class StrapBot(commands.Bot):
 
         if self.use_repl and not self.debugging:
             self.repl_thread.start()
+
+    async def get_markov_chain(self, guild_id: int) -> typing.Optional[MarkovChain]:
+        """Get the Markov chain for a guild."""
+        chain = self.__markov_chains.get(guild_id, None)
+        if chain:
+            return chain
+
+        async with self.__markov_guild_operations[guild_id]:
+            chain = await load_chain_from_db(self.mongodb, guild_id)
+            if chain is None:
+                return
+
+            self.__markov_chains[guild_id] = chain
+            return chain
+
+    async def save_markov_chain(self, guild_id: int):
+        """Save the guild's Markov chain data."""
+        chain = self.__markov_chains.pop(guild_id, None)
+        if not chain:
+            return
+
+        async with self.__markov_guild_operations[guild_id]:
+            try:
+                await save_chain_to_db(self.mongodb, guild_id, chain)
+            except Exception:
+                self.__markov_chains[guild_id] = chain
+                raise
+
+    @tasks.loop(minutes=5)
+    async def markov_cache_loop(self):
+        """Loop to clear the Markov chains cache."""
+
+        self.__markov_loop_running = True
+        tasks = []
+
+        for guild_id in self.__markov_chains.clean():
+            await self.save_markov_chain(guild_id)
+
+        if tasks:
+            await asyncio.gather(*tasks)
+
+        self.__markov_loop_running = False
+
+    async def on_message(self, message: Message):
+        if message.author.bot:
+            return
+
+        ctx = await self.get_context(message)
+        markov_cfg = ctx.guild_config.markov
+        await self.process_commands(message)
+
+        if (
+            markov_cfg["enabled"]
+            and not ctx.command
+            and ctx.guild.id not in self.markov_learn_events
+            and ctx.channel.id == markov_cfg["channel_id"]
+        ):
+            # because we don't want to learn one-word messages
+            can_add = len(message.content.split(" ")) > 1
+
+            min = markov_cfg["messages"]["min"]
+            max = markov_cfg["messages"]["max"]
+            db = self.get_db("MarkovChain", cog=False)
+            data = await db.find_one({"_id": message.guild.id})
+            if not data:
+                return
+
+            msg_set = data.pop("msg_set", random.randint(min, max))
+            curr_msg = data.pop("curr_msg", msg_set)
+            chain = await self.get_markov_chain(message.guild.id)
+            if can_add:
+                chain.add_message(message.content)
+
+            if curr_msg >= msg_set:
+                curr_msg = 1
+                msg_set = random.randint(min, max)
+                await message.channel.send(
+                    chain.generate(markov_cfg["messages"]["words"]),
+                    allowed_mentions=discord.AllowedMentions.none(),
+                )
+            else:
+                curr_msg += 1
+
+            await db.update_one(
+                {"_id": message.guild.id},
+                {
+                    "$set": {
+                        "msg_set": msg_set,
+                        "curr_msg": curr_msg,
+                    }
+                },
+                upsert=True,
+            )
 
     async def get_context(
         self, origin: Union[Message, Interaction[Self]], /, *, cls=StrapContext
@@ -462,6 +568,27 @@ class StrapBot(commands.Bot):
     async def close(self):
         if self.use_repl and not self.debugging and self.console:
             self.console.stop()
+
+        if (
+            self.markov_learn_events
+            and any(not ev.is_set() for ev in self.markov_learn_events.values())
+        ) or self.__markov_chains:
+            logger.info("Waiting for all the Markov events to finish...")
+            tasks = [
+                ev.wait() for ev in self.markov_learn_events.values() if not ev.is_set()
+            ]
+
+            if tasks:
+                await asyncio.gather(*tasks)
+
+            self.markov_cache_loop.stop()
+            if self.__markov_loop_running:
+                logger.debug("Waiting for the Markov cache loop to finish...")
+                await self.markov_cache_loop.get_task()
+
+            if self.__markov_chains:
+                await self.markov_cache_loop()
+
         await self.session.close()
         return await super().close()
 
@@ -481,5 +608,7 @@ if __name__ == "__main__":
     )
     use_repl = os.getenv("USE_REPL", "false").lower() in ["true", "1", "yes", "y", "on"]
 
-    bot = StrapBot(mongodb_uri=mongodb, webhook_url=webhook, use_repl=use_repl and IS_TERMINAL)
+    bot = StrapBot(
+        mongodb_uri=mongodb, webhook_url=webhook, use_repl=use_repl and IS_TERMINAL
+    )
     bot.run(token, log_handler=None)

@@ -1,5 +1,6 @@
 import os
 import discord
+import asyncio
 from discord import ui, Interaction
 from . import View, Modal
 from ..config import (
@@ -8,8 +9,8 @@ from ..config import (
     MenuType,
     ConfigValueError,
     FolderConfigData,
+    get_lang_props,
 )
-from ..utils import get_lang_config_names, DEFAULT_LANG_ENV
 from ..context import StrapContext
 from typing import Optional, Union, Type, Any, Dict, List
 from discord import ButtonStyle, Emoji, PartialEmoji, SelectOption
@@ -26,42 +27,15 @@ async def items_back(self, interaction: Interaction, button: ui.Button):
         if not isinstance(child, ConfigButton):
             continue
 
-        data = _get_lang_props(self.ctx.language_to_use, child.key, self.folder)
+        data = get_lang_props(self.ctx.language_to_use, child.key, self.folder)
 
         child.label = data["name"]
 
+    if hasattr(self.parent, "_set_buttons"):
+        self.parent._set_buttons(self.ctx)
+
     content = self.ctx.format_message(self.parent.content)
     await interaction.response.edit_message(content=content, view=self.parent)
-
-
-def _get_lang_props(lang: str, key: Any, folder=None):
-    # _ = lambda: get_lang_config_names(os.getenv(DEFAULT_LANG_ENV, "en"))
-    def _():
-        if folder:
-            return (
-                get_lang_config_names(os.getenv(DEFAULT_LANG_ENV, "en"))
-                .get(folder.key, {})
-                .get("items", {})
-            )
-
-        return get_lang_config_names(os.getenv(DEFAULT_LANG_ENV, "en"))
-
-    props = get_lang_config_names(lang)
-    if folder:
-        props = props.get(folder.key, {}).get("items", {})
-
-    if not props:
-        props = _()
-
-    if key not in props:
-        props = _()
-        if key not in props:
-            return {
-                "name": key,
-                "description": f"Information for configuration `{key}` not found.",
-            }
-
-    return props[key]  # type: ignore
 
 
 class ConfigView(View):
@@ -196,7 +170,7 @@ class BooleanPropertyView(PropertyView):
         self.value = not self.value
         await interaction.response.defer()
         await self.set(self.value, interaction)
-        data = _get_lang_props(self.ctx.language_to_use, self.key, self.folder)
+        data = get_lang_props(self.ctx.language_to_use, self.key, self.folder)
         cont = CONFIG_TEMPLATE.format(
             name=data["name"], description=data["description"]
         )
@@ -209,7 +183,7 @@ class CustomPropertyModal(Modal):
         self, view: "CustomPropertyView", *, timeout: Optional[float] = None
     ) -> None:
         self.view = view
-        data = _get_lang_props(view.ctx.language_to_use, view.key, view.folder)
+        data = get_lang_props(view.ctx.language_to_use, view.key, view.folder)
         super().__init__(view.ctx, title=data["name"], timeout=timeout)
         self.ctx = view.ctx
 
@@ -222,39 +196,68 @@ class CustomPropertyModal(Modal):
             cfg_type = view.config.types[view.key]
             value = view.config[view.key]
 
-        style = cfg_type.text_style or discord.TextStyle.short
-        cls.value = ui.TextInput(
-            label="value_input_label",
-            style=style,
-            placeholder=cfg_type.default,
-            default=value,
-        )
-        cls.__modal_children_items__["value"] = cls.value
+        # clean up before using
+        for k in cls.__modal_children_items__.copy():
+            cls.__modal_children_items__.pop(k)
+            delattr(cls, k)
+
+        for k, v in cfg_type.inputs.items():
+            if len(cfg_type.inputs) > 1:
+                default = cfg_type.default[k]
+                va = value[k]
+            else:
+                default = cfg_type.default
+                va = value
+
+            style = v or discord.TextStyle.short
+            val = ui.TextInput(
+                label=view.get_input_label(view.key, k, view.ctx, view.folder),
+                style=style,
+                placeholder=default,
+                default=va,
+                custom_id=k,
+            )
+
+            cls.__modal_children_items__[k] = val
+            setattr(cls, k, val)
 
         return cls(view, timeout=timeout)
 
     async def on_submit(self, interaction: Interaction):
         await interaction.response.defer()
 
-        value = self.value.value
-        await self.view.set(value)
+        vals = {}
+        for k, v in self.__modal_children_items__.copy().items():
+            value = getattr(self, k).value
+            v.default = value
+            vals[k] = value
 
-        lang = _get_lang_props(
-            self.ctx.language_to_use, self.view.key, self.view.folder
-        )
+        if len(vals) > 1:
+            await self.view.set(vals, interaction)
+        else:
+            await self.view.set(list(vals.values())[0], interaction)
+
+        lang = get_lang_props(self.ctx.language_to_use, self.view.key, self.view.folder)
+
         cont = CONFIG_TEMPLATE.format(
             name=lang["name"], description=lang["description"]
         )
-        curr = self.view.get_current(
-            (
-                self.view.config.types[self.view.folder.key][self.view.key].text_style
-                if self.view.folder
-                else self.view.config.types[self.view.key].text_style
-            ),
-            value,
+
+        inputs = (
+            self.view.config.types[self.view.folder.key][self.view.key].inputs
+            if self.view.folder
+            else self.view.config.types[self.view.key].inputs
         )
-        self.value.default = value
-        m = self.ctx.format_message("current_conf", {"current": curr})
+
+        curr = self.view.get_current(
+            inputs, vals, self.ctx, self.view.key, self.view.folder
+        )
+
+        if len(inputs) > 1:
+            m = curr
+        else:
+            m = self.ctx.format_message("current_conf", {"current": curr})
+
         cont += f"\n\n{m}"
 
         await interaction.followup.edit_message(
@@ -263,13 +266,39 @@ class CustomPropertyModal(Modal):
 
 
 class CustomPropertyView(PropertyView):
+
     @staticmethod
-    def get_current(text_style: Optional[discord.TextStyle], conf):
-        text_style = text_style or discord.TextStyle.short
-        is_short = text_style == discord.TextStyle.short
-        sym = "`" * (1 if is_short else 3)
-        n = "\n" if not is_short else ""
-        return f"{sym}{n}{conf}{n}{sym}"
+    def get_input_label(prop: str, key: str, ctx: StrapContext, folder=None):
+        return (
+            get_lang_props(ctx.language_to_use, prop, folder)
+            .get("inputs", {})
+            .get(key, key)
+        )
+
+    @classmethod
+    def get_current(
+        cls,
+        inputs: Dict[str, discord.TextStyle],
+        conf,
+        ctx: StrapContext,
+        key: str,
+        folder=None,
+    ):
+        vals = []
+
+        for k, v in inputs.items():
+            text_style = v or discord.TextStyle.short
+            is_short = text_style == discord.TextStyle.short
+            sym = "`" * (1 if is_short else 3)
+            n = "\n" if not is_short else ""
+            head = ""
+            if len(inputs) > 1:
+                lb = cls.get_input_label(key, k, ctx, folder)
+                head = f"**{lb}**:{n or ' '}" if len(inputs) > 1 else ""
+
+            vals.append(f"{head}{sym}{n}{conf[k]}{n}{sym}")
+
+        return "\n".join(vals)
 
     @ui.button(label="set")
     async def open_modal(self, interaction: Interaction, button: ui.Button):
@@ -402,7 +431,7 @@ class SelectPropertyView(PropertyView):
                 )
                 for opt in items.options:
                     opt.default = opt.value == val
-        lang = _get_lang_props(self.ctx.language_to_use, self.key, self.folder)
+        lang = get_lang_props(self.ctx.language_to_use, self.key, self.folder)
         cont = CONFIG_TEMPLATE.format(
             name=lang["name"], description=lang["description"]
         )
@@ -456,7 +485,7 @@ class ConfigButton(ui.Button):
         self.folder = folder
         self.ctx = ctx
         emojis = config.emojis
-        self.data = _get_lang_props(ctx.language_to_use, key, folder)
+        self.data = get_lang_props(ctx.language_to_use, key, folder)
         if folder:
             emojis = folder.emojis
 
@@ -470,7 +499,7 @@ class ConfigButton(ui.Button):
     async def callback(self, interaction: Interaction):
         await interaction.response.defer()
         await self.config.fetch()
-        self.data = _get_lang_props(self.ctx.language_to_use, self.key, self.folder)
+        self.data = get_lang_props(self.ctx.language_to_use, self.key, self.folder)
         kwargs = {"folder": self.folder}
         viewtype: Type[PropertyView] = PropertyView
         content = CONFIG_TEMPLATE.format(
@@ -490,7 +519,11 @@ class ConfigButton(ui.Button):
             viewtype = FolderView
         elif conf_tp.custom:
             viewtype = CustomPropertyView
-            current = viewtype.get_current(conf_tp.text_style, conf)
+            if not isinstance(conf, dict):
+                conf = {list(conf_tp.inputs.keys())[0]: conf}
+            current = viewtype.get_current(
+                conf_tp.inputs, conf, self.ctx, self.key, self.folder
+            )
         elif conf_tp.select_menu_type != None:
             menu_type = conf_tp.select_menu_type
             viewtype = SelectPropertyView
@@ -503,9 +536,11 @@ class ConfigButton(ui.Button):
             elif currents:
                 current = "\n- " + ("\n- ".join(currents))
 
-        if current:
+        if current and len(conf_tp.inputs) <= 1:
             m = self.ctx.format_message("current_conf", {"current": current})
             content += f"\n\n{m}"
+        elif current and len(conf_tp.inputs) > 1:
+            content += f"\n\n{current}"
 
         view = viewtype(self.ctx, self.config, self.key, self.view, **kwargs)
         await interaction.followup.edit_message(
@@ -524,14 +559,33 @@ class ConfigMenuView(ConfigView):
         super().__init__(ctx, **kwargs)
         self.config = config
         self.content = "choose_config"
+        self.types = config.types
 
+        self.folder = None
         self.parent = parent
         if not parent:
             self.remove_item(self.back)
 
-        for k in self.config.types.keys():
-            button = ConfigButton(ctx, config, k)
-            self.add_item(button)
+        self._set_buttons(ctx)
+
+    def _set_buttons(self, ctx: StrapContext):
+        for child in self.children:
+            if not isinstance(child, ConfigButton):
+                continue
+
+            self.remove_item(child)
+
+        ret = []
+        for key, value in self.types.items():
+            can_be_set = self.types[key].can_be_set(ctx.user_config, ctx.guild_config)
+            if not can_be_set:
+                continue
+
+            btn = ConfigButton(ctx, self.config, key, self.folder)
+            ret.append(btn)
+            self.add_item(btn)
+
+        return ret
 
     @ui.button(**BACK_BUTTON_PROPS)
     async def back(self, interaction: Interaction, button: ui.Button):
@@ -561,11 +615,11 @@ class FolderView(ConfigMenuView, PropertyView):
         self.config = config
         self.key = key
         self.parent = parent
-        self.data = _get_lang_props(ctx.language_to_use, key, folder)
+        self.data = get_lang_props(ctx.language_to_use, key, folder)
+        self.types = config.types[key]
+        self.folder = self.types
 
-        for k in self.config.types[key].keys():
-            button = ConfigButton(ctx, self.config, k, self.config.types[key])
-            self.add_item(button)
+        self._set_buttons(ctx)
 
     @ui.button(**BACK_BUTTON_PROPS)
     async def back(self, interaction: Interaction, button: ui.Button):

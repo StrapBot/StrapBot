@@ -98,7 +98,7 @@ async def send_new_video(
             cfgdb: AgnosticCollection = mongo.Configurations  #  type: ignore
             guild_config: dict = await cfgdb.find_one({"_id": webhook.guild_id})  # type: ignore
             default = "{url}"
-            msg = guild_config.get("yt_news_message", None) or default
+            msg = guild_config.get("yt_news", {}).get("message") or default
             channel = f"[{channel_name}](<{channel_url}>)"
             video = f"[{name}]({url})"
             await webhook.send(

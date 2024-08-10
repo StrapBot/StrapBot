@@ -200,8 +200,7 @@ class StrapContext(commands.Context):
 
     async def send(
         self,
-        content: Optional[str] = None,
-        *,
+        *content: Optional[str],
         tts: bool = False,
         embed: Optional[discord.Embed] = None,
         embeds: Optional[typing.Sequence[discord.Embed]] = None,
@@ -224,8 +223,10 @@ class StrapContext(commands.Context):
         **kws,
     ) -> discord.Message:
 
-        if not isinstance(content, str) and content != None:
-            content = str(content)
+        if not all(isinstance(c, str) for c in content):
+            for i, c in enumerate(content):
+                if not isinstance(c, str) and c != None:
+                    content[i] = self.format_message(c, kws, lang=lang_to_use)
 
         if embed and embeds:
             raise TypeError("Cannot mix embed and embeds keyword arguments.")
@@ -242,8 +243,14 @@ class StrapContext(commands.Context):
                 allowed_mentions = discord.AllowedMentions.none().merge(new)
 
         lang = lang_to_use or self.lang
-        if content and len(content.strip().split()) == 1:
-            content = self.format_message(content, kws, lang=lang)
+        new_content = []
+        for c in list(content):
+            if c and len(c.strip().split()) == 1:
+                new_content.append(self.format_message(c, kws, lang=lang))
+            else:
+                new_content.append(c)
+
+        real_content = " ".join(new_content)
 
         if embed:
             embed = self.format_embed(embed, kws, lang=lang)
@@ -251,7 +258,7 @@ class StrapContext(commands.Context):
             embeds = self.format_embeds(embeds, kws, lang=lang)
 
         return await super().send(
-            content=content,
+            content=real_content,
             tts=tts,
             embed=embed,
             embeds=embeds,
@@ -270,8 +277,7 @@ class StrapContext(commands.Context):
 
     async def send_as_help(
         self,
-        content: Optional[str] = None,
-        *,
+        *content: Optional[str],
         tts: bool = False,
         embed: Optional[discord.Embed] = None,
         embeds: Optional[typing.Sequence[discord.Embed]] = None,
@@ -292,8 +298,9 @@ class StrapContext(commands.Context):
         ephemeral: bool = False,
         **kws,
     ):
-        if not isinstance(content, str) and content != None:
-            raise TypeError(f"Expected None or an str object, got {content!r}")
+        for c in content:
+            if not isinstance(c, str) and c != None:
+                raise TypeError(f"Expected None or an str object, got {content!r}")
 
         if embed and embeds:
             raise TypeError("Cannot mix embed and embeds keyword arguments.")
@@ -303,8 +310,10 @@ class StrapContext(commands.Context):
             raise ValueError("The help command is not set.")
 
         l = get_lang(self.language_to_use, cog=help_command.cog, command=help_command)
-        if content and len(content.strip().split()) == 1:
-            content = self.format_message(content, kws, lang=l)
+        new_content = []
+        for c in content:
+            if c and len(c.strip().split()) == 1:
+                new_content.append(self.format_message(c, kws, lang=l))
 
         if embed:
             embed = self.format_embed(embed, kws, lang=l)
@@ -312,7 +321,7 @@ class StrapContext(commands.Context):
             embeds = self.format_embeds(embeds, kws, lang=l)
 
         return await self.send(
-            content=content,
+            " ".join(new_content),
             tts=tts,
             embed=embed,
             embeds=embeds,

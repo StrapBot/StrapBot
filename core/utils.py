@@ -2,16 +2,17 @@ import os
 import re
 import sys
 import json
+import pickle
 import random
 import shutil
 import logging
 import asyncio
 import unicodedata
 from rich.logging import RichHandler
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any
 from pyfiglet import Figlet
 from discord.ext import commands
-from datetime import timedelta
+from datetime import datetime, timedelta
 from discord.app_commands import (
     Translator,
     locale_str,
@@ -34,6 +35,11 @@ from discord.ext.commands import (
 from discord.ext.commands.hybrid import HybridAppCommand
 from discord.enums import Locale
 from functools import partial
+from collections import defaultdict, Counter
+from motor.core import AgnosticDatabase
+from motor.motor_asyncio import AsyncIOMotorGridFSBucket
+from gridfs import NoFile
+
 
 AnyCommand = Union[
     Command,
@@ -53,6 +59,7 @@ time_dict = {"h": 3600, "s": 1, "m": 60, "d": 86400, "w": 604800}
 DEFAULT_LANG_ENV = "DEFAULT_LANGUAGE"
 LANGS_PATH = os.path.abspath("./langs")
 IS_TERMINAL = sys.stdout.isatty() and sys.stderr.isatty()
+PKL_NAME = "chn_{guild_id}.pkl"
 
 # Debugging
 
@@ -142,6 +149,123 @@ def get_logger(name: str = ""):
         name = f"strapbot.{name}"
 
     return logging.getLogger(name)
+
+
+# Markov
+
+ChainDict = Dict[str, Dict[str, int]]
+
+
+class MarkovChain(defaultdict):
+    """A message generator that uses a Markov chain."""
+
+    def __init__(self, data: Optional[ChainDict] = None):
+        super().__init__(Counter)
+        if data:
+            for key, value in data.items():
+                self[key] = Counter(value)
+
+    def __reduce__(self):
+        return (self.__class__, (self.to_dict(),))
+
+    def __getitem__(self, key: str) -> Counter[str]:
+        return super().__getitem__(key)
+
+    def __setitem__(self, key: str, value: Counter[str]):
+        super().__setitem__(key, value)
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__} words={self.words}>"
+
+    @property
+    def words(self) -> int:
+        """Return the amount of unique words in the Markov chain."""
+        return len(self.keys())
+
+    @staticmethod
+    def _process_message(msg: str, d: ChainDict):
+        words = [w for w in msg.split(" ") if w.strip(" ")]
+        for i in range(len(words) - 1):
+            current_word = words[i]
+            next_word = words[i + 1]
+            d[current_word][next_word] += 1
+
+    @classmethod
+    def from_messages(cls, *messages: str) -> "MarkovChain":
+        """Create a Markov chain from a list of messages."""
+        self = cls()
+        for message in messages:
+            self._process_message(message, self)
+
+        return self
+
+    @staticmethod
+    def __to_dict(data: Dict[str, Counter[str]]) -> ChainDict:
+        return {key: dict(value) for key, value in data.items()}
+
+    def to_dict(self) -> ChainDict:
+        """Convert the Markov chain to a dictionary for storing."""
+        return self.__to_dict(self)
+
+    def add_message(self, message: str) -> Dict[str, Counter[str]]:
+        """
+        Add a message to the Markov chain.
+        Returns a dictionary containing the added words.
+        """
+        new = defaultdict(Counter)
+        self._process_message(message, new)
+        self.update(new)
+
+        return self.__to_dict(new)
+
+    def generate(self, length: int = 10) -> str:
+        """Generate a message of a given length."""
+        current_word = random.choice(list(self.keys()))
+        message = [current_word]
+
+        for _ in range(length - 1):
+            next_words = self[current_word]
+            if not next_words:
+                break
+            next_word = random.choices(
+                list(next_words.keys()), weights=next_words.values()
+            )[0]
+            message.append(next_word)
+            current_word = next_word
+
+        return " ".join(message)
+
+
+async def load_chain_from_db(
+    db: AgnosticDatabase, guild_id: int
+) -> Optional[MarkovChain]:
+    fs = AsyncIOMotorGridFSBucket(db)
+
+    try:
+        data = await fs.open_download_stream_by_name(PKL_NAME.format(guild_id=guild_id))
+    except NoFile:
+        print("aaa")
+        return
+
+    try:
+        return pickle.loads(await data.read())
+    finally:
+        data.close()
+
+
+async def save_chain_to_db(
+    db: AgnosticDatabase, guild_id: int, chain: MarkovChain
+) -> None:
+    fs = AsyncIOMotorGridFSBucket(db)
+    name = PKL_NAME.format(guild_id=guild_id)
+
+    # clean up all the older revisions before uploading
+    async for file in fs.find({"filename": name}):
+        await fs.delete(file._id)
+
+    data = pickle.dumps(chain)
+    print("saved", chain)
+    await fs.upload_from_stream(name, data)
 
 
 # Languages
@@ -430,3 +554,33 @@ def get_startup_text(version: str, font: str = ""):
 
     text2 = spaces + f"[bold]StrapBot[/] {version}"
     return f"\n{text1}{text2}\n\n"
+
+
+class CacheDict(dict):
+    timeout_hours = 1
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__last_used_times: Dict[str, datetime] = {}
+
+    def __getitem__(self, key):
+        self.__last_used_times[key] = datetime.now()
+        return super().__getitem__(key)
+
+    def __setitem__(self, key, value):
+        self.__last_used_times[key] = datetime.now()
+        super().__setitem__(key, value)
+
+    def __delitem__(self, key):
+        del self.__last_used_times[key]
+        super().__delitem__(key)
+
+    def clean(self) -> Dict[str, Any]:
+        d = datetime.now()
+        ret = {}
+        for key, value in self.__last_used_times.items():
+            if d - value > timedelta(hours=self.timeout_hours):
+                ret[key] = self[key]
+                del self[key]
+
+        return ret

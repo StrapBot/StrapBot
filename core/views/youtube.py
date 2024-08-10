@@ -107,7 +107,7 @@ class ChannelsPaginator(PaginationView):
         subscribe = self.used_by == "add"
         youtuber = self.results[self.current]
         channel: discord.TextChannel = self.ctx.bot.get_channel(  #  type: ignore
-            self.ctx.guild_config.yt_news_channel_id
+            self.ctx.guild_config.yt_news["channel_id"]
         )
 
         try:

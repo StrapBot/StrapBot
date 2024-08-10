@@ -1,12 +1,49 @@
 import os
 import discord
-from .utils import lang_exists, get_langs_properties, get_flag_emoji, get_logger
+from .utils import (
+    DEFAULT_LANG_ENV,
+    lang_exists,
+    get_langs_properties,
+    get_lang_config_names,
+    get_flag_emoji,
+    get_logger,
+)
 from discord.ext import commands
 from discord import TextChannel, Thread, ChannelType, SelectOption
 from discord.enums import ComponentType, TextStyle
 from enum import Enum
 from typing import Optional, Union, Type, List, Dict, Any
 from functools import partial
+
+
+def get_lang_props(lang: str, key: Any, folder=None):
+    # _ = lambda: get_lang_config_names(os.getenv(DEFAULT_LANG_ENV, "en"))
+    def _():
+        if folder:
+            return (
+                get_lang_config_names(os.getenv(DEFAULT_LANG_ENV, "en"))
+                .get(folder.key, {})
+                .get("items", {})
+            )
+
+        return get_lang_config_names(os.getenv(DEFAULT_LANG_ENV, "en"))
+
+    props = get_lang_config_names(lang)
+    if folder:
+        props = props.get(folder.key, {}).get("items", {})
+
+    if not props:
+        props = _()
+
+    if key not in props:
+        props = _()
+        if key not in props:
+            return {
+                "name": key,
+                "description": f"Information for configuration `{key}` not found.",
+            }
+
+    return props[key]  # type: ignore
 
 
 def _make_base(d):
@@ -80,17 +117,21 @@ class ConfigType:
     emoji = ""
     default: Any = None
     custom: bool = False
-    text_style: Optional[TextStyle] = None
+    inputs = {}
     select_menu_type: Optional[SelectMenuType] = None
 
     def __new__(cls, value: Any, bot: commands.Bot) -> Optional[Any]:
         if cls.validate(value, bot):
-            return value
+            return cls.transform(value)
         elif value != None:
             # the configuration has been set but the value isn't valid
             raise ConfigValueError(
                 f"Value {value!r} is not valid for config {cls.key}."
             )
+
+    @classmethod
+    def can_be_set(cls, config, guild_config) -> bool:
+        return True
 
     @staticmethod
     def validate(val: Any, bot: commands.Bot):
@@ -107,6 +148,10 @@ class ConfigType:
     @classmethod
     async def setup(cls, ctx: commands.Context, value):
         pass
+
+    @classmethod
+    def transform(cls, val: Any):
+        return val
 
 
 class FolderConfigType(ConfigType):
@@ -360,7 +405,163 @@ class YouTubeNewsMessageType(YouTubeNewsType):
     emoji = "\N{memo}"
     default = "{video}"
     custom = True
-    text_style = TextStyle.paragraph
+    inputs = {"message": TextStyle.paragraph}
+
+
+class MarkovChainType(GuildConfigType, FolderConfigType):
+    key = "markov"
+    emoji = "\N{writing hand}"
+
+
+class MarkovChainEnabledType(MarkovChainType):
+    key = "enabled"
+    emoji = "\N{gear}"
+    default = False
+
+    @staticmethod
+    def validate(val: bool, bot: commands.Bot):
+        return isinstance(val, bool)
+
+    @staticmethod
+    async def setup(ctx: commands.Context, value: bool):
+        if value:
+            db = ctx.bot.get_db("MarkovChain", False)
+            res = await db.find_one({"_id": ctx.guild.id})
+            if res:
+                return
+
+            await ctx.send(
+                "markov_enabled",
+                ephemeral=True,
+                lang_to_use=get_lang_props(
+                    ctx.language_to_use,
+                    "enabled",
+                    folder=ctx.guild_config.types["markov"],
+                ),
+            )
+            await MarkovChainChannelType.setup(ctx, ctx.channel.id)
+
+
+class MarkovChainChannelType(MarkovChainType):
+    key = "channel_id"
+    emoji = "\N{page with curl}"
+    select_menu_type = SelectMenuType(
+        MenuType.channel,
+        1,
+        1,
+        [ChannelType.text],
+    )
+
+    @staticmethod
+    def channel_check(channel) -> bool:
+        if not isinstance(channel, TextChannel):
+            return False
+
+        perms = channel.permissions_for(channel.guild.me)
+        return perms.administrator or perms.send_messages
+
+    @classmethod
+    def validate(cls, val: int, bot: commands.Bot):
+        if val == None:
+            return True  # value might be not set yet
+
+        if not isinstance(val, TextChannel):
+            if not isinstance(val, int):
+                return False
+
+            chn = bot.get_channel(val)
+            if chn == None or not isinstance(chn, TextChannel):
+                return False
+        else:
+            chn = val
+
+        return cls.channel_check(chn) and chn.guild.id not in bot.markov_learn_events
+
+    @classmethod
+    async def get_valid_values(cls, ctx: commands.Context) -> list:
+        return list(filter(cls.channel_check, getattr(ctx.guild, "channels", [])))
+
+    @classmethod
+    def can_be_set(cls, config, guild_config) -> bool:
+        return guild_config.markov["enabled"]
+
+    @staticmethod
+    async def setup(ctx: commands.Context, value: int):
+        bot: commands.Bot = ctx.bot
+        db = bot.get_db("MarkovChain", False)
+        res = await db.find_one({"_id": ctx.guild.id})
+        if res and value == res["channel_id"]:
+            return
+        elif res:
+            await db.delete_one({"_id": ctx.guild.id})
+
+        await db.insert_one({"_id": ctx.guild.id, "channel_id": value})
+
+        setup_chn = get_lang_props(
+            ctx.language_to_use,
+            "channel_id",
+            folder=ctx.guild_config.types["markov"],
+        )
+
+        # importing here to avoid circular imports
+        from .views.misc import MarkovChannelSetupView
+
+        await ctx.send(
+            "channel_history_fetch",
+            ephemeral=True,
+            view=MarkovChannelSetupView(
+                ctx,
+                db,
+                lang=setup_chn,
+            ),
+            lang_to_use=setup_chn,
+        )
+
+
+class MarkovMessagesType(MarkovChainType):
+    key = "messages"
+    default = {"min": 5, "max": 10, "words": 20}
+    custom = True
+    inputs = {
+        "min": TextStyle.short,
+        "max": TextStyle.short,
+        "words": TextStyle.short,
+    }
+
+    @staticmethod
+    def _intify(n):
+        if isinstance(n, int):
+            return n
+
+        try:
+            return int(n)
+        except ValueError:
+            return 0
+
+    @classmethod
+    def validate(cls, val: dict, bot: commands.Bot):
+        if all(not isinstance(a, int) and not a.isdigit() for a in val.values()):
+            return False
+
+        val = val.copy()
+        for k, v in val.items():
+            val[k] = cls._intify(v)
+
+        return (
+            all(a >= 0 for a in val.values())
+            and val["min"] <= val["max"]
+            and val["min"] > 1
+            and val["max"] <= 100
+            and 10 <= val["words"] <= 100
+        )
+
+    @classmethod
+    def can_be_set(cls, config, guild_config) -> bool:
+        return guild_config.markov["enabled"]
+
+    @classmethod
+    def transform(cls, val: Any):
+        return {k: cls._intify(v) for k, v in val.items()}
 
 
 # User only configurations
@@ -376,6 +577,20 @@ class PingOnReplyType(UserConfigType):
     @staticmethod
     def validate(val: bool, bot: commands.Bot):
         return isinstance(val, bool)
+
+
+class MarkovAddMyMessagesType(UserConfigType):
+    key = "markov_add_my_messages"
+    emoji = "\N{brain}"
+    default = True
+
+    @staticmethod
+    def validate(val: bool, bot: commands.Bot):
+        return isinstance(val, bool)
+
+    @classmethod
+    def can_be_set(cls, config, guild_config) -> bool:
+        return guild_config.markov["enabled"]
 
 
 try:
@@ -413,7 +628,7 @@ class Config:
                 modified = True
                 entry[k] = types[k](v, self.bot)
 
-            if isinstance(v, dict):
+            if isinstance(v, dict) and not types[k].custom:
                 ch = self.__check(base[k], entry[k], types[k], force)
                 modified = ch or modified
 

@@ -226,6 +226,28 @@ class Fun(commands.Cog):
 
         await ctx.send(ret, file=file)
 
+    @staticmethod
+    def is_markov_enabled(ctx: StrapContext):
+        return ctx.guild_config.markov["enabled"]
+
+    @commands.hybrid_command()
+    @commands.check(is_markov_enabled)
+    async def markov(self, ctx: StrapContext):
+        """
+        Generate a message using the Markov chain.
+
+        This command is only available if the Markov chain is senabled, and will only work if I have data.
+        """
+        chain = await self.bot.get_markov_chain(ctx.guild.id)
+        if not chain or not chain.words:
+            return await ctx.send_help(ctx.command)
+
+        message = chain.generate()
+        if not message:
+            return await ctx.send_help(ctx.command)
+
+        await ctx.send(message)
+
 
 async def setup(bot: StrapBot):
     await bot.add_cog(Fun(bot))
