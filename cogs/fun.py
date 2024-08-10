@@ -236,7 +236,7 @@ class Fun(commands.Cog):
         """
         Generate a message using the Markov chain.
 
-        This command is only available if the Markov chain is senabled, and will only work if I have data.
+        This command is only available if the Markov chain is enabled, and will only work if I have data.
         """
         chain = await self.bot.get_markov_chain(ctx.guild.id)
         if not chain or not chain.words:
