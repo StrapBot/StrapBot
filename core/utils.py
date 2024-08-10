@@ -244,7 +244,6 @@ async def load_chain_from_db(
     try:
         data = await fs.open_download_stream_by_name(PKL_NAME.format(guild_id=guild_id))
     except NoFile:
-        print("aaa")
         return
 
     try:
@@ -264,7 +263,6 @@ async def save_chain_to_db(
         await fs.delete(file._id)
 
     data = pickle.dumps(chain)
-    print("saved", chain)
     await fs.upload_from_stream(name, data)
 
 
