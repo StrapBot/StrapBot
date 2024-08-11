@@ -1,4 +1,4 @@
-__version__ = "v3.0"
+__version__ = "v4.0"
 
 import asyncio
 import discord
