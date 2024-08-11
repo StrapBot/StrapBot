@@ -1,4 +1,4 @@
-__version__ = "v4.0"
+__version__ = "v3.0"
 
 import asyncio
 import discord
@@ -83,6 +83,7 @@ class StrapBot(commands.Bot):
         # because the git operations can be slow and we don't want them
         # to also slow down the other functions that may be running in
         # the default pool executor.
+        self.__update_done = False
         self.__git_exec = ThreadPoolExecutor()
         self.__git_keypair = None
         self.__git_callbacks = None
@@ -91,7 +92,7 @@ class StrapBot(commands.Bot):
         self.__markov_chains: CacheDict[int, MarkovChain] = CacheDict()
         self.__git_lock = asyncio.Lock()
         self.__cached_configs: Dict[int, AnyConfig] = {}
-        self._closing = True
+        self._closing = False
         self.mongoclient: AgnosticClient
         self.mongodb: AgnosticDatabase
         self.session: ClientSession = None # type: ignore
@@ -155,7 +156,7 @@ class StrapBot(commands.Bot):
         self, restart_if_pm2=True, *, yild=False, dbg=False
     ) -> Union[bool, typing.AsyncGenerator[str, None]]:
         """Download the bot updates."""
-        if not await self.check_for_updates():
+        if not await self.check_for_updates() or self.__update_done:
             if yild:
                 yield "Already up to date."
             
@@ -172,38 +173,30 @@ class StrapBot(commands.Bot):
             self.__repo.reset(self.__repo.head.target, pygit2.GIT_RESET_HARD)
             m = "Repository reset to HEAD."
             logger.debug(m)
-            if yild and dbg:
-                yield m
+            yield m
 
             self.__repo.remotes["origin"].fetch(callbacks=self.__git_callbacks)
-            m = "Fetched the latest changes from the remote."
+            m = "Fetched the latest changes from the remote.\n"
             logger.debug(m)
-            if yild and dbg:
-                yield m
+            yield m
 
             remote = self.__repo.lookup_reference("refs/remotes/origin/main").target
             self.__repo.merge(remote)
             m = "Merged the changes with the local repository."
             logger.debug(m)
-            if yild and dbg:
-                yield m
+            yield m
 
             self.__repo.checkout(f"refs/tags/{ver}")
             m = f"Checked out to tag {ver}."
             logger.debug(m)
-            if yild and dbg:
-                yield m
+            yield m
 
         async with self.__git_lock:
-            if yild and dbg:
-                for m in await self.loop.run_in_executor(
-                    self.__git_exec, _pull_and_checkout_to_ver
-                ):
+            for m in await self.loop.run_in_executor(
+                self.__git_exec, _pull_and_checkout_to_ver
+            ):
+                if yild and dbg:
                     yield m
-            else:
-                await self.loop.run_in_executor(
-                    self.__git_exec, _pull_and_checkout_to_ver
-                )
 
             _, same_ip = await self.is_server_running()
             postupd = await asyncio.create_subprocess_shell(
@@ -212,10 +205,11 @@ class StrapBot(commands.Bot):
                 stderr=asyncio.subprocess.STDOUT,
             )
 
+            stdout, _ = await postupd.communicate()
             if postupd.returncode != 0:
                 raise RuntimeError(
                     f"An error occurred while running the post-update script:\n"
-                    + (await postupd.communicate())[0].decode()
+                    + stdout.decode()
                 )
 
         if not same_ip:
@@ -241,6 +235,8 @@ class StrapBot(commands.Bot):
             logger.info(m)
             if yild:
                 yield m
+            
+        self.__update_done
 
 
     async def get_config(
