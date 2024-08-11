@@ -1,19 +1,28 @@
+__version__ = "v4.0"
+
 import asyncio
+import discord
+import dotenv
+import json
+import logging
 import os
+import pygit2
 import random
 import string
 import sys
 import traceback
 import typing
-import discord
-import dotenv
-import logging
+from functools import partial
+from inspect import iscoroutine
+from pygit2.callbacks import RemoteCallbacks
+from packaging.version import Version
 from aiohttp import ClientSession
 from collections import defaultdict
 from discord.ext import commands, tasks
 from typing import Union, Dict
 from typing_extensions import Self
 from discord import Message, Interaction
+from concurrent.futures import ThreadPoolExecutor
 from motor.core import AgnosticClient, AgnosticCollection, AgnosticDatabase
 from motor.motor_asyncio import AsyncIOMotorClient
 from core.config import AnyConfig, Config, UserConfig, GuildConfig
@@ -70,23 +79,36 @@ class StrapBot(commands.Bot):
             allowed_mentions=allowed_mentions,
             **options,
         )
+        # for git, we're going to use a different thread pool executor
+        # because the git operations can be slow and we don't want them
+        # to also slow down the other functions that may be running in
+        # the default pool executor.
+        self.__git_exec = ThreadPoolExecutor()
+        self.__git_keypair = None
+        self.__git_callbacks = None
+        self.__markov_guild_operations = defaultdict(asyncio.Lock)
+        self.__markov_loop_running = False
+        self.__markov_chains: CacheDict[int, MarkovChain] = CacheDict()
+        self.__git_lock = asyncio.Lock()
         self.__cached_configs: Dict[int, AnyConfig] = {}
+        self._closing = True
         self.mongoclient: AgnosticClient
         self.mongodb: AgnosticDatabase
-        self.session: ClientSession
+        self.session: ClientSession = None # type: ignore
         self.mongodb_uri = mongodb_uri
         self.webhook_url = webhook_url
         self.main_guild: typing.Optional[discord.Guild] = None
         self.use_repl = use_repl
         self.console = None
         self.markov_learn_events: typing.Dict[int, asyncio.Event] = {}
-        self.__markov_guild_operations = defaultdict(asyncio.Lock)
-        self.__markov_loop_running = False
-        self.__markov_chains: CacheDict[int, MarkovChain] = CacheDict()
 
     @property
     def debugging(self) -> bool:
         return is_debugging()
+
+    @property
+    def version(self) -> str:
+        return __version__
 
     def do_give_prefixes(
         self, bot, message: typing.Optional[Message]
@@ -106,6 +128,120 @@ class StrapBot(commands.Bot):
     def get_cached_config(self, id: int):
         if id in self.__cached_configs:
             return self.__cached_configs[id]
+
+    async def get_latest_version(self) -> str:
+        """Returns the latest version available on the git remote."""
+        if not os.path.exists(".git"):
+            return None
+
+        def _do_fetch():
+            self.__repo.remotes["origin"].fetch(callbacks=self.__git_callbacks)
+            tags = [r for r in self.__repo.references if r.startswith("refs/tags/")]
+            tags.sort(key=lambda tag: Version(tag.split("/")[-1]))
+
+            latest_tag = tags[-1].split("/")[-1] if tags else None
+            return latest_tag
+
+        async with self.__git_lock:
+            return await self.loop.run_in_executor(self.__git_exec, _do_fetch)
+
+    async def check_for_updates(self) -> bool:
+        """Check if the bot has available updates."""
+        latest = await self.get_latest_version()
+
+        return Version(latest) > Version(__version__)
+
+    async def update(
+        self, restart_if_pm2=True, *, yild=False, dbg=False
+    ) -> Union[bool, typing.AsyncGenerator[str, None]]:
+        """Download the bot updates."""
+        if not await self.check_for_updates():
+            if yild:
+                yield "Already up to date."
+            
+            return
+
+        m = "Getting updates..."
+        logger.info(m)
+        if yild:
+            yield m
+
+        ver = await self.get_latest_version()
+
+        def _pull_and_checkout_to_ver():
+            self.__repo.reset(self.__repo.head.target, pygit2.GIT_RESET_HARD)
+            m = "Repository reset to HEAD."
+            logger.debug(m)
+            if yild and dbg:
+                yield m
+
+            self.__repo.remotes["origin"].fetch(callbacks=self.__git_callbacks)
+            m = "Fetched the latest changes from the remote."
+            logger.debug(m)
+            if yild and dbg:
+                yield m
+
+            remote = self.__repo.lookup_reference("refs/remotes/origin/main").target
+            self.__repo.merge(remote)
+            m = "Merged the changes with the local repository."
+            logger.debug(m)
+            if yild and dbg:
+                yield m
+
+            self.__repo.checkout(f"refs/tags/{ver}")
+            m = f"Checked out to tag {ver}."
+            logger.debug(m)
+            if yild and dbg:
+                yield m
+
+        async with self.__git_lock:
+            if yild and dbg:
+                for m in await self.loop.run_in_executor(
+                    self.__git_exec, _pull_and_checkout_to_ver
+                ):
+                    yield m
+            else:
+                await self.loop.run_in_executor(
+                    self.__git_exec, _pull_and_checkout_to_ver
+                )
+
+            _, same_ip = await self.is_server_running()
+            postupd = await asyncio.create_subprocess_shell(
+                f"./tools/post-update.sh 1 {int(same_ip)}",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+            )
+
+            if postupd.returncode != 0:
+                raise RuntimeError(
+                    f"An error occurred while running the post-update script:\n"
+                    + (await postupd.communicate())[0].decode()
+                )
+
+        if not same_ip:
+            logger.warning("[bold blink red]Remember to also update the server![/]")
+            if yild:
+                yield "**Remember to also update the server!**"
+
+        if "PM2_HOME" in os.environ:
+            self._create_package_json(ver)
+            if (
+                not self._closing
+                and restart_if_pm2
+                and os.getenv("autorestart", "false") == "true"
+            ):
+                m = "Update downloaded, restarting..."
+                logger.warning(m)
+                if yild:
+                    yield m
+
+                await self.close()
+        elif not self._closing:
+            m = "Update downloaded. Restart to apply the changes."
+            logger.info(m)
+            if yild:
+                yield m
+
 
     async def get_config(
         self, target: typing.Union[discord.Guild, discord.User, discord.Member, int]
@@ -139,6 +275,13 @@ class StrapBot(commands.Bot):
     def get_cog_db(self, cog: commands.Cog):
         return self.get_db(type(cog).__name__, True)
 
+    def _create_package_json(self, version=__version__):
+        """Create or update a package.json file with the bot's version."""
+        json.dump(
+            {"version": version},
+            open("package.json", "w"),
+        )
+
     async def setup_hook(self):
         """Various startup configurations."""
         if __name__ == "__main__":
@@ -149,6 +292,37 @@ class StrapBot(commands.Bot):
             del token
             del webhook
             del mongodb
+
+        if os.path.exists(".git"):
+            self.__repo = await self.loop.run_in_executor(
+                self.__git_exec, pygit2.Repository, "."
+            )
+            self.__git_keypair = await self.loop.run_in_executor(
+                self.__git_exec,
+                pygit2.Keypair,
+                "git",
+                os.getenv("PUBKEY_PATH", f"{os.getenv('HOME')}/.ssh/id_rsa.pub"),
+                os.getenv("PRIVKEY_PATH", f"{os.getenv('HOME')}/.ssh/id_rsa"),
+                os.getenv("PRIVKEY_PASS", ""),
+            )
+            self.__git_callbacks = await self.loop.run_in_executor(
+                self.__git_exec,
+                partial(RemoteCallbacks, credentials=self.__git_keypair),
+            )
+
+        # PM2 compatibility
+        if "PM2_HOME" in os.environ:
+            if (
+                not os.path.exists("package.json")
+                or json.load(open("package.json"))["version"] != __version__
+            ):
+                self._create_package_json()
+                logger.info(
+                    "A [bold]package.json[/] file has been created "
+                    "in the bot's directory to show the StrapBot "
+                    "version in PM2. If the version changed, it may "
+                    "display the wrong version until the bot is restarted."
+                )
 
         # MongoDB
         # MongoDB database loading happens first because
@@ -267,6 +441,7 @@ class StrapBot(commands.Bot):
 
         # Loops
         self.markov_cache_loop.start()
+        self.updates_loop.start()
 
         # Application commands
         main_guild_id = os.getenv("MAIN_GUILD_ID", None)
@@ -278,7 +453,27 @@ class StrapBot(commands.Bot):
             g = discord.Object(id=int(main_guild_id))
             self.tree.copy_global_to(guild=g)
 
-    async def check_youtube_news(self, log: bool = False) -> bool:
+    async def is_server_running(self) -> typing.Tuple[bool, bool]:
+        """Check if the server is running."""
+        chk = await self.check_youtube_news()
+        same_ip = False
+        if chk:
+            internal = self.get_db("Internal", cog=False)
+            data = await internal.find_one({"_id": "server"})
+            if data:
+                pub_ip = (
+                    await (
+                        await self.session.get("https://ifconfig.me/ip")
+                    ).content.read()
+                ).decode()
+                same_ip = (
+                    data.get("request_url", "a://a:a").split(":")[1].strip("/")
+                    == pub_ip
+                )
+
+        return (chk, same_ip)
+
+    async def check_youtube_news(self, log: bool = False):
         """
         Function that checks if the YouTube news
         server has been configured and is running.
@@ -523,11 +718,6 @@ class StrapBot(commands.Bot):
         except Exception:
             _id = None
 
-        wh = discord.Webhook.from_url(
-            self.webhook_url,
-            session=self.session,
-            bot_token=self.http.token,
-        )
         eid = f"Error ID: `{_id}`" if _id else "Couldn't store data in database."
         ecl = f"Error class: `{exc.__class__.__name__}`"
         egs = (
@@ -539,7 +729,15 @@ class StrapBot(commands.Bot):
                 else ""
             )
         )
-        await wh.send(f"{msg}\n{eid}\n{ecl}\n{egs}")
+        await self.send_to_webhook(f"{msg}\n{eid}\n{ecl}\n{egs}")
+
+    async def send_to_webhook(self, *args, **kwargs):
+        wh = discord.Webhook.from_url(
+            self.webhook_url,
+            session=self.session,
+            bot_token=self.http.token,
+        )
+        return await wh.send(*args, **kwargs)
 
     async def on_tree_error(
         self,
@@ -565,7 +763,32 @@ class StrapBot(commands.Bot):
 
         await self.handle_errors(exc, ctx.command.qualified_name, "command")  # type: ignore
 
+    @tasks.loop(minutes=10)
+    async def updates_loop(self):
+        if await self.check_for_updates():
+            pf = self.command_prefix
+            if callable(pf):
+                pf = pf(self, None)
+                if iscoroutine(pf):
+                    pf = await pf
+
+            if isinstance(pf, list):
+                pf = [
+                    p
+                    for p in pf
+                    if p.strip() != self.user.mention
+                    and p.strip() != f"<@!{self.user.id}>"
+                ]
+                pf = pf[0]
+
+            msg = f"It's time to update! Run `{pf}update` to get the latest version."
+            logger.info(msg)
+            await self.send_to_webhook(msg)
+
+            self.updates_loop.stop()
+
     async def close(self):
+        self._closing = True
         if self.use_repl and not self.debugging and self.console:
             self.console.stop()
 
@@ -573,10 +796,26 @@ class StrapBot(commands.Bot):
             self.markov_learn_events
             and any(not ev.is_set() for ev in self.markov_learn_events.values())
         ) or self.__markov_chains:
-            logger.info("Waiting for all the Markov events to finish...")
-            tasks = [
-                ev.wait() for ev in self.markov_learn_events.values() if not ev.is_set()
-            ]
+            evs = [e for e in self.markov_learn_events.values() if not e.is_set()]
+            lng = len(evs)
+            cnt = 0
+            logger.info(
+                f"[italic]Waiting for all the [green]Markov[/] events to finish...[/]"
+            )
+            logger.debug(f"[italic]Waiting for {lng} learning tasks to finish...[/]")
+            s = "s" if lng != 1 else ""
+
+            async def _task(ev):
+                nonlocal cnt
+                await ev.wait()
+                cnt += 1
+                lng = f"[bold green]{lng}[/]" if cnt == lng else lng
+                outof = f" out of {lng}" if cnt != lng else ""
+                logger.info(
+                    f"[bold green]{cnt}[/]{outof} Markov learning event{s} finished."
+                )
+
+            tasks = [_task(ev) for ev in evs]
 
             if tasks:
                 await asyncio.gather(*tasks)
@@ -586,16 +825,29 @@ class StrapBot(commands.Bot):
                 logger.debug("Waiting for the Markov cache loop to finish...")
                 await self.markov_cache_loop.get_task()
 
+            logger.info("Cleaning up...")
             if self.__markov_chains:
                 await self.markov_cache_loop()
 
-        await self.session.close()
+        a = True
+        self.updates_loop.stop()
+        while self.__git_lock.locked():
+            if a:
+                logger.info("Waiting for the git operations to finish...")
+                a = False
+
+            await asyncio.sleep(0.05)
+
+        if self.session:
+            await self.session.close()
+        
+        self.__git_exec.shutdown()
         return await super().close()
 
 
 if __name__ == "__main__":
     dotenv.load_dotenv()
-    for line in get_startup_text("v4 beta").splitlines():
+    for line in get_startup_text(__version__).splitlines():
         logger.info(line, extra={"highlighter": None})
         __import__("time").sleep(0.0035)
 

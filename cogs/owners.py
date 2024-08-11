@@ -196,6 +196,24 @@ class Owners(commands.Cog):
 
         await self.do_sync_tree(ctx, self.bot.main_guild)
 
+    @commands.command()
+    async def update(self, ctx: StrapContext, *args):
+        args = [a.lower() for a in list(args)]
+        async with ctx.typing():
+            if not await self.bot.check_for_updates():
+                await ctx.send("Already up to date.")
+                return
+
+            dbg = (
+                "dbg" in args
+                or "debug" in args
+                or "d" in args
+                or "v" in args
+                or "verbose" in args
+            )
+            async for line in self.bot.update(yild=True, dbg=dbg):
+                await ctx.send(line)
+
 
 async def setup(bot: StrapBot):
     await bot.add_cog(Owners(bot))

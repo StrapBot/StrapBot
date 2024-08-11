@@ -3,12 +3,10 @@ rich
 aenum
 motor[encryption,srv]
 pynacl
-lavalink
 discord.py[voice,speed]
 python-dotenv
-google-auth-httplib2
-google-auth-oauthlib
-google-api-python-client
 mcstatus
 typing_extensions
 pyfiglet
+pygit2
+packaging

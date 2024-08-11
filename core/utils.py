@@ -576,7 +576,7 @@ class CacheDict(dict):
     def clean(self) -> Dict[str, Any]:
         d = datetime.now()
         ret = {}
-        for key, value in self.__last_used_times.items():
+        for key, value in self.__last_used_times.copy().items():
             if d - value > timedelta(hours=self.timeout_hours):
                 ret[key] = self[key]
                 del self[key]
