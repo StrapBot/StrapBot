@@ -59,7 +59,7 @@ class Cog(_OriginalCog):
     # in our case, we need to force the cog and the commands
     # to only work in one guild, which is why we're gonna override
     # the _inject and _eject methods that should be used internally
-    async def _inject(self, bot: Bot, override: bool, guild, guilds):
+    async def _inject(self, bot: Bot, override: bool, guild=None, guilds=None):
         self.bot = bot
         cls = self.__class__
 
@@ -98,7 +98,7 @@ class Cog(_OriginalCog):
 
         return self
 
-    async def _eject(self, bot: Bot, guild_ids) -> None:
+    async def _eject(self, bot: Bot, guild_ids=None) -> None:
         cls = self.__class__
 
         try:

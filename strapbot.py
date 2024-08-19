@@ -19,7 +19,7 @@ from packaging.version import Version
 from aiohttp import ClientSession
 from collections import defaultdict
 from discord.ext import commands, tasks
-from typing import Union, Dict
+from typing import Union, Dict, Optional
 from typing_extensions import Self
 from discord import Message, Interaction
 from concurrent.futures import ThreadPoolExecutor
@@ -58,13 +58,13 @@ class StrapBot(commands.Bot):
         *,
         mongodb_uri: str,
         webhook_url: str,
-        help_command: typing.Optional[commands.HelpCommand] = _default,
+        help_command: Optional[commands.HelpCommand] = _default,
         tree_cls: typing.Type[
             discord.app_commands.CommandTree[typing.Any]
         ] = discord.app_commands.CommandTree,
-        description: typing.Optional[str] = None,
+        description: Optional[str] = None,
         intents: discord.Intents = discord.Intents.all(),
-        allowed_mentions: typing.Optional[
+        allowed_mentions: Optional[
             discord.AllowedMentions
         ] = discord.AllowedMentions.none(),
         use_repl: bool = False,
@@ -98,7 +98,7 @@ class StrapBot(commands.Bot):
         self.session: ClientSession = None  # type: ignore
         self.mongodb_uri = mongodb_uri
         self.webhook_url = webhook_url
-        self.main_guild: typing.Optional[discord.Guild] = None
+        self.main_guild: Optional[discord.Guild] = None
         self.use_repl = use_repl
         self.console = None
         self.markov_learn_events: typing.Dict[int, asyncio.Event] = {}
@@ -114,7 +114,7 @@ class StrapBot(commands.Bot):
         return __version__
 
     def do_give_prefixes(
-        self, bot, message: typing.Optional[Message]
+        self, bot, message: Optional[Message]
     ) -> typing.List[str]:
         p = os.getenv("BOT_PREFIX", "sb.").strip()
         p = p if p else "sb."
@@ -124,7 +124,7 @@ class StrapBot(commands.Bot):
 
         return pfixes
 
-    def give_prefixes(self, bot, message: typing.Optional[Message]) -> typing.List[str]:
+    def give_prefixes(self, bot, message: Optional[Message]) -> typing.List[str]:
         p = self.do_give_prefixes(bot, message)
         return commands.when_mentioned_or(*p)(bot, message)  # type: ignore
 
@@ -556,7 +556,7 @@ class StrapBot(commands.Bot):
         if self.use_repl and not self.debugging:
             self.repl_thread.start()
 
-    async def get_markov_chain(self, guild_id: int) -> typing.Optional[MarkovChain]:
+    async def get_markov_chain(self, guild_id: int) -> Optional[MarkovChain]:
         """Get the Markov chain for a guild."""
         chain = self.__markov_chains.get(guild_id, None)
         if chain:
@@ -791,6 +791,12 @@ class StrapBot(commands.Bot):
             self.updates_loop.stop()
 
     def add_command(self, command: commands.Command):
+        """
+        Add a command to the bot.
+
+        This method is overridden to add support for custom commands,
+        which only work in specified guilds.
+        """
         if command.cog and hasattr(command.cog, "guild_id"):
             guild_id = command.cog.guild_id
             if command.name in self.custom_commands[guild_id]:
@@ -817,7 +823,15 @@ class StrapBot(commands.Bot):
 
         return super().add_command(command)
 
-    def remove_command(self, name: str, guild_id: typing.Optional[int] = None):
+    def remove_command(self, name: str, guild_id: Optional[int] = None):
+        """
+        Remove a command from the bot.
+
+        This method is overridden to add support for custom commands,
+        which only work in specified guilds.
+
+        NOTE: You must provide the guild_id if you want to remove a custom command.
+        """
         if guild_id:
             command = self.custom_commands[guild_id].pop(name, None)
             if command == None:
@@ -843,6 +857,68 @@ class StrapBot(commands.Bot):
             return command
 
         return super().remove_command(name)
+
+    async def add_cog(
+        self,
+        cog: commands.Cog,
+        /,
+        *,
+        override: bool = False,
+        guild: Optional[discord.abc.Snowflake] = discord.utils.MISSING,
+        guilds: typing.Sequence[discord.abc.Snowflake] = discord.utils.MISSING,
+    ) -> None:
+        """
+        Add a cog to the bot.
+
+        This method is overridden to add support for custom cogs,
+        which only work in specified guilds.
+        """
+        if hasattr(cog, "guild_id"):
+            existing = self.custom_cogs.get(cog.guild_id)
+
+            if existing is not None:
+                if not override:
+                    raise discord.ClientException(f'A custom cog for guild {cog.guild_id} already exists.')
+
+                await self.remove_cog(cog.guild_id)
+
+            if cog.__cog_app_commands_group__:
+                self.tree.add_command(cog.__cog_app_commands_group__, override=override, guild=discord.Object(id=cog.guild_id))
+
+            cog = await cog._inject(self, override=override, guild=guild, guilds=guilds)
+            self.custom_cogs[cog.guild_id] = cog
+            return
+
+        return await super().add_cog(cog, override=override, guild=guild, guilds=guilds)
+
+    async def remove_cog(
+        self,
+        name_or_guild_id: Union[str, int],
+        /,
+        *,
+        guild: Optional[discord.abc.Snowflake] = discord.utils.MISSING,
+        guilds: typing.Sequence[discord.abc.Snowflake] = discord.utils.MISSING,
+    ) -> Optional[commands.Cog]:
+        """
+        Remove a cog from the bot.
+
+        This method is overridden to add support for custom cogs,
+        which only work in specified guilds.
+        """
+        if isinstance(name_or_guild_id, int):
+            guild_id = name_or_guild_id
+            cog = self.custom_cogs.pop(guild_id, None)
+            if cog == None:
+                return
+
+            if cog.__cog_app_commands_group__:
+                self.__tree.remove_command(cog.__cog_app_commands_group__.name, guild=discord.Object(guild_id))
+
+            await cog._eject(self)
+
+            return cog
+
+        return await super().remove_cog(cog)
 
     async def close(self):
         self._closing = True
