@@ -79,10 +79,10 @@ class StrapBot(commands.Bot):
             allowed_mentions=allowed_mentions,
             **options,
         )
-        # for git, we're going to use a different thread pool executor
+        # for git, we're going to use a different thread pool executor
         # because the git operations can be slow and we don't want them
         # to also slow down the other functions that may be running in
-        # the default pool executor.
+        # the default pool executor.
         self.__update_done = False
         self.__git_exec = ThreadPoolExecutor()
         self.__git_keypair = None
@@ -95,7 +95,7 @@ class StrapBot(commands.Bot):
         self._closing = False
         self.mongoclient: AgnosticClient
         self.mongodb: AgnosticDatabase
-        self.session: ClientSession = None # type: ignore
+        self.session: ClientSession = None  # type: ignore
         self.mongodb_uri = mongodb_uri
         self.webhook_url = webhook_url
         self.main_guild: typing.Optional[discord.Guild] = None
@@ -159,7 +159,7 @@ class StrapBot(commands.Bot):
         if not await self.check_for_updates() or self.__update_done:
             if yild:
                 yield "Already up to date."
-            
+
             return
 
         m = "Getting updates..."
@@ -235,9 +235,8 @@ class StrapBot(commands.Bot):
             logger.info(m)
             if yild:
                 yield m
-            
-        self.__update_done
 
+        self.__update_done
 
     async def get_config(
         self, target: typing.Union[discord.Guild, discord.User, discord.Member, int]
@@ -462,10 +461,10 @@ class StrapBot(commands.Bot):
                         await self.session.get("https://ifconfig.me/ip")
                     ).content.read()
                 ).decode()
-                same_ip = (
-                    data.get("request_url", "a://a:a").split(":")[1].strip("/")
-                    == pub_ip
-                )
+                req_url = data.get("request_url", "a://a:a")
+                same_ip = req_url.split(":")[1].strip(
+                    "/"
+                ) == pub_ip or req_url == os.getenv("SERVER_REQUEST_URl", "b://b:b")
 
         return (chk, same_ip)
 
@@ -836,7 +835,7 @@ class StrapBot(commands.Bot):
 
         if self.session:
             await self.session.close()
-        
+
         self.__git_exec.shutdown()
         return await super().close()
 

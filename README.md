@@ -1,9 +1,11 @@
 # StrapBot
 [![Chat](https://img.shields.io/discord/778341184007438377?logo=Discord&colorB=5865F2)](https://discord.gg/G4de45Bywg)
+[![Invite me!](https://img.shields.io/badge/invite%20me!-darkgreen)](https://discord.com/oauth2/authorize?client_id=740140581174378527&scope=bot&permissions=21206477878)
 
-A multifunction Discord bot, with multiple languages support, moderation, text generation (using a Markov chain) and YouTube news!
 
-## Installation
+A multifunction Discord bot, with multiple languages support, moderation, text generation (using the Markov chain) and YouTube news!
+
+## Self-hosting
 ### Requirements
 - [Python 3.8+](https://www.python.org/downloads/)
 - [A Discord bot token](https://discord.com/developers/applications)
@@ -35,7 +37,7 @@ Instead, if you're setting up the server in a different machine, you can run `pm
 > If you do not know how PM2 works, you can find more information [here](https://pm2.keymetrics.io/docs/usage/quick-start/).
 
 ## License
-This bot is licensed under the **GPL-3 License**, except for the `custom` folder, where you can add your very own code to add features to the bot that do NOT modify the core functionality of it.
+This bot is licensed under the **GPL-3 License**, except for the `custom` folder, where you can add your very own code to add features to the bot that do NOT modify the core functionality of it without having to open-source it.
 
 ## Translating
 Translations are always welcome! You can send a pull request to [the languages repository](https://github.com/StrapBot/languages.git) translating the bot to your language.

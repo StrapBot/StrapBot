@@ -246,7 +246,7 @@ class Fun(commands.Cog):
         if not message:
             return await ctx.send_help(ctx.command)
 
-        await ctx.send(message)
+        await ctx.send(message, allowed_mentions=discord.AllowedMentions.none())
 
 
 async def setup(bot: StrapBot):

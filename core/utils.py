@@ -223,14 +223,27 @@ class MarkovChain(defaultdict):
         current_word = random.choice(list(self.keys()))
         message = [current_word]
 
+        prev_words = set()
         for _ in range(length - 1):
             next_words = self[current_word]
             if not next_words:
                 break
+
+            if len(next_words) > 1:
+                # avoid recursing into the same words
+                for w in next_words.copy():
+                    if w in prev_words:
+                        next_words.pop(w, None)
+
+                    # ignore if there's only one word left
+                    if len(next_words) == 1:
+                        break
+
             next_word = random.choices(
                 list(next_words.keys()), weights=next_words.values()
             )[0]
             message.append(next_word)
+            prev_words.add(current_word)
             current_word = next_word
 
         return " ".join(message)
