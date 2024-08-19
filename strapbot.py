@@ -18,6 +18,7 @@ from pygit2.callbacks import RemoteCallbacks
 from packaging.version import Version
 from aiohttp import ClientSession
 from collections import defaultdict
+from datetime import datetime
 from discord.ext import commands, tasks
 from typing import Union, Dict, Optional
 from typing_extensions import Self
@@ -104,6 +105,7 @@ class StrapBot(commands.Bot):
         self.markov_learn_events: typing.Dict[int, asyncio.Event] = {}
         self.custom_commands: Dict[int, Dict[str, commands.Command]] = defaultdict(dict)
         self.custom_cogs: Dict[int, commands.Cog] = {}
+        self.custom_cogs_errors: Dict[int, dict] = defaultdict(dict)
 
     @property
     def debugging(self) -> bool:
@@ -113,9 +115,7 @@ class StrapBot(commands.Bot):
     def version(self) -> str:
         return __version__
 
-    def do_give_prefixes(
-        self, bot, message: Optional[Message]
-    ) -> typing.List[str]:
+    def do_give_prefixes(self, bot, message: Optional[Message]) -> typing.List[str]:
         p = os.getenv("BOT_PREFIX", "sb.").strip()
         p = p if p else "sb."
         pfixes = [p]
@@ -439,6 +439,7 @@ class StrapBot(commands.Bot):
         # Loops
         self.markov_cache_loop.start()
         self.updates_loop.start()
+        self.clear_errors_loop.start()
 
         # Application commands
         main_guild_id = os.getenv("MAIN_GUILD_ID", None)
@@ -597,6 +598,16 @@ class StrapBot(commands.Bot):
             await asyncio.gather(*tasks)
 
         self.__markov_loop_running = False
+
+    @tasks.loop(minutes=15)
+    async def clear_errors_loop(self):
+        for guild_id, data in self.custom_cogs_errors.items():
+            if (
+                data.get("count", 0) < 5
+                and (datetime.now() - data.get("last_time", datetime.now())).seconds
+                >= 900
+            ):
+                self.custom_cogs_errors.pop(guild_id)
 
     async def on_message(self, message: Message):
         if message.author.bot:
@@ -760,11 +771,36 @@ class StrapBot(commands.Bot):
         while hasattr(exc, "original"):
             exc = exc.original  #  type: ignore
 
-        await super().on_command_error(ctx, exc)
+        if not hasattr(ctx.cog, "guild_id"):
+            await super().on_command_error(ctx, exc)
+
         if isinstance(exc, commands.CommandNotFound):
             return  # placeholder
 
-        await self.handle_errors(exc, ctx.command.qualified_name, "command")  # type: ignore
+        # we don't want to know about the errors that are raised
+        # by custom commands, as whoever made the extension must
+        # debug it correctly.
+        if getattr(ctx.cog, "guild_id", None) == ctx.guild.id:
+            count = self.custom_cogs_errors[ctx.guild.id].get("count", 0)
+            self.custom_cogs_errors[ctx.guild.id] = {
+                "count": count + 1,
+                "last_time": datetime.now(),
+            }
+            if count >= 5:
+                await ctx.send(
+                    "Too many errors within 15 minutes. "
+                    "The custom commands have been disabled.\n"
+                    "If you are the developer of those commands, "
+                    "please fix the issues and request an update."
+                )
+                await self.remove_cog(ctx.guild.id)
+                return
+
+            await ctx.send(
+                "An error occurred while executing the custom command. Has the code been debugged correctly?"
+            )
+        else:
+            await self.handle_errors(exc, ctx.command.qualified_name, "command")  # type: ignore
 
     @tasks.loop(minutes=10)
     async def updates_loop(self):
@@ -878,12 +914,18 @@ class StrapBot(commands.Bot):
 
             if existing is not None:
                 if not override:
-                    raise discord.ClientException(f'A custom cog for guild {cog.guild_id} already exists.')
+                    raise discord.ClientException(
+                        f"A custom cog for guild {cog.guild_id} already exists."
+                    )
 
                 await self.remove_cog(cog.guild_id)
 
             if cog.__cog_app_commands_group__:
-                self.tree.add_command(cog.__cog_app_commands_group__, override=override, guild=discord.Object(id=cog.guild_id))
+                self.tree.add_command(
+                    cog.__cog_app_commands_group__,
+                    override=override,
+                    guild=discord.Object(id=cog.guild_id),
+                )
 
             cog = await cog._inject(self, override=override, guild=guild, guilds=guilds)
             self.custom_cogs[cog.guild_id] = cog
@@ -912,7 +954,9 @@ class StrapBot(commands.Bot):
                 return
 
             if cog.__cog_app_commands_group__:
-                self.__tree.remove_command(cog.__cog_app_commands_group__.name, guild=discord.Object(guild_id))
+                self.__tree.remove_command(
+                    cog.__cog_app_commands_group__.name, guild=discord.Object(guild_id)
+                )
 
             await cog._eject(self)
 

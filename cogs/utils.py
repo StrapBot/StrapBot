@@ -1,6 +1,7 @@
 import discord
 import math
 import os
+from typing import Optional
 from discord.ext import commands
 from core.help import StrapBotHelp
 from core.context import StrapContext
@@ -98,6 +99,45 @@ class Utilities(commands.Cog):
             support_guild_link=support,
             ephemeral=True,
         )
+
+    @commands.hybrid_group()
+    @commands.has_permissions(administrator=True)
+    async def extend(
+        self,
+        ctx: StrapContext,
+        url: Optional[str] = None,
+        directory: Optional[str] = None,
+    ):
+        """
+        Extend the bot's functionality with your very own code.
+        Must follow the extension guidelines.
+
+        This command is only available to the server administrators.
+        """
+        await self.load(ctx, url, directory)
+
+    @extend.command()
+    @commands.has_permissions(administrator=True)
+    async def load(
+        self,
+        ctx: StrapContext,
+        url: Optional[str] = None,
+        directory: Optional[str] = None,
+    ):
+        """
+        Add a custom extension for approval.
+        Must follow the extension guidelines.
+
+        **`url`**: The URL of the extension or its git repository (**which must be public**).
+        **`directory`**: The directory where the extension is located, if it's a git repository.
+        """
+        await ctx.send("placeholder")
+
+    @extend.command()
+    @commands.has_permissions(administrator=True)
+    async def status(self, ctx: StrapContext):
+        """Check the custom extension's status."""
+        await ctx.send("placeholder")
 
     @commands.hybrid_command()
     @server_online()
