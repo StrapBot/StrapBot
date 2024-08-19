@@ -102,6 +102,8 @@ class StrapBot(commands.Bot):
         self.use_repl = use_repl
         self.console = None
         self.markov_learn_events: typing.Dict[int, asyncio.Event] = {}
+        self.custom_commands: Dict[int, Dict[str, commands.Command]] = defaultdict(dict)
+        self.custom_cogs: Dict[int, commands.Cog] = {}
 
     @property
     def debugging(self) -> bool:
@@ -660,9 +662,15 @@ class StrapBot(commands.Bot):
 
         user_config: UserConfig = await self.get_config(author)  #  type: ignore
         guild_config: GuildConfig = await self.get_config(origin.guild)  # type: ignore
-        return await super().get_context(
+
+        ctx = await super().get_context(
             origin, cls=cls.configure(user_config, guild_config)
         )
+
+        if not ctx.command:
+            ctx.command = self.custom_commands[ctx.guild.id].get(ctx.invoked_with)
+
+        return ctx
 
     @staticmethod
     def create_random_string(length=10):
@@ -781,6 +789,60 @@ class StrapBot(commands.Bot):
             await self.send_to_webhook(msg)
 
             self.updates_loop.stop()
+
+    def add_command(self, command: commands.Command):
+        if command.cog and hasattr(command.cog, "guild_id"):
+            guild_id = command.cog.guild_id
+            if command.name in self.custom_commands[guild_id]:
+                raise commands.CommandRegistrationError(command.name)
+
+            self.custom_commands[guild_id][command.name] = command
+            for alias in command.aliases:
+                if alias in self.custom_commands[guild_id]:
+                    self.remove_command(command.name, guild_id)
+                    raise commands.CommandRegistrationError(alias, alias_conflict=True)
+
+                self.custom_commands[guild_id][alias] = command
+
+            if (
+                isinstance(command, (commands.HybridCommand, commands.HybridGroup))
+                and command.app_command
+                and not command.cog.__cog_is_app_commands_group__
+            ):
+                self.tree.add_command(
+                    command.app_command, guild=discord.Object(id=guild_id)
+                )
+
+            return
+
+        return super().add_command(command)
+
+    def remove_command(self, name: str, guild_id: typing.Optional[int] = None):
+        if guild_id:
+            command = self.custom_commands[guild_id].pop(name, None)
+            if command == None:
+                return
+
+            if name in command.aliases:
+                return command
+
+            for alias in command.aliases:
+                cmd = self.custom_commands[guild_id].pop(alias, None)
+                if cmd != None and cmd != command:
+                    self.custom_commands[guild_id][alias] = cmd
+
+            if (
+                isinstance(command, (commands.HybridCommand, commands.HybridGroup))
+                and command.app_command
+            ):
+                if command.cog.__cog_is_app_commands_group__:
+                    return cmd
+
+                self.tree.remove_command(name, guild=discord.Object(id=guild_id))
+
+            return command
+
+        return super().remove_command(name)
 
     async def close(self):
         self._closing = True
