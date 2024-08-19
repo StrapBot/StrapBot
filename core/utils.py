@@ -54,6 +54,7 @@ AnyCommand = Union[
 AnyGroup = Union[HybridGroup, Group]
 
 time_regex = re.compile(r"(\d{1,5}(?:[.,]?\d{1,5})?)([smhd])")
+docstring_regex = re.compile(r"^\s*(\"\"\"|\'\'\')([\s\S]*?)\1")
 time_dict = {"h": 3600, "s": 1, "m": 60, "d": 86400, "w": 604800}
 
 DEFAULT_LANG_ENV = "DEFAULT_LANGUAGE"
@@ -565,6 +566,18 @@ def get_startup_text(version: str, font: str = ""):
 
     text2 = spaces + f"[bold]StrapBot[/] {version}"
     return f"\n{text1}{text2}\n\n"
+
+
+def find_requirements(code: str) -> list[str]:
+    matches = docstring_regex.match(code)
+    if not matches:
+        return []
+
+    text = matches.group(2).strip()
+    if not text or text.lower() != text:
+        return []
+
+    return [m.strip() for m in text.split()]
 
 
 class CacheDict(dict):

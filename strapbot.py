@@ -12,6 +12,7 @@ import string
 import sys
 import traceback
 import typing
+import tempfile
 from functools import partial
 from inspect import iscoroutine
 from pygit2.callbacks import RemoteCallbacks
@@ -41,6 +42,7 @@ from core.utils import (
     load_chain_from_db,
     save_chain_to_db,
     CacheDict,
+    find_requirements,
 )
 from discord.ext.commands.bot import _default
 from core.repl import InteractiveConsole, REPLThread
@@ -963,6 +965,78 @@ class StrapBot(commands.Bot):
             return cog
 
         return await super().remove_cog(cog)
+
+    async def send_cog_for_review(self, guild_id: int, url: str, name: str):
+        db = self.get_db("CustomCogs", cog=False)
+        data = await db.find_one({"_id": guild_id})
+        if data:
+            await self.delete_review(guild_id)
+
+        await db.insert_one(
+            {
+                "_id": guild_id,
+                "status": "pending",
+                "url": url,
+                "name": name,
+            }
+        )
+
+    async def delete_review(self, guild_id: int):
+        db = self.get_db("Approvals", cog=False)
+        await db.delete_one({"_id": guild_id})
+
+    async def download_cog(self, url: str, name: str):
+        """
+        Download a cog from a git repository or the URL.
+
+        There is few to no error handling here because we are assuming
+        that the code has been approved and follows the rules.
+        """
+        with tempfile.TemporaryDirectory(prefix="sb-") as dirname:
+            is_repo = True
+            try:
+                await self.loop.run_in_executor(
+                    self.__git_exec,
+                    partial(
+                        pygit2.clone_repository,
+                        url,
+                        os.path.join(dirname, "repo"),
+                    ),
+                )
+            except Exception:
+                is_repo = False
+
+            if is_repo:
+                dir = os.path.join(dirname, "repo")
+                name = os.path.splitext(name)[0] if name else "main"
+                code = open(os.path.join(dir, f"{name}.py")).read()
+                requirements = (
+                    open(os.path.join(dir, "requirements.txt")).read().split()
+                )
+            else:
+                async with self.session.get(url) as req:
+                    code = (await req.content.read()).decode()
+                    requirements = find_requirements(code)
+
+            return code, requirements
+
+    async def approve_cog(self, guild_id: int):
+        db = self.get_db("CustomCogs", cog=False)
+        data = await db.find_one({"_id": guild_id})
+        if not data:
+            return
+
+        await db.update_one(
+            {"_id": guild_id},
+            {
+                "$set": {
+                    "status": "ok",
+                }
+            },
+        )
+
+        code, requirements = await self.download_cog(data["url"], data["directory"])
+        # TO BE FINISHED!
 
     async def close(self):
         self._closing = True

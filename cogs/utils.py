@@ -122,16 +122,24 @@ class Utilities(commands.Cog):
         self,
         ctx: StrapContext,
         url: Optional[str] = None,
-        directory: Optional[str] = None,
+        name: Optional[str] = None,
     ):
         """
         Add a custom extension for approval.
         Must follow the extension guidelines.
 
         **`url`**: The URL of the extension or its git repository (**which must be public**).
-        **`directory`**: The directory where the extension is located, if it's a git repository.
+        **`name`**: The extension's filename, if it's a git repository.
         """
-        await ctx.send("placeholder")
+        if not url:
+            if not ctx.message.attachments:
+                await ctx.send_help(ctx.command)
+                return
+
+            url = ctx.message.attachments[0].url
+
+        await self.bot.send_cog_for_review(ctx.guild.id, url, name)
+        await ctx.send("done")
 
     @extend.command()
     @commands.has_permissions(administrator=True)
