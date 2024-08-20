@@ -42,7 +42,7 @@ from gridfs import NoFile
 from importlib.util import spec_from_loader
 from types import ModuleType
 from importlib.machinery import ModuleSpec
-
+from importlib.abc import Loader
 
 AnyCommand = Union[
     Command,
@@ -173,7 +173,7 @@ def find_requirements(code: str) -> list[str]:
 
 def custom_ext_from_code(
     code: str, guild_id: int
-) -> tuple[str, ModuleType, ModuleSpec]:
+) -> tuple[str, ModuleSpec, ModuleType]:
     """
     Get the custom extension from its code,
     to be loaded with bot._load_from_module_spec().
@@ -181,26 +181,23 @@ def custom_ext_from_code(
     name = f"custom.g{guild_id}"
     spec = spec_from_loader(
         name,
-        loader=None,
+        loader=ExtensionLoader(name, code),
         origin=f"custom_ext_{guild_id}",
         is_package=False,
     )
 
-    mod = ModuleType(name)
-    mod.__spec__ = spec
-
-    exec(code, mod.__dict__)
+    mod = spec.loader.create_module(spec)
 
     return (name, spec, mod)
 
 
 async def get_ext_from_db(
     db: AgnosticDatabase, guild_id: int, return_code: bool = False
-) -> tuple[str, ModuleType, ModuleSpec]:
+) -> tuple[str, ModuleSpec, ModuleType]:
     fs = AsyncIOMotorGridFSBucket(db)
 
     try:
-        data = await fs.open_download_stream_by_name(EXT_NAME.format(guild_id))
+        data = await fs.open_download_stream_by_name(EXT_NAME.format(guild_id=guild_id))
     except NoFile:
         return
 
@@ -217,7 +214,30 @@ async def get_ext_from_db(
 
 async def upload_code_to_db(db: AgnosticDatabase, guild_id: int, code: str) -> None:
     fs = AsyncIOMotorGridFSBucket(db)
-    await fs.upload_from_stream(EXT_NAME.format(guild_id), code.encode())
+    await fs.upload_from_stream(EXT_NAME.format(guild_id=guild_id), code.encode())
+
+
+class ExtensionLoader(Loader):
+    def __init__(self, name: str, code: str):
+        self.name = name
+        self.code = code
+        self.__executed = False
+        self.__module = None
+
+    def create_module(self, spec):
+        if self.__module:
+            return self.__module
+
+        ret = ModuleType(self.name)
+        ret.__spec__ = spec
+
+        self.__module = ret
+        return ret
+
+    def exec_module(self, module):
+        if not self.__executed:
+            exec(self.code, module.__dict__)
+            self.__executed = True
 
 
 # Markov

@@ -31,6 +31,7 @@ from core.config import AnyConfig, Config, UserConfig, GuildConfig
 from core.context import StrapContext
 from core.utils import (
     IS_TERMINAL,
+    EXT_NAME,
     HANDLER as logging_handler,
     get_startup_text,
     raise_if_no_env,
@@ -831,7 +832,8 @@ class StrapBot(commands.Bot):
                     "If you are the developer of those commands, "
                     "please fix the issues and request an update."
                 )
-                await self.remove_cog(ctx.guild.id)
+                await self.unload_extension(ctx.guild.id)
+                await self.set_ext_status(ctx.guild.id, "errored")
                 return
 
             await ctx.send(
@@ -1057,6 +1059,26 @@ class StrapBot(commands.Bot):
             return code, requirements
 
     async def set_ext_status(self, guild_id: int, status: str) -> Optional[dict]:
+        """
+        Set the status of a custom extension.
+
+        Valid values:
+        - "pending":        the extension is waiting for approval
+        - "setting":        the extension is being set up
+        - "ok":             the extension has been approved
+        - "errored":        the extension has errors and cannot be loaded
+        - "denied":         the extension has been denied
+
+        Instead of "denied", there may be the reason why the extension was denied:
+        - "maybe_blocking":     the extension has instructions that may block the event loop
+        - "no_requirements":    the extension has no requirements specified, but has external modules
+        - "bad_requirements":   the extension has invalid requirements
+        - "private_git":        the extension is in a private git repository
+        - "not_found":          the given url returned a 404 status code
+        - "security":           the extension has security issues
+        - "backdoor":           the extension has a backdoor or malicious code
+        - "invalid_python":     the extension has invalid Python code, isn't a Python file or has syntax errors
+        """
         db = self.get_db("CustomCogs", cog=False)
         data = await db.find_one({"_id": guild_id})
         if not data:
@@ -1077,20 +1099,28 @@ class StrapBot(commands.Bot):
         return await db.find_one({"_id": guild_id})
 
     async def approve_extension(self, guild_id: int):
-        data = await self.set_ext_status(guild_id, "ok")
+        data = await self.set_ext_status(guild_id, "setting")
         if not data:
             return
 
-        code, requirements = await self.download_extension(
-            data["url"], data["directory"]
-        )
-        await self.setup_requirements(requirements)
-        await upload_code_to_db(self.mongodb, guild_id, code)
-        await self.load_custom_extension(guild_id)
+        code, requirements = await self.download_extension(data["url"], data["name"])
+        try:
+            await self.setup_requirements(requirements)
+            await upload_code_to_db(self.mongodb, guild_id, code)
+        except Exception:
+            await self.set_ext_status(guild_id, "errored")
+            raise
+
+        await self.load_extension(guild_id)
+        await self.set_ext_status(guild_id, "ok")
 
     async def setup_requirements(self, requirements: list[str]):
+        if not requirements:
+            return
+
         v = sys.version_info
-        ver = f"{v.major}.{v.minor}.{v.micro}"
+        ver = f"{v.major}.{v.minor}"
+
         proc = await asyncio.create_subprocess_shell(
             f"./tools/setup-requirements.sh {ver} {' '.join(requirements)}",
             stdout=asyncio.subprocess.PIPE,
@@ -1105,10 +1135,22 @@ class StrapBot(commands.Bot):
             )
 
     async def _load_from_code(self, code: str, guild_id: int):
-        name, spec, _ = await self.loop.run_in_executor(
-            None, custom_ext_from_code, code, guild_id
-        )
+        name, spec, mod = custom_ext_from_code(code, guild_id)
+        spec.loader.exec_module(mod)
+        orig_setup = getattr(mod, "setup", None)
 
+        async def _wrap_setup(bot):
+            if not orig_setup:
+                await self.set_ext_status(guild_id, "errored")
+                return
+
+            try:
+                await orig_setup(bot, guild_id)
+            except Exception:
+                await self.set_ext_status(guild_id, "errored")
+                raise
+
+        mod.setup = _wrap_setup
         await self._load_from_module_spec(spec, name)
 
     async def load_extension(
@@ -1119,20 +1161,36 @@ class StrapBot(commands.Bot):
             db = self.get_db("CustomCogs", cog=False)
             data = await db.find_one({"_id": guild_id})
             if not data:
-                return
+                raise commands.ExtensionNotFound(guild_id)
 
-            if data["status"] != "ok":
+            if data["status"] not in ["ok", "setting"]:
                 if data["status"] == "errored":
-                    raise ValueError("The extension has errors and cannot be loaded")
+                    raise ValueError(
+                        f"Extension {guild_id} has errors and cannot be loaded"
+                    )
 
-                raise ValueError("The extension hasn't been approved yet.")
+                raise ValueError(f"Extension {guild_id} hasn't been approved yet.")
 
-            self.load_extension
+            if EXT_NAME.format(guild_id=guild_id) in self.extensions:
+                raise commands.ExtensionAlreadyLoaded(guild_id)
+
             code = await get_ext_from_db(self.mongodb, guild_id, True)
-            await self._load_from_code(code)
+
+            try:
+                await self._load_from_code(code, guild_id)
+            except Exception:
+                await self.set_ext_status(guild_id, "errored")
+                raise
+
             return
 
         return await super().load_extension(name_or_guild_id, package=package)
+
+    async def unload_extension(self, name: Union[str, int]):
+        if isinstance(name, int):
+            name = EXT_NAME.format(guild_id=name)
+
+        return await super().unload_extension(name)
 
     async def close(self):
         self._closing = True
