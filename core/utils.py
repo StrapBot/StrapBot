@@ -39,6 +39,9 @@ from collections import defaultdict, Counter
 from motor.core import AgnosticDatabase
 from motor.motor_asyncio import AsyncIOMotorGridFSBucket
 from gridfs import NoFile
+from importlib.util import spec_from_loader
+from types import ModuleType
+from importlib.machinery import ModuleSpec
 
 
 AnyCommand = Union[
@@ -61,6 +64,7 @@ DEFAULT_LANG_ENV = "DEFAULT_LANGUAGE"
 LANGS_PATH = os.path.abspath("./langs")
 IS_TERMINAL = sys.stdout.isatty() and sys.stderr.isatty()
 PKL_NAME = "chn_{guild_id}.pkl"
+EXT_NAME = "ext_{guild_id}.py"
 
 # Debugging
 
@@ -150,6 +154,70 @@ def get_logger(name: str = ""):
         name = f"strapbot.{name}"
 
     return logging.getLogger(name)
+
+
+# Custom extensions
+
+
+def find_requirements(code: str) -> list[str]:
+    matches = docstring_regex.match(code)
+    if not matches:
+        return []
+
+    text = matches.group(2).strip()
+    if not text or text.lower() != text:
+        return []
+
+    return [m.strip() for m in text.split()]
+
+
+def custom_ext_from_code(
+    code: str, guild_id: int
+) -> tuple[str, ModuleType, ModuleSpec]:
+    """
+    Get the custom extension from its code,
+    to be loaded with bot._load_from_module_spec().
+    """
+    name = f"custom.g{guild_id}"
+    spec = spec_from_loader(
+        name,
+        loader=None,
+        origin=f"custom_ext_{guild_id}",
+        is_package=False,
+    )
+
+    mod = ModuleType(name)
+    mod.__spec__ = spec
+
+    exec(code, mod.__dict__)
+
+    return (name, spec, mod)
+
+
+async def get_ext_from_db(
+    db: AgnosticDatabase, guild_id: int, return_code: bool = False
+) -> tuple[str, ModuleType, ModuleSpec]:
+    fs = AsyncIOMotorGridFSBucket(db)
+
+    try:
+        data = await fs.open_download_stream_by_name(EXT_NAME.format(guild_id))
+    except NoFile:
+        return
+
+    try:
+        if return_code:
+            return (await data.read()).decode()
+
+        return await asyncio.get_event_loop().run_in_executor(
+            None, custom_ext_from_code, (await data.read()).decode(), guild_id
+        )
+    finally:
+        data.close()
+
+
+async def upload_code_to_db(db: AgnosticDatabase, guild_id: int, code: str) -> None:
+    fs = AsyncIOMotorGridFSBucket(db)
+    await fs.upload_from_stream(EXT_NAME.format(guild_id), code.encode())
 
 
 # Markov
@@ -566,18 +634,6 @@ def get_startup_text(version: str, font: str = ""):
 
     text2 = spaces + f"[bold]StrapBot[/] {version}"
     return f"\n{text1}{text2}\n\n"
-
-
-def find_requirements(code: str) -> list[str]:
-    matches = docstring_regex.match(code)
-    if not matches:
-        return []
-
-    text = matches.group(2).strip()
-    if not text or text.lower() != text:
-        return []
-
-    return [m.strip() for m in text.split()]
 
 
 class CacheDict(dict):

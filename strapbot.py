@@ -43,6 +43,9 @@ from core.utils import (
     save_chain_to_db,
     CacheDict,
     find_requirements,
+    custom_ext_from_code,
+    upload_code_to_db,
+    get_ext_from_db,
 )
 from discord.ext.commands.bot import _default
 from core.repl import InteractiveConsole, REPLThread
@@ -380,6 +383,7 @@ class StrapBot(commands.Bot):
         logger.debug("Loading extensions...")
         exts = set()
         cexts = set()
+        gexts = set()
         for ext in os.listdir("cogs"):
             ext = os.path.splitext(ext)
             if ext[1] == ".py":
@@ -391,16 +395,27 @@ class StrapBot(commands.Bot):
                 if ext[1] == ".py":
                     cexts.add(f"custom.cogs.{ext[0]}")
 
+        entries = await self.get_db("CustomCogs", cog=False).find().to_list(None)
+
+        for entry in entries:
+            if entry.get("status", "") == "ok":
+                gexts.add(entry["_id"])
+
         errors = 0
         cerrors = 0
+        gerrors = 0
         for ext in set(list(exts) + list(cexts)):
             custom = ext in cexts
+            guild = ext in gexts
             text = "custom extension" if custom else "extension"
+            text = "guild extension" if guild else text
             try:
                 await self.load_extension(ext)
             except Exception as e:
                 if custom:
                     cerrors += 1
+                elif guild:
+                    gerrors += 1
                 else:
                     errors += 1
                 e = getattr(e, "original", e)
@@ -414,7 +429,9 @@ class StrapBot(commands.Bot):
             additional += "s" if errors != 1 else ""
 
         if cerrors:
-            if errors:
+            if gerrors:
+                additional += ", "
+            elif errors:
                 additional += " and "
             else:
                 additional += ", [bold]could not load[/] "
@@ -422,12 +439,31 @@ class StrapBot(commands.Bot):
             additional += f"[bold red]{cerrors}[/] custom extension"
             additional += "s" if cerrors != 1 else ""
 
+        if gerrors:
+            if errors or cerrors:
+                additional += " and "
+            else:
+                additional += ", [bold]could not load[/] "
+
+            additional += f"[bold red]{gerrors}[/] guild extension"
+            additional += "s" if gerrors != 1 else ""
+
         loaded = len(exts) - errors
         cloaded = len(cexts) - cerrors
+        gloaded = len(gexts) - gerrors
         c = "s" if loaded != 1 else ""
         if cexts:
-            c += f" and [bold green]{cloaded}[/] custom extension"
+            if gexts:
+                c += ","
+            else:
+                c += " and"
+
+            c += f" [bold green]{cloaded}[/] custom extension"
             c += "s" if cloaded != 1 else ""
+
+        if gexts:
+            c += f" and [bold green]{gloaded}[/] guild extension"
+            c += "s" if gloaded != 1 else ""
 
         logger.info(
             f"[bold green]{loaded}[/] extension{c} loaded successfully{additional}.",
@@ -966,7 +1002,7 @@ class StrapBot(commands.Bot):
 
         return await super().remove_cog(cog)
 
-    async def send_cog_for_review(self, guild_id: int, url: str, name: str):
+    async def send_ext_for_review(self, guild_id: int, url: str, name: str):
         db = self.get_db("CustomCogs", cog=False)
         data = await db.find_one({"_id": guild_id})
         if data:
@@ -985,7 +1021,7 @@ class StrapBot(commands.Bot):
         db = self.get_db("Approvals", cog=False)
         await db.delete_one({"_id": guild_id})
 
-    async def download_cog(self, url: str, name: str):
+    async def download_extension(self, url: str, name: str):
         """
         Download a cog from a git repository or the URL.
 
@@ -1020,23 +1056,83 @@ class StrapBot(commands.Bot):
 
             return code, requirements
 
-    async def approve_cog(self, guild_id: int):
+    async def set_ext_status(self, guild_id: int, status: str) -> Optional[dict]:
         db = self.get_db("CustomCogs", cog=False)
         data = await db.find_one({"_id": guild_id})
         if not data:
             return
 
-        await db.update_one(
-            {"_id": guild_id},
-            {
-                "$set": {
-                    "status": "ok",
-                }
-            },
+        try:
+            await db.update_one(
+                {"_id": guild_id},
+                {
+                    "$set": {
+                        "status": status,
+                    }
+                },
+            )
+        except Exception:
+            return
+
+        return await db.find_one({"_id": guild_id})
+
+    async def approve_extension(self, guild_id: int):
+        data = await self.set_ext_status(guild_id, "ok")
+        if not data:
+            return
+
+        code, requirements = await self.download_extension(
+            data["url"], data["directory"]
+        )
+        await self.setup_requirements(requirements)
+        await upload_code_to_db(self.mongodb, guild_id, code)
+        await self.load_custom_extension(guild_id)
+
+    async def setup_requirements(self, requirements: list[str]):
+        v = sys.version_info
+        ver = f"{v.major}.{v.minor}.{v.micro}"
+        proc = await asyncio.create_subprocess_shell(
+            f"./tools/setup-requirements.sh {ver} {' '.join(requirements)}",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
         )
 
-        code, requirements = await self.download_cog(data["url"], data["directory"])
-        # TO BE FINISHED!
+        o, _ = await proc.communicate()
+
+        if proc.returncode != 0:
+            raise RuntimeError(
+                f"Exit code {proc.returncode} trying to setup requirements:\n{o.decode()}"
+            )
+
+    async def _load_from_code(self, code: str, guild_id: int):
+        name, spec, _ = await self.loop.run_in_executor(
+            None, custom_ext_from_code, code, guild_id
+        )
+
+        await self._load_from_module_spec(spec, name)
+
+    async def load_extension(
+        self, name_or_guild_id: Union[str, int], *, package: Optional[str] = None
+    ):
+        if isinstance(name_or_guild_id, int):
+            guild_id = name_or_guild_id
+            db = self.get_db("CustomCogs", cog=False)
+            data = await db.find_one({"_id": guild_id})
+            if not data:
+                return
+
+            if data["status"] != "ok":
+                if data["status"] == "errored":
+                    raise ValueError("The extension has errors and cannot be loaded")
+
+                raise ValueError("The extension hasn't been approved yet.")
+
+            self.load_extension
+            code = await get_ext_from_db(self.mongodb, guild_id, True)
+            await self._load_from_code(code)
+            return
+
+        return await super().load_extension(name_or_guild_id, package=package)
 
     async def close(self):
         self._closing = True
