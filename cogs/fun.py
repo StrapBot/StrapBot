@@ -5,11 +5,14 @@ from io import BytesIO
 from discord.ext import commands
 from core.context import StrapContext
 from functools import partial
-from aenum import Enum
-from discord.app_commands import Range as AppRange
 from discord.ext.commands import Range
-from typing import Union
+from typing import TYPE_CHECKING
 from strapbot import StrapBot
+
+if TYPE_CHECKING:
+    from enum import Enum
+else:
+    from aenum import Enum
 
 
 class RockPaperScissors(Enum):
@@ -185,7 +188,6 @@ class Fun(commands.Cog):
 
     @staticmethod
     async def cringify(text: str):
-
         ret = ""
         cnt = 0
         num = random.choice([0, 1])
@@ -226,19 +228,16 @@ class Fun(commands.Cog):
 
         await ctx.send(ret, file=file)
 
-    @staticmethod
-    def is_markov_enabled(ctx: StrapContext):
-        return ctx.guild_config.markov["enabled"]
-
     @commands.hybrid_command()
-    @commands.check(is_markov_enabled)
+    @commands.guild_only()
+    @commands.check(lambda c: c.guild_config.markov["enabled"])  #  type: ignore
     async def markov(self, ctx: StrapContext):
         """
         Generate a message using the Markov chain.
 
         This command is only available if the Markov chain is enabled, and will only work if I have data.
         """
-        chain = await self.bot.get_markov_chain(ctx.guild.id)
+        chain = await self.bot.get_markov_chain(ctx.guild.id)  #  type: ignore
         if not chain or not chain.words:
             return await ctx.send_help(ctx.command)
 

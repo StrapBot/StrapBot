@@ -322,7 +322,7 @@ class YouTubeView(View):
         chdb = self.ctx.bot.get_db("YouTubeNews", False)
         gddb = self.ctx.bot.get_db("YouTubeNewsGuilds", False)
         channels = await chdb.find().to_list(None)
-        guild_data = await gddb.find_one({"_id": interaction.guild_id})  # type: ignore
+        guild_data: dict = await gddb.find_one({"_id": interaction.guild_id})  # type: ignore
         data = get_guild_youtube_channels(channels, guild_data)
         if not data["channels"]:
             await interaction.followup.edit_message(
@@ -366,7 +366,7 @@ class YouTubeView(View):
         chdb = self.ctx.bot.get_db("YouTubeNews", False)
         gddb = self.ctx.bot.get_db("YouTubeNewsGuilds", False)
         channels = await chdb.find().to_list(None)
-        guild_data = await gddb.find_one({"_id": interaction.guild_id})  # type: ignore
+        guild_data: dict = await gddb.find_one({"_id": interaction.guild_id})  # type: ignore
         data = get_guild_youtube_channels(channels, guild_data)["channels"]
         if not data:
             await interaction.followup.edit_message(

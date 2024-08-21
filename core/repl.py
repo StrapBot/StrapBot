@@ -214,6 +214,9 @@ class REPLThread(threading.Thread):
         self.bot: StrapBot = bot
 
     def run(self):
+        if self.bot.console is None:
+            return
+
         try:
             p = self.bot.do_give_prefixes(self.bot, None)[0]
             banner = (

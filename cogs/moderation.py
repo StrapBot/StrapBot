@@ -102,15 +102,15 @@ class Moderation(commands.Cog):
             else:
                 return
 
-        role = ctx.guild.get_role(ctx.guild_config.moderation["muted_role_id"])
-        await member.add_roles(role, reason=reason)
+        role = ctx.guild.get_role(ctx.guild_config.moderation["muted_role_id"])  # type: ignore
+        await member.add_roles(role, reason=reason)  # type: ignore
 
     async def unmute_user(
         self, ctx: StrapContext, member: discord.Member, *, reason: Optional[str] = None
     ):
-        role = ctx.guild.get_role(ctx.guild_config.moderation["muted_role_id"])
+        role = ctx.guild.get_role(ctx.guild_config.moderation["muted_role_id"])  # type: ignore
         await member.timeout(None, reason=reason)
-        await member.remove_roles(role, reason=reason)
+        await member.remove_roles(role, reason=reason)  # type: ignore
 
     async def kick_user(
         self, ctx: StrapContext, member: discord.Member, *, reason: Optional[str] = None
@@ -244,7 +244,7 @@ class Moderation(commands.Cog):
         *,
         reason: Optional[str] = None,
     ):
-        if not ctx.guild.get_role(ctx.guild_config.moderation["muted_role_id"]):
+        if not ctx.guild.get_role(ctx.guild_config.moderation["muted_role_id"]):  # type: ignore
             await ctx.send("not_configured")
             return
 
@@ -271,7 +271,7 @@ class Moderation(commands.Cog):
         reason: Optional[str] = None,
     ):
         # TODO: implement auto-unmute and auto-unban
-        if not ctx.guild.get_role(ctx.guild_config.moderation["muted_role_id"]):
+        if not ctx.guild.get_role(ctx.guild_config.moderation["muted_role_id"]):  # type: ignore
             await ctx.send("not_configured")
             return
 

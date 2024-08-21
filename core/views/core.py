@@ -31,7 +31,7 @@ class View(ui.View):
             self.title = self.ctx.format_message(self.title)
 
         for child in children:
-            if hasattr(child, "label") and child.label != None:
+            if hasattr(child, "label") and child.label != None:  # type: ignore
                 child.label = self.ctx.format_message(child.label)  # type: ignore
 
     async def on_error(

@@ -4,18 +4,22 @@ from discord import Interaction, ButtonStyle
 from asyncio import Event
 from ..utils import MarkovChain, save_chain_to_db, MarkovChain
 from motor.core import AgnosticCollection
-from motor.motor_asyncio import AsyncIOMotorGridFSBucket
+from ..context import StrapContext
 
 
 class MarkovChannelSetupView(View):
-    def __init__(self, ctx, db, lang: dict, *args, **kwargs):
+    def __init__(self, ctx: StrapContext, db, lang: dict, *args, **kwargs):
         super().__init__(ctx, *args, **kwargs)
         self.lang = lang
+        self.ctx: StrapContext
         self.db: AgnosticCollection = db
 
     @ui.button(label="Yes", style=ButtonStyle.green)
     async def yes(self, interaction: Interaction, button: ui.Button):
-        ev = self.ctx.bot.markov_learn_events[self.ctx.guild.id] = Event()
+        if not self.ctx.guild:
+            return  # let it fail - guild-only command
+
+        ev = self.ctx.bot.markov_learn_events[self.ctx.guild.id] = Event()  # type: ignore
         try:
             await interaction.response.edit_message(
                 content=self.ctx.format_message("learning", lang=self.lang), view=None
@@ -39,6 +43,9 @@ class MarkovChannelSetupView(View):
 
     @ui.button(label="No", style=ButtonStyle.red)
     async def no(self, interaction: Interaction, button: ui.Button):
+        if not self.ctx.guild:
+            return  # read above
+
         # save an empty chain to the database
         await save_chain_to_db(self.ctx.bot.mongodb, self.ctx.guild.id, MarkovChain())
         await interaction.response.edit_message(

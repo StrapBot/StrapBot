@@ -8,11 +8,19 @@ import shutil
 import logging
 import asyncio
 import unicodedata
+from typing import Dict, List, Optional, Union, Any, overload
+from datetime import datetime, timedelta
+from functools import partial
+from collections import defaultdict, Counter
+from importlib.util import spec_from_loader
+from types import ModuleType
+from importlib.machinery import ModuleSpec
+from importlib.abc import Loader
+from enum import Enum
+
 from rich.logging import RichHandler
-from typing import Dict, List, Optional, Union, Any
 from pyfiglet import Figlet
 from discord.ext import commands
-from datetime import datetime, timedelta
 from discord.app_commands import (
     Translator,
     locale_str,
@@ -34,15 +42,9 @@ from discord.ext.commands import (
 )
 from discord.ext.commands.hybrid import HybridAppCommand
 from discord.enums import Locale
-from functools import partial
-from collections import defaultdict, Counter
 from motor.core import AgnosticDatabase
 from motor.motor_asyncio import AsyncIOMotorGridFSBucket
 from gridfs import NoFile
-from importlib.util import spec_from_loader
-from types import ModuleType
-from importlib.machinery import ModuleSpec
-from importlib.abc import Loader
 
 AnyCommand = Union[
     Command,
@@ -66,7 +68,7 @@ IS_TERMINAL = sys.stdout.isatty() and sys.stderr.isatty()
 PKL_NAME = "chn_{guild_id}.pkl"
 EXT_NAME = "ext_{guild_id}.py"
 
-# Debugging
+# ===== Debugging =====
 
 
 def is_debugging() -> bool:
@@ -76,8 +78,10 @@ def is_debugging() -> bool:
 if is_debugging():
     import types
     import concurrent.futures
-    from pydevd import PyDB
-    from _pydevd_bundle.pydevd_vars import _EvalAwaitInNewEventLoop as Original
+    from pydevd import PyDB  #  type: ignore # pylint: disable=import-error
+    from _pydevd_bundle.pydevd_vars import (  #  type: ignore # pylint: disable=import-error
+        _EvalAwaitInNewEventLoop as Original,
+    )
 
     def get_debug_eval_in_loop_class(bot: commands.Bot) -> type:
         class _EvalAwaitInNewEventLoop(Original):
@@ -111,7 +115,7 @@ if is_debugging():
         return evaluate_expression
 
 
-# Logging
+# ===== Logging =====
 
 
 class LoggingHandler(RichHandler):
@@ -156,7 +160,52 @@ def get_logger(name: str = ""):
     return logging.getLogger(name)
 
 
-# Custom extensions
+# ===== Custom extensions =====
+
+
+class ReviewStatus(Enum):
+    # NOTE: the docstrings will be removed when translations are added
+
+    # normal statuses
+    pending = 0
+    """The extension is waiting for approval."""
+
+    ok = 1
+    """The extension has been approved and works."""
+
+    setting = 2
+    """The extension has been approved and is being in the "setup" stage."""
+
+    errored = 3
+    """The extension has errors and cannot be loaded."""
+
+    # deny and reasons
+    denied = -1
+    """The extension has been denied for a generic reason."""
+
+    maybe_blocking = -2
+    """The extension has instructions that may block the event loop."""
+
+    no_requirements = -3
+    """The extension has no requirements specified, but requires external modules."""
+
+    bad_requirements = -4
+    """The extension has invalid or non-existing requirements."""
+
+    private_git = -5
+    """The extension is in a private git repository."""
+
+    not_found = -6
+    """The given url returned a 404 status code."""
+
+    security = -7
+    """The extension has security issues."""
+
+    backdoor = -8
+    """The extension includes a backdoor or malicious code."""
+
+    invalid_python = -9
+    """The extension has syntax errors, invalid code or isn't a Python file."""
 
 
 def find_requirements(code: str) -> list[str]:
@@ -179,21 +228,34 @@ def custom_ext_from_code(
     to be loaded with bot._load_from_module_spec().
     """
     name = f"custom.g{guild_id}"
-    spec = spec_from_loader(
+    loader = ExtensionLoader(name, code)
+    spec: ModuleSpec = spec_from_loader(  # type: ignore
         name,
-        loader=ExtensionLoader(name, code),
+        loader=loader,
         origin=f"custom_ext_{guild_id}",
         is_package=False,
     )
 
-    mod = spec.loader.create_module(spec)
+    mod = loader.create_module(spec)
 
     return (name, spec, mod)
 
 
+@overload
 async def get_ext_from_db(
     db: AgnosticDatabase, guild_id: int, return_code: bool = False
-) -> tuple[str, ModuleSpec, ModuleType]:
+) -> Optional[tuple[str, ModuleSpec, ModuleType]]: ...
+
+
+@overload
+async def get_ext_from_db(
+    db: AgnosticDatabase, guild_id: int, return_code: bool = True
+) -> Optional[str]: ...
+
+
+async def get_ext_from_db(
+    db: AgnosticDatabase, guild_id: int, return_code: bool = False
+) -> Optional[Union[str, tuple[str, ModuleSpec, ModuleType]]]:
     fs = AsyncIOMotorGridFSBucket(db)
 
     try:
@@ -240,7 +302,7 @@ class ExtensionLoader(Loader):
             self.__executed = True
 
 
-# Markov
+# ===== Markov =====
 
 ChainDict = Dict[str, Dict[str, int]]
 
@@ -302,10 +364,10 @@ class MarkovChain(defaultdict):
         Returns a dictionary containing the added words.
         """
         new = defaultdict(Counter)
-        self._process_message(message, new)
+        self._process_message(message, new)  # type: ignore
         self.update(new)
 
-        return self.__to_dict(new)
+        return self.__to_dict(new)  #  type: ignore
 
     def generate(self, length: int = 10) -> str:
         """Generate a message of a given length."""
@@ -329,7 +391,7 @@ class MarkovChain(defaultdict):
                         break
 
             next_word = random.choices(
-                list(next_words.keys()), weights=next_words.values()
+                list(next_words.keys()), weights=list(next_words.values())
             )[0]
             message.append(next_word)
             prev_words.add(current_word)
@@ -368,7 +430,7 @@ async def save_chain_to_db(
     await fs.upload_from_stream(name, data)
 
 
-# Languages
+# ===== Languages =====
 
 
 def get_langs() -> List[str]:
@@ -553,7 +615,7 @@ class MyTranslator(Translator):
             return param[attr]
 
 
-# Other
+# ===== Other =====
 
 
 class TimeConverter(commands.Converter):

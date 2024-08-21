@@ -118,6 +118,7 @@ class Utilities(commands.Cog):
 
     @extend.command()
     @commands.has_permissions(administrator=True)
+    @commands.guild_only()
     async def load(
         self,
         ctx: StrapContext,
@@ -138,7 +139,7 @@ class Utilities(commands.Cog):
 
             url = ctx.message.attachments[0].url
 
-        await self.bot.send_ext_for_review(ctx.guild.id, url, name)
+        await self.bot.send_ext_for_review(ctx.guild.id, url, name)  # type: ignore
         await ctx.send("done")
 
     @extend.command()

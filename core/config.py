@@ -254,14 +254,19 @@ class MutedRoleType(ModerationConfigType):
 
     @staticmethod
     def validate(val: Union[discord.Role, int], bot: commands.Bot) -> bool:
-        if not isinstance(val, discord.Role):
+        if isinstance(val, int) or not isinstance(val, discord.Role):
             if not isinstance(val, int):
                 return False
 
-            guild = discord.utils.find(lambda g: g.get_role(val), bot.guilds)
-            val = guild.get_role(val)
+            guild = discord.utils.find(lambda g: g.get_role(val), bot.guilds)  # type: ignore
+            if guild == None:
+                return False
 
-        return val.guild.me.top_role.position > val.position
+            val = guild.get_role(val)
+            if val == None:
+                return False
+
+        return val.guild.me.top_role.position > val.position  #  type: ignore
 
 
 class TimeoutType(ModerationConfigType):
@@ -426,19 +431,23 @@ class MarkovChainEnabledType(MarkovChainType):
     async def setup(ctx: commands.Context, value: bool):
         if value:
             db = ctx.bot.get_db("MarkovChain", False)
-            res = await db.find_one({"_id": ctx.guild.id})
+            res = await db.find_one({"_id": ctx.guild.id})  # type: ignore
             if res:
                 return
 
+            cf = ctx.guild_config  # type: ignore
             await ctx.send(
                 "markov_enabled",
                 ephemeral=True,
                 lang_to_use=get_lang_props(
-                    ctx.language_to_use,
+                    ctx.language_to_use,  # type: ignore
                     "enabled",
-                    folder=ctx.guild_config.types["markov"],
+                    folder=cf.types["markov"],
                 ),
-            )
+            )  # type: ignore
+            c = cf["markov"].copy()  #  type: ignore
+            c["channel_id"] = ctx.channel.id
+            await cf.set(markov=c)  # type: ignore
             await MarkovChainChannelType.setup(ctx, ctx.channel.id)
 
 
@@ -475,7 +484,7 @@ class MarkovChainChannelType(MarkovChainType):
         else:
             chn = val
 
-        return cls.channel_check(chn) and chn.guild.id not in bot.markov_learn_events
+        return cls.channel_check(chn) and chn.guild.id not in bot.markov_learn_events  # type: ignore
 
     @classmethod
     async def get_valid_values(cls, ctx: commands.Context) -> list:
@@ -487,20 +496,20 @@ class MarkovChainChannelType(MarkovChainType):
 
     @staticmethod
     async def setup(ctx: commands.Context, value: int):
-        bot: commands.Bot = ctx.bot
+        bot = ctx.bot
         db = bot.get_db("MarkovChain", False)
-        res = await db.find_one({"_id": ctx.guild.id})
+        res = await db.find_one({"_id": ctx.guild.id})  # type: ignore
         if res and value == res["channel_id"]:
             return
         elif res:
-            await db.delete_one({"_id": ctx.guild.id})
+            await db.delete_one({"_id": ctx.guild.id})  #  type: ignore
 
-        await db.insert_one({"_id": ctx.guild.id, "channel_id": value})
+        await db.insert_one({"_id": ctx.guild.id, "channel_id": value})  # type: ignore
 
         setup_chn = get_lang_props(
-            ctx.language_to_use,
+            ctx.language_to_use,  # type: ignore
             "channel_id",
-            folder=ctx.guild_config.types["markov"],
+            folder=ctx.guild_config.types["markov"],  # type: ignore
         )
 
         # importing here to avoid circular imports
@@ -510,7 +519,7 @@ class MarkovChainChannelType(MarkovChainType):
             "channel_history_fetch",
             ephemeral=True,
             view=MarkovChannelSetupView(
-                ctx,
+                ctx,  # type: ignore
                 db,
                 lang=setup_chn,
             ),
@@ -594,25 +603,27 @@ class MarkovAddMyMessagesType(UserConfigType):
 
 
 try:
-    from custom.configs import *
+    from custom.configs import *  # type: ignore
 except ImportError:
     get_logger().debug("Custom configurations not found.")
 except Exception as e:
     get_logger().error("Could not load custom configurations.", exc_info=e)
+
+ConfigTypes = Dict[str, Union[Type[ConfigType], FolderConfigData]]
 
 
 class Config:
     def __init__(
         self,
         bot,
-        types: Optional[Dict[str, Type[ConfigType]]] = None,
+        types: Optional[ConfigTypes] = None,
         **data,
     ):
         from strapbot import StrapBot  # sorry but I like specifying types
 
         self.bot: StrapBot = bot
         self._data: dict = data
-        self.types: Dict[str, Type[ConfigType]] = types or self._create_types()
+        self.types: ConfigTypes = types or self._create_types()
         self.emojis = {k: t.emoji for k, t in self.types.items()}
         self.base: Dict[str, Any] = self._create_base()
         self.id = data["_id"]
@@ -637,8 +648,8 @@ class Config:
     @staticmethod
     def _create_types(
         tp: Optional[Union[Type[GuildConfigType], Type[UserConfigType]]] = None
-    ) -> Dict[str, Type[ConfigType]]:
-        ret = {
+    ) -> ConfigTypes:
+        ret: ConfigTypes = {
             t.key: t
             for t in GlobalConfigType.__subclasses__()
             + (tp.__subclasses__() if tp else [])

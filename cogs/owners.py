@@ -211,7 +211,7 @@ class Owners(commands.Cog):
                 or "v" in args
                 or "verbose" in args
             )
-            async for line in self.bot.update(yild=True, dbg=dbg):
+            async for line in self.bot.update(yild=True, dbg=dbg):  # type: ignore
                 await ctx.send(line)
 
 

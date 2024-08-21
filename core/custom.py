@@ -1,4 +1,4 @@
-from discord.ext.commands import *
+from discord.ext.commands import *  # type: ignore
 from discord.ext.commands import Cog as _OriginalCog
 from .context import StrapContext as Context
 from strapbot import StrapBot as Bot

@@ -1,32 +1,36 @@
 __version__ = "v4.0.1"
 
 import asyncio
-import discord
-import dotenv
 import json
 import logging
 import os
-import pygit2
 import random
 import string
 import sys
+import tempfile
 import traceback
 import typing
-import tempfile
+from typing import Union, Dict, Optional, List
 from functools import partial
 from inspect import iscoroutine
+from collections import defaultdict
+from datetime import datetime
+
+from concurrent.futures import ThreadPoolExecutor
+
+import discord
+import dotenv
+import pygit2
+from discord import Message, Interaction
+from discord.ext import commands, tasks
+from discord.ext.commands.bot import _default
 from pygit2.callbacks import RemoteCallbacks
 from packaging.version import Version
 from aiohttp import ClientSession
-from collections import defaultdict
-from datetime import datetime
-from discord.ext import commands, tasks
-from typing import Union, Dict, Optional
 from typing_extensions import Self
-from discord import Message, Interaction
-from concurrent.futures import ThreadPoolExecutor
 from motor.core import AgnosticClient, AgnosticCollection, AgnosticDatabase
 from motor.motor_asyncio import AsyncIOMotorClient
+from core.repl import InteractiveConsole, REPLThread
 from core.config import AnyConfig, Config, UserConfig, GuildConfig
 from core.context import StrapContext
 from core.utils import (
@@ -47,9 +51,8 @@ from core.utils import (
     custom_ext_from_code,
     upload_code_to_db,
     get_ext_from_db,
+    ReviewStatus,
 )
-from discord.ext.commands.bot import _default
-from core.repl import InteractiveConsole, REPLThread
 
 if is_debugging():
     from core.utils import get_debug_eval_in_loop_class, get_debug_evaluate_expression
@@ -96,7 +99,7 @@ class StrapBot(commands.Bot):
         self.__git_callbacks = None
         self.__markov_guild_operations = defaultdict(asyncio.Lock)
         self.__markov_loop_running = False
-        self.__markov_chains: CacheDict[int, MarkovChain] = CacheDict()
+        self.__markov_chains = CacheDict()
         self.__git_lock = asyncio.Lock()
         self.__cached_configs: Dict[int, AnyConfig] = {}
         self._closing = False
@@ -121,7 +124,7 @@ class StrapBot(commands.Bot):
     def version(self) -> str:
         return __version__
 
-    def do_give_prefixes(self, bot, message: Optional[Message]) -> typing.List[str]:
+    def do_give_prefixes(self, bot, message: Optional[Message]) -> List[str]:
         p = os.getenv("BOT_PREFIX", "sb.").strip()
         p = p if p else "sb."
         pfixes = [p]
@@ -130,7 +133,7 @@ class StrapBot(commands.Bot):
 
         return pfixes
 
-    def give_prefixes(self, bot, message: Optional[Message]) -> typing.List[str]:
+    def give_prefixes(self, bot, message: Optional[Message]) -> List[str]:
         p = self.do_give_prefixes(bot, message)
         return commands.when_mentioned_or(*p)(bot, message)  # type: ignore
 
@@ -138,14 +141,14 @@ class StrapBot(commands.Bot):
         if id in self.__cached_configs:
             return self.__cached_configs[id]
 
-    async def get_latest_version(self) -> str:
+    async def get_latest_version(self) -> Optional[str]:
         """Returns the latest version available on the git remote."""
         if not os.path.exists(".git"):
             return None
 
         def _do_fetch():
             self.__repo.remotes["origin"].fetch(callbacks=self.__git_callbacks)
-            tags = [r for r in self.__repo.references if r.startswith("refs/tags/")]
+            tags: List[str] = [r for r in self.__repo.references if r.startswith("refs/tags/")]  # type: ignore
             tags.sort(key=lambda tag: Version(tag.split("/")[-1]))
 
             latest_tag = tags[-1].split("/")[-1] if tags else None
@@ -157,6 +160,8 @@ class StrapBot(commands.Bot):
     async def check_for_updates(self) -> bool:
         """Check if the bot has available updates."""
         latest = await self.get_latest_version()
+        if not latest:
+            return False
 
         return Version(latest) > Version(__version__)
 
@@ -175,10 +180,13 @@ class StrapBot(commands.Bot):
         if yild:
             yield m
 
-        ver = await self.get_latest_version()
+        ver: str = await self.get_latest_version()  # type: ignore
 
         def _pull_and_checkout_to_ver():
-            self.__repo.reset(self.__repo.head.target, pygit2.GIT_RESET_HARD)
+            self.__repo.reset(
+                self.__repo.head.target,
+                pygit2.GIT_RESET_HARD,  #  pylint: disable=no-member  # type: ignore
+            )
             m = "Repository reset to HEAD."
             logger.debug(m)
             yield m
@@ -216,7 +224,7 @@ class StrapBot(commands.Bot):
             stdout, _ = await postupd.communicate()
             if postupd.returncode != 0:
                 raise RuntimeError(
-                    f"An error occurred while running the post-update script:\n"
+                    "An error occurred while running the post-update script:\n"
                     + stdout.decode()
                 )
 
@@ -244,16 +252,16 @@ class StrapBot(commands.Bot):
             if yild:
                 yield m
 
-        self.__update_done
+        self.__update_done = True
 
     async def get_config(
         self, target: typing.Union[discord.Guild, discord.User, discord.Member, int]
     ) -> AnyConfig:
         """Get a Config instance for a guild or user"""
         if not isinstance(target, int):
-            id = target.id
+            id_ = target.id
 
-        cfg = self.get_cached_config(id)
+        cfg = self.get_cached_config(id_)
         if not cfg:
             ret: typing.Union[discord.Guild, discord.User, None] = None
             if isinstance(target, int):
@@ -263,7 +271,7 @@ class StrapBot(commands.Bot):
                 ret = self.get_user(target.id)  # must be User and not Member
 
             cfg = await Config.create_config(self, ret or target)  #  type: ignore
-            self.__cached_configs[id] = cfg
+            self.__cached_configs[id_] = cfg
 
         return cfg
 
@@ -292,9 +300,36 @@ class StrapBot(commands.Bot):
             global token
             global webhook
             global mongodb
-            del token
-            del webhook
-            del mongodb
+            del token  # pylint: disable=undefined-variable
+            del webhook  # pylint: disable=undefined-variable
+            del mongodb  # pylint: disable=undefined-variable
+
+        # ==== REPL and debugging ====
+        if self.use_repl or self.debugging:
+            if self.debugging:
+                self.use_repl = False
+                # modify pydevd to have the bot and its loop inside its debug console
+                _vars = sys.modules["_pydevd_bundle"].pydevd_vars
+
+                self._original_eval_exp = _vars.evaluate_expression
+                self._original_eval_class = (
+                    _vars._EvalAwaitInNewEventLoop  # pylint: disable=protected-access
+                )
+                _vars.evaluate_expression = get_debug_evaluate_expression(self)
+                _vars._EvalAwaitInNewEventLoop = (  # pylint: disable=protected-access
+                    get_debug_eval_in_loop_class(self)
+                )
+            else:
+                try:
+                    import readline  # pylint: disable=all
+                except ImportError:
+                    pass
+                repl_locals = {"asyncio": asyncio, "bot": self}
+                repl_locals.update(globals())
+                self.console = InteractiveConsole(repl_locals, self, self.loop)
+                logging_handler.iconsole = self.console  # type: ignore
+                self.repl_thread = REPLThread(self)
+                self.repl_thread.daemon = True
 
         if os.path.exists(".git"):
             self.__repo = await self.loop.run_in_executor(
@@ -313,7 +348,7 @@ class StrapBot(commands.Bot):
                 partial(RemoteCallbacks, credentials=self.__git_keypair),
             )
 
-        # PM2 compatibility
+        # ==== PM2 compatibility ====
         if "PM2_HOME" in os.environ:
             if (
                 not os.path.exists("package.json")
@@ -327,7 +362,7 @@ class StrapBot(commands.Bot):
                     "display the wrong version until the bot is restarted."
                 )
 
-        # MongoDB
+        # ==== MongoDB ====
         # MongoDB database loading happens first because
         # some cogs might need the mongodb in the class
         mongodb = "[bold #4DB33D]MongoDB[/bold #4DB33D]"
@@ -357,30 +392,7 @@ class StrapBot(commands.Bot):
 
         logger.info(f"Connected to {mongodb} database.")
 
-        # REPL and debugging
-        if self.use_repl or self.debugging:
-            if self.debugging:
-                self.use_repl = False
-                # modify pydevd to have the bot and its loop inside its debug console
-                _vars = sys.modules["_pydevd_bundle"].pydevd_vars
-
-                self._original_eval_exp = _vars.evaluate_expression
-                self._original_eval_class = _vars._EvalAwaitInNewEventLoop
-                _vars.evaluate_expression = get_debug_evaluate_expression(self)
-                _vars._EvalAwaitInNewEventLoop = get_debug_eval_in_loop_class(self)
-            else:
-                try:
-                    import readline
-                except ImportError:
-                    pass
-                repl_locals = {"asyncio": asyncio, "bot": self}
-                repl_locals.update(globals())
-                self.console = InteractiveConsole(repl_locals, self, self.loop)
-                logging_handler.iconsole = self.console  # type: ignore
-                self.repl_thread = REPLThread(self)
-                self.repl_thread.daemon = True
-
-        # Extensions
+        # ==== Extensions ====
         logger.debug("Loading extensions...")
         exts = set()
         cexts = set()
@@ -471,11 +483,11 @@ class StrapBot(commands.Bot):
             extra={"highlighter": None},
         )
 
-        # YouTube news
+        # ==== YouTube news ====
         # It would have taken too long to start the bot in some cases
         self.loop.create_task(self.check_youtube_news(True))
 
-        # Loops
+        # ==== Loops ====
         self.markov_cache_loop.start()
         self.updates_loop.start()
         self.clear_errors_loop.start()
@@ -569,6 +581,9 @@ class StrapBot(commands.Bot):
         assert await self.check_youtube_news(), "The server is down."
         internal = self.get_db("Internal", cog=False)
         serverdata = await internal.find_one({"_id": "server"})  #  type: ignore
+        if not serverdata:
+            raise RuntimeError("The server hasn't been set up yet.")
+
         data = {
             "hub.callback": f"{serverdata['request_url']}/notify",
             "hub.topic": f"https://www.youtube.com/xml/feeds/videos.xml?channel_id={channel_id}",
@@ -586,7 +601,7 @@ class StrapBot(commands.Bot):
 
     async def on_ready(self):
         logger.info(
-            f"[bold]StrapBot[/] successfully logged" f" in as [italic]{self.user}[/]!",
+            f"[bold]StrapBot[/] successfully logged in as [italic]{self.user}[/]!",
             extra={"highlighter": None},
         )
         main_guild_id = os.getenv("MAIN_GUILD_ID", None)
@@ -631,7 +646,7 @@ class StrapBot(commands.Bot):
         tasks = []
 
         for guild_id in self.__markov_chains.clean():
-            await self.save_markov_chain(guild_id)
+            await self.save_markov_chain(guild_id)  # type: ignore
 
         if tasks:
             await asyncio.gather(*tasks)
@@ -652,16 +667,18 @@ class StrapBot(commands.Bot):
         if message.author.bot:
             return
 
-        ctx = await self.get_context(message)
-        markov_cfg = ctx.guild_config.markov
         await self.process_commands(message)
 
+        ctx = await self.get_context(message)
         if (
-            markov_cfg["enabled"]
+            message.guild
+            and ctx.guild  # because the linter will keep complaining
+            and ctx.guild_config.markov["enabled"]
             and not ctx.command
             and ctx.guild.id not in self.markov_learn_events
-            and ctx.channel.id == markov_cfg["channel_id"]
+            and ctx.channel.id == ctx.guild_config.markov["channel_id"]
         ):
+            markov_cfg = ctx.guild_config.markov
             # because we don't want to learn one-word messages
             can_add = len(message.content.split(" ")) > 1
 
@@ -674,7 +691,9 @@ class StrapBot(commands.Bot):
 
             msg_set = data.pop("msg_set", random.randint(min, max))
             curr_msg = data.pop("curr_msg", msg_set)
-            chain = await self.get_markov_chain(message.guild.id)
+            chain: MarkovChain = await self.get_markov_chain(
+                message.guild.id
+            )  #  type: ignore
             if can_add:
                 chain.add_message(message.content)
 
@@ -717,7 +736,7 @@ class StrapBot(commands.Bot):
             origin, cls=cls.configure(user_config, guild_config)
         )
 
-        if not ctx.command:
+        if ctx.guild and not ctx.command and ctx.invoked_with:
             ctx.command = self.custom_commands[ctx.guild.id].get(ctx.invoked_with)
 
         return ctx
@@ -819,7 +838,7 @@ class StrapBot(commands.Bot):
         # we don't want to know about the errors that are raised
         # by custom commands, as whoever made the extension must
         # debug it correctly.
-        if getattr(ctx.cog, "guild_id", None) == ctx.guild.id:
+        if ctx.guild and getattr(ctx.cog, "guild_id", None) == ctx.guild.id:
             count = self.custom_cogs_errors[ctx.guild.id].get("count", 0)
             self.custom_cogs_errors[ctx.guild.id] = {
                 "count": count + 1,
@@ -833,7 +852,7 @@ class StrapBot(commands.Bot):
                     "please fix the issues and request an update."
                 )
                 await self.unload_extension(ctx.guild.id)
-                await self.set_ext_status(ctx.guild.id, "errored")
+                await self.set_ext_status(ctx.guild.id, ReviewStatus.errored)
                 return
 
             await ctx.send(
@@ -847,17 +866,19 @@ class StrapBot(commands.Bot):
         if await self.check_for_updates():
             pf = self.command_prefix
             if callable(pf):
-                pf = pf(self, None)
+                pf = pf(self, None)  # type: ignore
                 if iscoroutine(pf):
                     pf = await pf
 
             if isinstance(pf, list):
-                pf = [
-                    p
-                    for p in pf
-                    if p.strip() != self.user.mention
-                    and p.strip() != f"<@!{self.user.id}>"
-                ]
+                if self.user:
+                    pf = [
+                        p
+                        for p in pf
+                        if p.strip() != self.user.mention
+                        and p.strip() != f"<@!{self.user.id}>"
+                    ]
+
                 pf = pf[0]
 
             msg = f"It's time to update! Run `{pf}update` to get the latest version."
@@ -950,25 +971,26 @@ class StrapBot(commands.Bot):
         which only work in specified guilds.
         """
         if hasattr(cog, "guild_id"):
-            existing = self.custom_cogs.get(cog.guild_id)
+            g_id: int = cog.guild_id  # type: ignore
+            existing = self.custom_cogs.get(g_id)
 
             if existing is not None:
                 if not override:
                     raise discord.ClientException(
-                        f"A custom cog for guild {cog.guild_id} already exists."
+                        f"A custom cog for guild {g_id} already exists."
                     )
 
-                await self.remove_cog(cog.guild_id)
+                await self.remove_cog(g_id)
 
             if cog.__cog_app_commands_group__:
                 self.tree.add_command(
                     cog.__cog_app_commands_group__,
                     override=override,
-                    guild=discord.Object(id=cog.guild_id),
+                    guild=discord.Object(id=g_id),
                 )
 
             cog = await cog._inject(self, override=override, guild=guild, guilds=guilds)
-            self.custom_cogs[cog.guild_id] = cog
+            self.custom_cogs[g_id] = cog
             return
 
         return await super().add_cog(cog, override=override, guild=guild, guilds=guilds)
@@ -998,11 +1020,11 @@ class StrapBot(commands.Bot):
                     cog.__cog_app_commands_group__.name, guild=discord.Object(guild_id)
                 )
 
-            await cog._eject(self)
+            await cog._eject(self, guild_ids=[])
 
             return cog
 
-        return await super().remove_cog(cog)
+        return await super().remove_cog(name_or_guild_id, guild=guild, guilds=guilds)
 
     async def send_ext_for_review(self, guild_id: int, url: str, name: str):
         db = self.get_db("CustomCogs", cog=False)
@@ -1058,26 +1080,11 @@ class StrapBot(commands.Bot):
 
             return code, requirements
 
-    async def set_ext_status(self, guild_id: int, status: str) -> Optional[dict]:
+    async def set_ext_status(
+        self, guild_id: int, status: ReviewStatus
+    ) -> Optional[dict]:
         """
         Set the status of a custom extension.
-
-        Valid values:
-        - "pending":        the extension is waiting for approval
-        - "setting":        the extension is being set up
-        - "ok":             the extension has been approved
-        - "errored":        the extension has errors and cannot be loaded
-        - "denied":         the extension has been denied
-
-        Instead of "denied", there may be the reason why the extension was denied:
-        - "maybe_blocking":     the extension has instructions that may block the event loop
-        - "no_requirements":    the extension has no requirements specified, but has external modules
-        - "bad_requirements":   the extension has invalid requirements
-        - "private_git":        the extension is in a private git repository
-        - "not_found":          the given url returned a 404 status code
-        - "security":           the extension has security issues
-        - "backdoor":           the extension has a backdoor or malicious code
-        - "invalid_python":     the extension has invalid Python code, isn't a Python file or has syntax errors
         """
         db = self.get_db("CustomCogs", cog=False)
         data = await db.find_one({"_id": guild_id})
@@ -1089,7 +1096,7 @@ class StrapBot(commands.Bot):
                 {"_id": guild_id},
                 {
                     "$set": {
-                        "status": status,
+                        "status": status.value,
                     }
                 },
             )
@@ -1098,8 +1105,8 @@ class StrapBot(commands.Bot):
 
         return await db.find_one({"_id": guild_id})
 
-    async def approve_extension(self, guild_id: int):
-        data = await self.set_ext_status(guild_id, "setting")
+    async def approve_review(self, guild_id: int):
+        data = await self.set_ext_status(guild_id, ReviewStatus.setting)
         if not data:
             return
 
@@ -1108,11 +1115,11 @@ class StrapBot(commands.Bot):
             await self.setup_requirements(requirements)
             await upload_code_to_db(self.mongodb, guild_id, code)
         except Exception:
-            await self.set_ext_status(guild_id, "errored")
+            await self.set_ext_status(guild_id, ReviewStatus.errored)
             raise
 
         await self.load_extension(guild_id)
-        await self.set_ext_status(guild_id, "ok")
+        await self.set_ext_status(guild_id, ReviewStatus.ok)
 
     async def setup_requirements(self, requirements: list[str]):
         if not requirements:
@@ -1136,21 +1143,21 @@ class StrapBot(commands.Bot):
 
     async def _load_from_code(self, code: str, guild_id: int):
         name, spec, mod = custom_ext_from_code(code, guild_id)
-        spec.loader.exec_module(mod)
+        spec.loader.exec_module(mod)  # type: ignore
         orig_setup = getattr(mod, "setup", None)
 
         async def _wrap_setup(bot):
             if not orig_setup:
-                await self.set_ext_status(guild_id, "errored")
+                await self.set_ext_status(guild_id, ReviewStatus.errored)
                 return
 
             try:
                 await orig_setup(bot, guild_id)
             except Exception:
-                await self.set_ext_status(guild_id, "errored")
+                await self.set_ext_status(guild_id, ReviewStatus.errored)
                 raise
 
-        mod.setup = _wrap_setup
+        mod.setup = _wrap_setup  # type: ignore
         await self._load_from_module_spec(spec, name)
 
     async def load_extension(
@@ -1161,7 +1168,7 @@ class StrapBot(commands.Bot):
             db = self.get_db("CustomCogs", cog=False)
             data = await db.find_one({"_id": guild_id})
             if not data:
-                raise commands.ExtensionNotFound(guild_id)
+                raise commands.ExtensionNotFound(str(guild_id))
 
             if data["status"] not in ["ok", "setting"]:
                 if data["status"] == "errored":
@@ -1172,14 +1179,16 @@ class StrapBot(commands.Bot):
                 raise ValueError(f"Extension {guild_id} hasn't been approved yet.")
 
             if EXT_NAME.format(guild_id=guild_id) in self.extensions:
-                raise commands.ExtensionAlreadyLoaded(guild_id)
+                raise commands.ExtensionAlreadyLoaded(str(guild_id))
 
-            code = await get_ext_from_db(self.mongodb, guild_id, True)
+            code: str = await get_ext_from_db(
+                self.mongodb, guild_id, True
+            )  #  type: ignore
 
             try:
                 await self._load_from_code(code, guild_id)
             except Exception:
-                await self.set_ext_status(guild_id, "errored")
+                await self.set_ext_status(guild_id, ReviewStatus.errored)
                 raise
 
             return
@@ -1212,6 +1221,7 @@ class StrapBot(commands.Bot):
 
             async def _task(ev):
                 nonlocal cnt
+                nonlocal lng
                 await ev.wait()
                 cnt += 1
                 lng = f"[bold green]{lng}[/]" if cnt == lng else lng
@@ -1226,9 +1236,10 @@ class StrapBot(commands.Bot):
                 await asyncio.gather(*tasks)
 
             self.markov_cache_loop.stop()
-            if self.__markov_loop_running:
+            t = self.markov_cache_loop.get_task()
+            if self.__markov_loop_running and t:
                 logger.debug("Waiting for the Markov cache loop to finish...")
-                await self.markov_cache_loop.get_task()
+                await t
 
             logger.info("Cleaning up...")
             if self.__markov_chains:

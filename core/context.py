@@ -200,7 +200,7 @@ class StrapContext(commands.Context):
 
     async def send(
         self,
-        *content: Optional[str],
+        *content: str,
         tts: bool = False,
         embed: Optional[discord.Embed] = None,
         embeds: Optional[typing.Sequence[discord.Embed]] = None,
@@ -223,10 +223,11 @@ class StrapContext(commands.Context):
         **kws,
     ) -> discord.Message:
 
-        if not all(isinstance(c, str) for c in content):
-            for i, c in enumerate(content):
+        content_ = list(content)
+        if not all(isinstance(c, str) for c in content_):
+            for i, c in enumerate(content_):
                 if not isinstance(c, str) and c != None:
-                    content[i] = self.format_message(c, kws, lang=lang_to_use)
+                    content_[i] = self.format_message(c, kws, lang=lang_to_use)
 
         if embed and embeds:
             raise TypeError("Cannot mix embed and embeds keyword arguments.")
@@ -244,7 +245,7 @@ class StrapContext(commands.Context):
 
         lang = lang_to_use or self.lang
         new_content = []
-        for c in list(content):
+        for c in list(content_):
             if c and len(c.strip().split()) == 1:
                 new_content.append(self.format_message(c, kws, lang=lang))
             else:
@@ -273,7 +274,7 @@ class StrapContext(commands.Context):
             view=view,
             suppress_embeds=suppress_embeds,
             ephemeral=ephemeral,
-        )
+        )  #  type: ignore # TODO: fix this
 
     async def send_as_help(
         self,

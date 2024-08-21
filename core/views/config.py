@@ -15,7 +15,9 @@ from ..context import StrapContext
 from typing import Optional, Union, Type, Any, Dict, List
 from discord import ButtonStyle, Emoji, PartialEmoji, SelectOption
 
-BACK_BUTTON_PROPS = dict(style=ButtonStyle.primary, emoji="⬅️", custom_id="back", row=0)
+BACK_BUTTON_PROPS: dict[Any, Any] = dict(
+    style=ButtonStyle.primary, emoji="⬅️", custom_id="back", row=0
+)
 CONFIG_TEMPLATE = "**__{name}__**\n\n*{description}*"
 
 
@@ -74,7 +76,7 @@ class PropertyView(ConfigView):
             fld[self.key] = value
             original_data = {self.folder.key: self.config[self.folder.key]}
             data_to_set = {self.folder.key: fld}
-            conf_type = self.config.types[self.folder.key][self.key]
+            conf_type = self.config.types[self.folder.key][self.key]  # type: ignore
         else:
             original_data = {self.key: self.config[self.key]}
             data_to_set = {self.key: value}
@@ -83,7 +85,11 @@ class PropertyView(ConfigView):
         try:
             ret = await self.config.set(**data_to_set)
         except ConfigValueError:
-            content = interaction.message.content
+            content = (
+                interaction.message.content
+                if interaction and interaction.message
+                else ""
+            )
             err = self.ctx.format_message("value_error")
 
             # this is not the best way, but I'm keeping this for now
@@ -91,9 +97,11 @@ class PropertyView(ConfigView):
                 content += f"\n\n{err}"
 
             await self.set_disabled_items(False, interaction)
-            await interaction.followup.edit_message(
-                interaction.message.id, content=content
-            )
+            if interaction and interaction.message:
+                await interaction.followup.edit_message(
+                    interaction.message.id, content=content
+                )
+
             raise
 
         try:
@@ -190,7 +198,7 @@ class CustomPropertyModal(Modal):
     @classmethod
     def create(cls, view: "CustomPropertyView", *, timeout: Optional[float] = None):
         if view.folder:
-            cfg_type = view.config.types[view.folder.key][view.key]
+            cfg_type = view.config.types[view.folder.key][view.key]  # type: ignore
             value = view.config[view.folder.key][view.key]
         else:
             cfg_type = view.config.types[view.key]
@@ -213,7 +221,7 @@ class CustomPropertyModal(Modal):
             val = ui.TextInput(
                 label=view.get_input_label(view.key, k, view.ctx, view.folder),
                 style=style,
-                placeholder=default,
+                placeholder=default,  #  type: ignore
                 default=va,
                 custom_id=k,
             )
@@ -229,7 +237,7 @@ class CustomPropertyModal(Modal):
         vals = {}
         for k, v in self.__modal_children_items__.copy().items():
             value = getattr(self, k).value
-            v.default = value
+            v.default = value  #  type: ignore
             vals[k] = value
 
         if len(vals) > 1:
@@ -244,7 +252,9 @@ class CustomPropertyModal(Modal):
         )
 
         inputs = (
-            self.view.config.types[self.view.folder.key][self.view.key].inputs
+            self.view.config.types[self.view.folder.key][
+                self.view.key  #  type: ignore
+            ].inputs
             if self.view.folder
             else self.view.config.types[self.view.key].inputs
         )
@@ -348,7 +358,7 @@ class SelectPropertyView(PropertyView):
         self.key = key
         self.ctx = ctx
         if folder:
-            self.menu_type = tp = config.types[folder.key][key].select_menu_type
+            self.menu_type = tp = config.types[folder.key][key].select_menu_type  # type: ignore
         else:
             self.menu_type = tp = config.types[key].select_menu_type
         self.remove_item(self.back)
@@ -508,7 +518,7 @@ class ConfigButton(ui.Button):
         current = ""
         if self.folder:
             conf = self.config[self.folder.key][self.key]
-            conf_tp = self.config.types[self.folder.key][self.key]
+            conf_tp = self.config.types[self.folder.key][self.key]  # type: ignore
         else:
             conf = self.config[self.key]
             conf_tp = self.config.types[self.key]
@@ -529,7 +539,7 @@ class ConfigButton(ui.Button):
             viewtype = SelectPropertyView
             currents = viewtype.get_current_configs(menu_type, self.ctx, conf)
             if menu_type.type == MenuType.string:
-                kwargs["options"] = await conf_tp.get_select_menu_values(self.ctx)
+                kwargs["options"] = await conf_tp.get_select_menu_values(self.ctx)  # type: ignore
 
             if len(currents) == 1:
                 current = currents[0]
@@ -542,7 +552,7 @@ class ConfigButton(ui.Button):
         elif current and len(conf_tp.inputs) > 1:
             content += f"\n\n{current}"
 
-        view = viewtype(self.ctx, self.config, self.key, self.view, **kwargs)
+        view = viewtype(self.ctx, self.config, self.key, self.view, **kwargs)  # type: ignore
         await interaction.followup.edit_message(
             interaction.message.id, content=content, view=view  #  type: ignore
         )
