@@ -204,6 +204,7 @@ class Owners(commands.Cog):
                 await ctx.send("Already up to date.")
                 return
 
+            msg = None
             dbg = (
                 "dbg" in args
                 or "debug" in args
@@ -211,8 +212,15 @@ class Owners(commands.Cog):
                 or "v" in args
                 or "verbose" in args
             )
+            logs = []
             async for line in self.bot.update(yild=True, dbg=dbg):  # type: ignore
-                await ctx.send(line)
+                logs.append(line)
+                if not msg:
+                    msg = await ctx.send(line)
+                else:
+                    await msg.edit(content="\n- ".join(logs[:-1]) + f"\n{logs[-1]}")
+
+            await ctx.send(logs[-1])
 
 
 async def setup(bot: StrapBot):

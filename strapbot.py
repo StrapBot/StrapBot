@@ -1,4 +1,4 @@
-__version__ = "v4.0.1"
+__version__ = "v4.1.0"
 
 import asyncio
 import json
@@ -116,6 +116,8 @@ class StrapBot(commands.Bot):
         self.custom_cogs: Dict[int, commands.Cog] = {}
         self.custom_cogs_errors: Dict[int, dict] = defaultdict(dict)
 
+    # ===== Properties =====
+
     @property
     def debugging(self) -> bool:
         return is_debugging()
@@ -137,9 +139,45 @@ class StrapBot(commands.Bot):
         p = self.do_give_prefixes(bot, message)
         return commands.when_mentioned_or(*p)(bot, message)  # type: ignore
 
+    # ===== Config and DB =====
+
     def get_cached_config(self, id: int):
         if id in self.__cached_configs:
             return self.__cached_configs[id]
+
+    async def get_config(
+        self, target: typing.Union[discord.Guild, discord.User, discord.Member, int]
+    ) -> AnyConfig:
+        """Get a Config instance for a guild or user"""
+        if not isinstance(target, int):
+            id_ = target.id
+
+        cfg = self.get_cached_config(id_)
+        if not cfg:
+            ret: typing.Union[discord.Guild, discord.User, None] = None
+            if isinstance(target, int):
+                ret = self.get_guild(target) or self.get_user(target)
+
+            if isinstance(target, discord.Member):
+                ret = self.get_user(target.id)  # must be User and not Member
+
+            cfg = await Config.create_config(self, ret or target)  #  type: ignore
+            self.__cached_configs[id_] = cfg
+
+        return cfg
+
+    def get_db(self, dbname, cog=True):
+        """Get a MongoDB collection."""
+        name = dbname
+        if cog:
+            name = "cog." + name
+
+        return self.mongodb[name]
+
+    def get_cog_db(self, cog: commands.Cog):
+        return self.get_db(type(cog).__name__, True)
+
+    # ===== Updater =====
 
     async def get_latest_version(self) -> Optional[str]:
         """Returns the latest version available on the git remote."""
@@ -182,30 +220,61 @@ class StrapBot(commands.Bot):
 
         ver: str = await self.get_latest_version()  # type: ignore
 
-        def _pull_and_checkout_to_ver():
-            self.__repo.reset(
-                self.__repo.head.target,
+        def _pull_and_checkout_to_ver(
+            repo: pygit2.Repository = self.__repo, chko=ver, is_commit=False
+        ):
+            repo.reset(
+                repo.head.target,
                 pygit2.GIT_RESET_HARD,  #  pylint: disable=no-member  # type: ignore
             )
             m = "Repository reset to HEAD."
             logger.debug(m)
             yield m
 
-            self.__repo.remotes["origin"].fetch(callbacks=self.__git_callbacks)
+            repo.remotes["origin"].fetch(callbacks=self.__git_callbacks)
             m = "Fetched the latest changes from the remote.\n"
             logger.debug(m)
             yield m
 
-            remote = self.__repo.lookup_reference("refs/remotes/origin/main").target
-            self.__repo.merge(remote)
+            remote = repo.lookup_reference("refs/remotes/origin/main").target
+            repo.merge(remote)
             m = "Merged the changes with the local repository."
             logger.debug(m)
             yield m
 
-            self.__repo.checkout(f"refs/tags/{ver}")
-            m = f"Checked out to tag {ver}."
+            if is_commit:
+                comm = repo.get(chko)
+                repo.checkout_tree(comm)  # type: ignore
+                repo.set_head(comm.id)  # type: ignore
+                m = f"Checked out to commit `{chko}`."
+            else:
+                repo.checkout(f"refs/tags/{chko}")
+                m = f"Checked out to {chko}."
+
             logger.debug(m)
             yield m
+            # perform another reset to remove merge conflicts
+            repo.reset(
+                repo.head.target,
+                pygit2.GIT_RESET_HARD,  #  pylint: disable=no-member  # type: ignore
+            )
+
+            # because it's not gonna happen automatically,
+            # and there's no easier way to pull the submodules
+            # like we would do with `git pull --recurse-submodules`,
+            # we're gonna do it manually.
+            for sub in repo.submodules:
+                m = f"Updating submodule {sub.name}..."
+                logger.debug(m)
+                yield m
+                tmp_repo = pygit2.Repository(os.path.join(repo.workdir, sub.path))
+                for ms in _pull_and_checkout_to_ver(tmp_repo, str(sub.head_id), True):
+                    yield ms
+
+                del tmp_repo
+                m = f"Submodule {sub.name} updated."
+                logger.debug(m)
+                yield m
 
         async with self.__git_lock:
             for m in await self.loop.run_in_executor(
@@ -254,44 +323,40 @@ class StrapBot(commands.Bot):
 
         self.__update_done = True
 
-    async def get_config(
-        self, target: typing.Union[discord.Guild, discord.User, discord.Member, int]
-    ) -> AnyConfig:
-        """Get a Config instance for a guild or user"""
-        if not isinstance(target, int):
-            id_ = target.id
-
-        cfg = self.get_cached_config(id_)
-        if not cfg:
-            ret: typing.Union[discord.Guild, discord.User, None] = None
-            if isinstance(target, int):
-                ret = self.get_guild(target) or self.get_user(target)
-
-            if isinstance(target, discord.Member):
-                ret = self.get_user(target.id)  # must be User and not Member
-
-            cfg = await Config.create_config(self, ret or target)  #  type: ignore
-            self.__cached_configs[id_] = cfg
-
-        return cfg
-
-    def get_db(self, dbname, cog=True):
-        """Get a MongoDB collection."""
-        name = dbname
-        if cog:
-            name = "cog." + name
-
-        return self.mongodb[name]
-
-    def get_cog_db(self, cog: commands.Cog):
-        return self.get_db(type(cog).__name__, True)
-
     def _create_package_json(self, version=__version__):
         """Create or update a package.json file with the bot's version."""
         json.dump(
             {"version": version},
             open("package.json", "w"),
         )
+
+    @tasks.loop(minutes=10)
+    async def updates_loop(self):
+        if await self.check_for_updates():
+            pf = self.command_prefix
+            if callable(pf):
+                pf = pf(self, None)  # type: ignore
+                if iscoroutine(pf):
+                    pf = await pf
+
+            if isinstance(pf, list):
+                if self.user:
+                    pf = [
+                        p
+                        for p in pf
+                        if p.strip() != self.user.mention
+                        and p.strip() != f"<@!{self.user.id}>"
+                    ]
+
+                pf = pf[0]
+
+            msg = f"It's time to update! Run `{pf}update` to get the latest version."
+            logger.info(msg)
+            await self.send_to_webhook(msg)
+
+            self.updates_loop.stop()
+
+    # ===== Startup tasks =====
 
     async def setup_hook(self):
         """Various startup configurations."""
@@ -611,57 +676,7 @@ class StrapBot(commands.Bot):
         if self.use_repl and not self.debugging:
             self.repl_thread.start()
 
-    async def get_markov_chain(self, guild_id: int) -> Optional[MarkovChain]:
-        """Get the Markov chain for a guild."""
-        chain = self.__markov_chains.get(guild_id, None)
-        if chain:
-            return chain
-
-        async with self.__markov_guild_operations[guild_id]:
-            chain = await load_chain_from_db(self.mongodb, guild_id)
-            if chain is None:
-                return
-
-            self.__markov_chains[guild_id] = chain
-            return chain
-
-    async def save_markov_chain(self, guild_id: int):
-        """Save the guild's Markov chain data."""
-        chain = self.__markov_chains.pop(guild_id, None)
-        if not chain:
-            return
-
-        async with self.__markov_guild_operations[guild_id]:
-            try:
-                await save_chain_to_db(self.mongodb, guild_id, chain)
-            except Exception:
-                self.__markov_chains[guild_id] = chain
-                raise
-
-    @tasks.loop(minutes=5)
-    async def markov_cache_loop(self):
-        """Loop to clear the Markov chains cache."""
-
-        self.__markov_loop_running = True
-        tasks = []
-
-        for guild_id in self.__markov_chains.clean():
-            await self.save_markov_chain(guild_id)  # type: ignore
-
-        if tasks:
-            await asyncio.gather(*tasks)
-
-        self.__markov_loop_running = False
-
-    @tasks.loop(minutes=15)
-    async def clear_errors_loop(self):
-        for guild_id, data in self.custom_cogs_errors.items():
-            if (
-                data.get("count", 0) < 5
-                and (datetime.now() - data.get("last_time", datetime.now())).seconds
-                >= 900
-            ):
-                self.custom_cogs_errors.pop(guild_id)
+    # ===== Commands and error handling =====
 
     async def on_message(self, message: Message):
         if message.author.bot:
@@ -861,31 +876,17 @@ class StrapBot(commands.Bot):
         else:
             await self.handle_errors(exc, ctx.command.qualified_name, "command")  # type: ignore
 
-    @tasks.loop(minutes=10)
-    async def updates_loop(self):
-        if await self.check_for_updates():
-            pf = self.command_prefix
-            if callable(pf):
-                pf = pf(self, None)  # type: ignore
-                if iscoroutine(pf):
-                    pf = await pf
+    # ===== Custom extensions =====
 
-            if isinstance(pf, list):
-                if self.user:
-                    pf = [
-                        p
-                        for p in pf
-                        if p.strip() != self.user.mention
-                        and p.strip() != f"<@!{self.user.id}>"
-                    ]
-
-                pf = pf[0]
-
-            msg = f"It's time to update! Run `{pf}update` to get the latest version."
-            logger.info(msg)
-            await self.send_to_webhook(msg)
-
-            self.updates_loop.stop()
+    @tasks.loop(minutes=15)
+    async def clear_errors_loop(self):
+        for guild_id, data in self.custom_cogs_errors.items():
+            if (
+                data.get("count", 0) < 5
+                and (datetime.now() - data.get("last_time", datetime.now())).seconds
+                >= 900
+            ):
+                self.custom_cogs_errors.pop(guild_id)
 
     def add_command(self, command: commands.Command):
         """
@@ -1200,6 +1201,52 @@ class StrapBot(commands.Bot):
             name = EXT_NAME.format(guild_id=name)
 
         return await super().unload_extension(name)
+
+    # ===== Markov =====
+
+    async def get_markov_chain(self, guild_id: int) -> Optional[MarkovChain]:
+        """Get the Markov chain for a guild."""
+        chain = self.__markov_chains.get(guild_id, None)
+        if chain:
+            return chain
+
+        async with self.__markov_guild_operations[guild_id]:
+            chain = await load_chain_from_db(self.mongodb, guild_id)
+            if chain is None:
+                return
+
+            self.__markov_chains[guild_id] = chain
+            return chain
+
+    async def save_markov_chain(self, guild_id: int):
+        """Save the guild's Markov chain data."""
+        chain = self.__markov_chains.pop(guild_id, None)
+        if not chain:
+            return
+
+        async with self.__markov_guild_operations[guild_id]:
+            try:
+                await save_chain_to_db(self.mongodb, guild_id, chain)
+            except Exception:
+                self.__markov_chains[guild_id] = chain
+                raise
+
+    @tasks.loop(minutes=5)
+    async def markov_cache_loop(self):
+        """Loop to clear the Markov chains cache."""
+
+        self.__markov_loop_running = True
+        tasks = []
+
+        for guild_id in self.__markov_chains.clean():
+            await self.save_markov_chain(guild_id)  # type: ignore
+
+        if tasks:
+            await asyncio.gather(*tasks)
+
+        self.__markov_loop_running = False
+
+    # ===== Cleanup tasks =====
 
     async def close(self):
         self._closing = True

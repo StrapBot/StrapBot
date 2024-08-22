@@ -17,6 +17,7 @@ from types import ModuleType
 from importlib.machinery import ModuleSpec
 from importlib.abc import Loader
 from enum import Enum
+from urllib.parse import urlparse
 
 from rich.logging import RichHandler
 from pyfiglet import Figlet
@@ -334,10 +335,18 @@ class MarkovChain(defaultdict):
         return len(self.keys())
 
     @staticmethod
-    def _process_message(msg: str, d: ChainDict):
+    def should_add_word(word: str) -> bool:
+        url = urlparse(word)
+        return not url.scheme and not url.netloc
+
+    @classmethod
+    def _process_message(cls, msg: str, d: ChainDict):
         words = [w for w in msg.split(" ") if w.strip(" ")]
         for i in range(len(words) - 1):
             current_word = words[i]
+            if not cls.should_add_word(current_word):
+                continue
+
             next_word = words[i + 1]
             d[current_word][next_word] += 1
 
