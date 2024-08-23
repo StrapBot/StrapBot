@@ -186,6 +186,8 @@ class ReviewStatus(Enum):
     missing_setup = -10
     tos = -11
 
+    banned = -9999
+
 
 def find_requirements(code: str) -> list[str]:
     matches = docstring_regex.match(code)

@@ -2,7 +2,6 @@ from .core import View
 from discord import ui
 from discord import Interaction, ButtonStyle
 from asyncio import Event
-from typing import Optional
 from ..utils import MarkovChain, save_chain_to_db, MarkovChain
 from motor.core import AgnosticCollection
 from ..context import StrapContext
@@ -54,31 +53,3 @@ class MarkovChannelSetupView(View):
         )
 
         self.stop()
-
-
-class CustomExtensionConfirmationView(View):
-    def __init__(
-        self, ctx: StrapContext, url: str, name: Optional[str] = None, *args, **kwargs
-    ):
-        super().__init__(ctx, *args, timeout=None, **kwargs)
-        self.url = url
-        self.name = name
-
-    @ui.button(label="btn_yes", style=ButtonStyle.green, disabled=True)
-    async def yes(self, interaction: Interaction, button: ui.Button):
-        await interaction.response.defer()
-        await self.ctx.bot.send_ext_for_review(self.ctx.guild.id, self.url, self.name)
-        await interaction.response.edit_message(content="done", view=None)
-        self.stop()
-
-    @ui.button(label="btn_no", style=ButtonStyle.red, disabled=True)
-    async def no(self, interaction: Interaction, button: ui.Button):
-        await interaction.response.edit_message(content="cancelled", view=None)
-        self.stop()
-
-    async def reenable_buttons(self, msg):
-        for child in self.children:
-            if isinstance(child, ui.Button):
-                child.disabled = False
-
-        await msg.edit(view=self)

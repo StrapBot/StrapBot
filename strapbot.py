@@ -1194,8 +1194,8 @@ class StrapBot(commands.Bot):
             if not data:
                 raise commands.ExtensionNotFound(str(guild_id))
 
-            if data["status"] not in ["ok", "setting"]:
-                if data["status"] == "errored":
+            if data["status"] not in [ReviewStatus.ok.value, ReviewStatus.setting.value]:
+                if data["status"] == ReviewStatus.errored.value:
                     raise ValueError(
                         f"Extension {guild_id} has errors and cannot be loaded"
                     )

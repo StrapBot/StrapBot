@@ -4,12 +4,13 @@ import discord
 from contextlib import redirect_stdout
 from io import BytesIO, StringIO
 from textwrap import indent
-from core.utils import get_logger
+from core.utils import get_logger, ReviewStatus
 from discord.ext import commands
 from core.context import StrapContext
 from typing import Literal, Optional
 from datetime import datetime
 from strapbot import StrapBot
+from core.views import ExtensionReviewsView
 
 logger = get_logger(__name__)
 
@@ -19,6 +20,7 @@ class Owners(commands.Cog):
 
     def __init__(self, bot: StrapBot):
         self.bot = bot
+        self.cust_db = self.bot.get_db("CustomCogs", cog=False)
 
     async def cog_check(self, ctx):
         return await self.bot.is_owner(ctx.author)
@@ -221,6 +223,35 @@ class Owners(commands.Cog):
                     await msg.edit(content="\n- ".join(logs[:-1]) + f"\n{logs[-1]}")
 
             await ctx.send(logs[-1])
+
+    @commands.command()
+    async def reviews(self, ctx: StrapContext):
+        async with ctx.typing():
+            revs_ = await self.cust_db.find().to_list(None)
+            if not revs_:
+                await ctx.send("no_reviews")
+                return
+
+            revs = []
+            for r in revs_:
+                if r["status"] != ReviewStatus.pending.value:
+                    continue
+
+                if isinstance(r["url"], dict):
+                    r["url"] = (
+                        (
+                            await self.bot.get_channel(
+                                r["url"]["channel_id"]
+                            ).fetch_message(r["url"]["message_id"])
+                        )
+                        .attachments[0]
+                        .url
+                    )
+                
+                revs.append(r)
+
+            view = ExtensionReviewsView(ctx, *revs)
+            await view.start(ctx)
 
 
 async def setup(bot: StrapBot):

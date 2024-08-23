@@ -126,6 +126,11 @@ class Utilities(commands.Cog):
         url: Optional[str] = None,
         name: Optional[str] = None,
     ):
+        status = await self.bot.get_ext_status(ctx.guild.id)
+        if status and status == ReviewStatus.banned:
+            await ctx.send("banned")
+            return
+
         if not url:
             if not ctx.message.attachments:
                 await ctx.send_help(ctx.command)
@@ -169,9 +174,9 @@ class Utilities(commands.Cog):
         color = (
             discord.Color.red()
             if denied or errored
-            else (discord.Color.green() if ok else discord.Color.gray())
+            else (discord.Color.green() if ok else discord.Color.light_gray())
         )
-        desc = status.name
+        desc = ctx.format_message(status.name)
         if denied and status != ReviewStatus.denied:
             desc = f'{ctx.format_message("denied")}\n{desc}'
 
