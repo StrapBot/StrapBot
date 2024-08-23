@@ -1,0 +1,27 @@
+import discord
+
+# this is the equivalent of `discord.ext.commands`
+# if you don't import this instead of `discord.ext.commands`,
+# your extension will be rejected.
+# if you want, you can check the source code of this:
+# https://github.com/StrapBot/StrapBot/blob/main/core/custom.py
+from core import custom as commands
+
+class MyGuildCog(commands.Cog):
+    # you don't have to define __init__
+    # as the bot is already passed when
+    # the cog is loaded into the bot
+    # but if you really want to...:
+    # def __init__(self, bot: commands.Bot, guild_id: int):
+    #     super().__init__(bot, guild_id)
+
+    # then, you can do whatever you want (as long as you
+    # follow the guidelines), it's still a discord.py Cog!
+    @commands.command()
+    async def my_cmd(self, ctx: commands.Context):
+        await ctx.send("Hello Guild!")
+    
+# IMPORTANT: guild_id MUST be passed, both in the setup function and in the cog.
+# otherwise your extension will be rejected for "missing setup function".
+async def setup(bot: commands.Bot, guild_id: int):
+    await bot.add_cog(MyGuildCog(guild_id))
