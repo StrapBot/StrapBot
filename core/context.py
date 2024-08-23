@@ -251,7 +251,17 @@ class StrapContext(commands.Context):
             else:
                 new_content.append(c)
 
-        real_content = " ".join(new_content)
+        real_content = ""
+        if new_content:
+            prev = None
+            for c in new_content:
+                if c:
+                    if not prev or prev != prev.strip():
+                        real_content += f"{c}"
+                    else:
+                        real_content += f" {c}"
+
+                    prev = c
 
         if embed:
             embed = self.format_embed(embed, kws, lang=lang)

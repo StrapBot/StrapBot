@@ -1029,7 +1029,9 @@ class StrapBot(commands.Bot):
 
         return await super().remove_cog(name_or_guild_id, guild=guild, guilds=guilds)
 
-    async def send_ext_for_review(self, guild_id: int, url: str, name: str):
+    async def send_ext_for_review(
+        self, guild_id: int, url: Union[str, Dict[str, str]], name: str
+    ):
         db = self.get_db("CustomCogs", cog=False)
         data = await db.find_one({"_id": guild_id})
         if data:
@@ -1048,7 +1050,7 @@ class StrapBot(commands.Bot):
         db = self.get_db("Approvals", cog=False)
         await db.delete_one({"_id": guild_id})
 
-    async def download_extension(self, url: str, name: str):
+    async def download_extension(self, url: Union[str, Dict[str, str]], name: str):
         """
         Download a cog from a git repository or the URL.
 
@@ -1056,18 +1058,21 @@ class StrapBot(commands.Bot):
         that the code has been approved and follows the rules.
         """
         with tempfile.TemporaryDirectory(prefix="sb-") as dirname:
-            is_repo = True
-            try:
-                await self.loop.run_in_executor(
-                    self.__git_exec,
-                    partial(
-                        pygit2.clone_repository,
-                        url,
-                        os.path.join(dirname, "repo"),
-                    ),
-                )
-            except Exception:
-                is_repo = False
+            is_message = isinstance(url, dict)
+            is_repo = False
+            if not is_message:
+                is_repo = True
+                try:
+                    await self.loop.run_in_executor(
+                        self.__git_exec,
+                        partial(
+                            pygit2.clone_repository,
+                            url,
+                            os.path.join(dirname, "repo"),
+                        ),
+                    )
+                except Exception:
+                    is_repo = False
 
             if is_repo:
                 dir = os.path.join(dirname, "repo")
@@ -1077,6 +1082,11 @@ class StrapBot(commands.Bot):
                     open(os.path.join(dir, "requirements.txt")).read().split()
                 )
             else:
+                if is_message:
+                    chn = self.get_channel(url["channel_id"])
+                    msg = await chn.fetch_message(url["message_id"])
+                    url = msg.attachments[0].url
+
                 async with self.session.get(url) as req:
                     code = (await req.content.read()).decode()
                     requirements = find_requirements(code)

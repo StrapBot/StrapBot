@@ -1,12 +1,18 @@
 import discord
 import math
 import os
+import asyncio
 from typing import Optional
 from discord.ext import commands
 from core.help import StrapBotHelp
 from core.context import StrapContext
 from core.utils import ReviewStatus
-from core.views import ConfigMenuView, ModChoiceView, YouTubeView
+from core.views import (
+    ConfigMenuView,
+    ModChoiceView,
+    YouTubeView,
+    CustomExtensionConfirmationView,
+)
 from datetime import datetime
 from strapbot import StrapBot
 from ipaddress import ip_address
@@ -125,10 +131,28 @@ class Utilities(commands.Cog):
                 await ctx.send_help(ctx.command)
                 return
 
-            url = ctx.message.attachments[0].url
+            # we can bypass the attachment expiration date
+            # by storing the message and channel IDs
+            url = {
+                "channel": ctx.channel.id,
+                "message": ctx.message.id,
+            }
 
-        await self.bot.send_ext_for_review(ctx.guild.id, url, name)  # type: ignore
-        await ctx.send("done")
+        rules = (
+            "https://github.com/StrapBot/StrapBot"
+            "/blob/main/custom#extension-guidelines"
+        )
+        view = CustomExtensionConfirmationView(ctx, url, name)
+        msg = await ctx.send(
+            "confirm",
+            "\n\n",
+            "time",
+            view=view,
+            rules_url=rules,
+        )
+        await asyncio.sleep(30)
+        await msg.edit(content=ctx.format_message("confirm", rules_url=rules))
+        await view.reenable_buttons(msg)
 
     @extend.command()
     @commands.has_permissions(administrator=True)

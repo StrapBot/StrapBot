@@ -184,6 +184,7 @@ class ReviewStatus(Enum):
     backdoor = -8
     invalid_python = -9
     missing_setup = -10
+    tos = -11
 
 
 def find_requirements(code: str) -> list[str]:

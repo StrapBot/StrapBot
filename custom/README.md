@@ -27,4 +27,7 @@ This directory contains examples for adding your own features and settings to th
 4. **No Malicious Code**
     - Do not include backdoors or malicious code. **Repeated attempts will lead to a ban from this feature!**
 
+5. **Follow the Discord Terms of Service**
+    - This one should be common sense, and this one rule should be self-explanatory, but extensions that do not follow the [Discord ToS](https://discord.com/terms) will not be accepted.
+
 *Please note that these guidelines are subject to change, so you should always review them to ensure your code remains compliant.*
