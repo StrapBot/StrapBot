@@ -276,6 +276,8 @@ class StrapBot(commands.Bot):
                 logger.debug(m)
                 yield m
 
+        v = sys.version_info
+        ver = f"{v.major}.{v.minor}"
         async with self.__git_lock:
             for m in await self.loop.run_in_executor(
                 self.__git_exec, _pull_and_checkout_to_ver
@@ -285,7 +287,7 @@ class StrapBot(commands.Bot):
 
             _, same_ip = await self.is_server_running()
             postupd = await asyncio.create_subprocess_shell(
-                f"./tools/post-update.sh 1 {int(same_ip)}",
+                f"./tools/post-update.sh 1 {int(same_ip)} {ver}",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT,
             )
@@ -1036,7 +1038,7 @@ class StrapBot(commands.Bot):
         await db.insert_one(
             {
                 "_id": guild_id,
-                "status": "pending",
+                "status": ReviewStatus.pending.value,
                 "url": url,
                 "name": name,
             }
@@ -1080,6 +1082,17 @@ class StrapBot(commands.Bot):
                     requirements = find_requirements(code)
 
             return code, requirements
+
+    async def get_ext_status(self, guild_id: int) -> Optional[ReviewStatus]:
+        """
+        Get the status of a custom extension.
+        """
+        db = self.get_db("CustomCogs", cog=False)
+        data = await db.find_one({"_id": guild_id})
+        if not data:
+            return
+
+        return ReviewStatus(data["status"])
 
     async def set_ext_status(
         self, guild_id: int, status: ReviewStatus

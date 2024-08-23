@@ -66,6 +66,8 @@ time_dict = {"h": 3600, "s": 1, "m": 60, "d": 86400, "w": 604800}
 DEFAULT_LANG_ENV = "DEFAULT_LANGUAGE"
 LANGS_PATH = os.path.abspath("./langs")
 IS_TERMINAL = sys.stdout.isatty() and sys.stderr.isatty()
+MARKOV_FS_NAME = "fs"  # keeping it as default for compatibility purposes
+EXTS_FS_NAME = "custom"
 PKL_NAME = "chn_{guild_id}.pkl"
 EXT_NAME = "ext_{guild_id}.py"
 
@@ -165,48 +167,23 @@ def get_logger(name: str = ""):
 
 
 class ReviewStatus(Enum):
-    # NOTE: the docstrings will be removed when translations are added
-
     # normal statuses
     pending = 0
-    """The extension is waiting for approval."""
-
     ok = 1
-    """The extension has been approved and works."""
-
     setting = 2
-    """The extension has been approved and is being in the "setup" stage."""
-
     errored = 3
-    """The extension has errors and cannot be loaded."""
 
     # deny and reasons
     denied = -1
-    """The extension has been denied for a generic reason."""
-
     maybe_blocking = -2
-    """The extension has instructions that may block the event loop."""
-
     no_requirements = -3
-    """The extension has no requirements specified, but requires external modules."""
-
     bad_requirements = -4
-    """The extension has invalid or non-existing requirements."""
-
     private_git = -5
-    """The extension is in a private git repository."""
-
     not_found = -6
-    """The given url returned a 404 status code."""
-
     security = -7
-    """The extension has security issues."""
-
     backdoor = -8
-    """The extension includes a backdoor or malicious code."""
-
     invalid_python = -9
-    """The extension has syntax errors, invalid code or isn't a Python file."""
+    missing_setup = -10
 
 
 def find_requirements(code: str) -> list[str]:
@@ -257,7 +234,7 @@ async def get_ext_from_db(
 async def get_ext_from_db(
     db: AgnosticDatabase, guild_id: int, return_code: bool = False
 ) -> Optional[Union[str, tuple[str, ModuleSpec, ModuleType]]]:
-    fs = AsyncIOMotorGridFSBucket(db)
+    fs = AsyncIOMotorGridFSBucket(db, EXTS_FS_NAME)
 
     try:
         data = await fs.open_download_stream_by_name(EXT_NAME.format(guild_id=guild_id))
@@ -276,7 +253,7 @@ async def get_ext_from_db(
 
 
 async def upload_code_to_db(db: AgnosticDatabase, guild_id: int, code: str) -> None:
-    fs = AsyncIOMotorGridFSBucket(db)
+    fs = AsyncIOMotorGridFSBucket(db, EXTS_FS_NAME)
     await fs.upload_from_stream(EXT_NAME.format(guild_id=guild_id), code.encode())
 
 
@@ -412,7 +389,7 @@ class MarkovChain(defaultdict):
 async def load_chain_from_db(
     db: AgnosticDatabase, guild_id: int
 ) -> Optional[MarkovChain]:
-    fs = AsyncIOMotorGridFSBucket(db)
+    fs = AsyncIOMotorGridFSBucket(db, MARKOV_FS_NAME)
 
     try:
         data = await fs.open_download_stream_by_name(PKL_NAME.format(guild_id=guild_id))
@@ -428,7 +405,7 @@ async def load_chain_from_db(
 async def save_chain_to_db(
     db: AgnosticDatabase, guild_id: int, chain: MarkovChain
 ) -> None:
-    fs = AsyncIOMotorGridFSBucket(db)
+    fs = AsyncIOMotorGridFSBucket(db, MARKOV_FS_NAME)
     name = PKL_NAME.format(guild_id=guild_id)
 
     # clean up all the older revisions before uploading
@@ -582,6 +559,7 @@ class MyTranslator(Translator):
         self, string: locale_str, locale: Locale, context: TranslationContextTypes
     ) -> Optional[str]:
         loop = asyncio.get_event_loop()
+        # TODO: add handling for larger description - it shouldn't use them at all!
         # country-specific locales haven't been implemented yet
         lang = locale.value.split("-")[0]
 

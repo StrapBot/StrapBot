@@ -5,6 +5,7 @@ from typing import Optional
 from discord.ext import commands
 from core.help import StrapBotHelp
 from core.context import StrapContext
+from core.utils import ReviewStatus
 from core.views import ConfigMenuView, ModChoiceView, YouTubeView
 from datetime import datetime
 from strapbot import StrapBot
@@ -108,12 +109,6 @@ class Utilities(commands.Cog):
         url: Optional[str] = None,
         directory: Optional[str] = None,
     ):
-        """
-        Extend the bot's functionality with your very own code.
-        Must follow the extension guidelines.
-
-        This command is only available to the server administrators.
-        """
         await self.load(ctx, url, directory)
 
     @extend.command()
@@ -125,13 +120,6 @@ class Utilities(commands.Cog):
         url: Optional[str] = None,
         name: Optional[str] = None,
     ):
-        """
-        Add a custom extension for approval.
-        Must follow the extension guidelines.
-
-        **`url`**: The URL of the extension or its git repository (**which must be public**).
-        **`name`**: The extension's filename, if it's a git repository.
-        """
         if not url:
             if not ctx.message.attachments:
                 await ctx.send_help(ctx.command)
@@ -146,7 +134,26 @@ class Utilities(commands.Cog):
     @commands.has_permissions(administrator=True)
     async def status(self, ctx: StrapContext):
         """Check the custom extension's status."""
-        await ctx.send("placeholder")
+        status = await self.bot.get_ext_status(ctx.guild.id)
+        if not status:
+            await ctx.send("none")
+            return
+
+        denied = status.value < 0
+        ok = status == ReviewStatus.ok
+        errored = status == ReviewStatus.errored
+        color = (
+            discord.Color.red()
+            if denied or errored
+            else (discord.Color.green() if ok else discord.Color.gray())
+        )
+        desc = status.name
+        if denied and status != ReviewStatus.denied:
+            desc = f'{ctx.format_message("denied")}\n{desc}'
+
+        await ctx.send(
+            embed=discord.Embed(title="title", description=desc, color=color)
+        )
 
     @commands.hybrid_command()
     @server_online()

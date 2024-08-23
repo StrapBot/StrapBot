@@ -7,8 +7,6 @@ from discord.utils import maybe_coroutine as _maybe_coroutine
 from discord import Object as _Object
 from core.utils import get_logger as _get_logger
 
-_logger = _get_logger(__name__)
-
 
 class Cog(_OriginalCog):
     def __init__(self, guild_id: int):
@@ -125,7 +123,7 @@ class Cog(_OriginalCog):
             try:
                 await _maybe_coroutine(self.cog_unload)
             except Exception:
-                _logger.exception(
+                _get_logger(__name__).exception(
                     "Ignoring exception in cog unload for Cog %r (%r)",
                     cls,
                     self.qualified_name,

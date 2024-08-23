@@ -11,8 +11,8 @@ module.exports = {
             script: "strapbot.py",
             interpreter: "/usr/bin/python3", // adjust this to your python3 path
 
-            // 100 years, so it only stops when the bot is ready to be stopped
-            kill_timeout: 3153600000000,
+            // 1 year, so it only stops when the bot is ready to be stopped
+            kill_timeout: 31536000,
             post_update: ["pip install -Ur requirements.txt"],
             env: {},
             env_production: {}
