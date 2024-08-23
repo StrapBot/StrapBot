@@ -164,6 +164,7 @@ cython_debug/
 .vscode/
 !.vscode/launch.json
 custom/**/*
+!custom/**/*.md
 !custom/**/*.example
 
 ecosystem.config.js

@@ -10,6 +10,7 @@ from discord.ext import commands
 
 # Custom configurations file.
 # In this file, you can create your own configurations for the `config` command.
+# Custom configurations CANNOT be added to your guild extension (yet).
 
 # Examples:
 
@@ -18,14 +19,25 @@ class MyCustomConfigType(GlobalConfigType):  # or GuildConfigType or UserConfigT
     key = "my_conf"  # this is the database entry name
     emoji = "\N{waving hand sign}"  # the emoji shown in the config command
     custom = True
-    default = "hello!"  # a default value, you can also set this to None
-    text_style = TextStyle.short  # or TextStyle.long
+    default = {
+        "val1": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+        "val2": "Sed id sagittis nisi. Sed ante dolor, pellentesque et nisl vitae, tempus malesuada eros. Phasellus ac justo mi.",
+        "val3": 20
+    }
+    inputs = {
+        "val1": TextStyle.short,
+        "val2": TextStyle.long,
+        "val3": TextStyle.short,
+    }
 
     @staticmethod
     def validate(val, bot: commands.Bot):
         # when a new value is submitted, this function gets called.
         # by default, this function always returns True.
-        return val == val.lower()
+
+        # in this example, the configuration will
+        # only be valid when val3 is a number.
+        return val["val3"].isdigit() 
 
     @classmethod
     async def setup(cls, ctx: commands.Context, value):

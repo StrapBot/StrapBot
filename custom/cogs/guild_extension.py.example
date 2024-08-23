@@ -10,7 +10,7 @@ from core import custom as commands
 class MyGuildCog(commands.Cog):
     # you don't have to define __init__
     # as the bot is already passed when
-    # the cog is loaded into the bot
+    # the cog is loaded into the bot,
     # but if you really want to...:
     # def __init__(self, bot: commands.Bot, guild_id: int):
     #     super().__init__(bot, guild_id)
