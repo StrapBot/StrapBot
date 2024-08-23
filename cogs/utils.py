@@ -151,7 +151,7 @@ class Utilities(commands.Cog):
             rules_url=rules,
         )
         await asyncio.sleep(30)
-        await msg.edit(content=ctx.format_message("confirm", rules_url=rules))
+        await msg.edit(content=ctx.format_message("confirm", {"rules_url": rules}))
         await view.reenable_buttons(msg)
 
     @extend.command()
