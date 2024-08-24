@@ -24,6 +24,7 @@ import pygit2
 from discord import Message, Interaction
 from discord.ext import commands, tasks
 from discord.ext.commands.bot import _default
+from discord.utils import _is_submodule
 from pygit2.callbacks import RemoteCallbacks
 from packaging.version import Version
 from aiohttp import ClientSession
@@ -998,6 +999,17 @@ class StrapBot(commands.Bot):
 
         return await super().add_cog(cog, override=override, guild=guild, guilds=guilds)
 
+    def get_cog(self, name_or_guild_id: Union[str, int]) -> Optional[commands.Cog]:
+        """
+        Get a cog from the bot.
+
+        Overridden for custom cogs
+        """
+        if isinstance(name_or_guild_id, int):
+            return self.custom_cogs.get(name_or_guild_id, None)
+
+        return super().get_cog(name_or_guild_id)
+
     async def remove_cog(
         self,
         name_or_guild_id: Union[str, int],
@@ -1046,6 +1058,14 @@ class StrapBot(commands.Bot):
             }
         )
 
+        g = self.get_guild(guild_id)
+        n = f"**{g.name}** (`{guild_id}`)" if g else f"**`{guild_id}`**"
+        total = await db.count_documents({"status": ReviewStatus.pending.value})
+        await self.send_to_webhook(
+            f"Guild {n} sent an extension for review. "
+            f"There are now {total} extensions to be approved."
+        )
+
     async def delete_review(self, guild_id: int):
         db = self.get_db("CustomCogs", cog=False)
         await db.delete_one({"_id": guild_id})
@@ -1078,9 +1098,13 @@ class StrapBot(commands.Bot):
                 dir = os.path.join(dirname, "repo")
                 name = os.path.splitext(name)[0] if name else "main"
                 code = open(os.path.join(dir, f"{name}.py")).read()
-                requirements = (
-                    open(os.path.join(dir, "requirements.txt")).read().split()
-                )
+                reqf = os.path.join(dir, "requirements.txt")
+                if os.path.exists(reqf):
+                    requirements = (
+                        open(reqf).read().split()
+                    )
+                else:
+                    requirements = find_requirements(code)
             else:
                 if is_message:
                     chn = self.get_channel(url["channel_id"])
@@ -1222,11 +1246,38 @@ class StrapBot(commands.Bot):
 
         return await super().load_extension(name_or_guild_id, package=package)
 
+    async def reload_extension(
+        self, name: Union[str, int], *, package: Optional[str] = None
+    ):
+        if isinstance(name, int):
+            name = EXT_NAME.format(guild_id=name)
+        
+        return await super().reload_extension(name, package=package)
+
     async def unload_extension(self, name: Union[str, int]):
         if isinstance(name, int):
             name = EXT_NAME.format(guild_id=name)
 
         return await super().unload_extension(name)
+
+    async def _remove_module_references(self, name: str) -> None:
+        gid = None
+        for guild_id, cog in self.custom_cogs.copy().items():
+            if _is_submodule(name, cog.__module__):
+                # NOTE: remember, only one cog per guild
+                await self.remove_cog(guild_id)
+                gid = guild_id
+                break
+
+        if gid:
+            for cmd in self.custom_commands.copy().values():
+                if cmd.module is not None and _is_submodule(name, cmd.module):
+                    if isinstance(cmd, commands.GroupMixin):
+                        cmd.recursively_remove_all_commands()
+
+                    self.remove_command(cmd.name, gid)
+
+        return await super()._remove_module_references(name)
 
     # ===== Markov =====
 

@@ -26,13 +26,13 @@ class CustomExtensionConfirmationView(View):
         await interaction.response.defer()
         await self.ctx.bot.send_ext_for_review(self.ctx.guild.id, self.url, self.name)
         await interaction.followup.edit_message(
-            interaction.message.id, content="done", view=None
+            interaction.message.id, content=self.ctx.format_message("done"), view=None
         )
         self.stop()
 
     @ui.button(label="btn_no", style=ButtonStyle.red, disabled=True)
     async def no(self, interaction: Interaction, button: ui.Button):
-        await interaction.response.edit_message(content="cancelled", view=None)
+        await interaction.response.edit_message(content=self.ctx.format_message("cancelled"), view=None)
         self.stop()
 
     async def reenable_buttons(self, msg):
@@ -64,7 +64,7 @@ class DenyReasonSelect(ui.Select):
             ReviewStatus(int(self.values[0])),
         )
         await self.view.remove_page(interaction, self.view.current)
-        await interaction.followup.send("success", ephemeral=True)
+        await interaction.followup.send("denied", ephemeral=True)
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         return self.ctx.author.id == interaction.user.id
@@ -100,7 +100,7 @@ class ExtensionReviewsView(PaginationView):
         self.add_item(
             DenyReasonSelect(
                 ctx,
-                placeholder="Deny? Select a reason here",
+                placeholder="sel_deny_reason",
                 custom_id="deny_reason",
             )
         )
@@ -126,14 +126,17 @@ class ExtensionReviewsView(PaginationView):
     @ui.button(label="btn_accept", row=3, style=ButtonStyle.green)
     async def accept(self, interaction: Interaction, button: ui.Button):
         t = None
+        guild_id = self.requests[self.current]["_id"]
         try:
-            t = self.ctx.bot.loop.create_task(
-                self.ctx.bot.approve_review(self.requests[self.current]["_id"])
-            )
+            t = self.ctx.bot.loop.create_task(self.ctx.bot.approve_review(guild_id))
 
             await self.remove_page(interaction, self.current)
+
+            if self.ctx.bot.get_cog(guild_id):
+                self.ctx.bot.remove_cog(guild_id)
+
             await interaction.followup.send(
-                "success",
+                "approved",
                 ephemeral=True,
             )
         finally:

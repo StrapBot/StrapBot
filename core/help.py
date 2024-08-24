@@ -3,6 +3,7 @@ import typing
 import json
 import discord
 from discord import ui
+from .views.core import View
 from discord.ext import commands
 from discord.interactions import Interaction
 from .context import StrapContext
@@ -12,7 +13,7 @@ from .utils import get_lang, LANGS_PATH, DEFAULT_LANG_ENV
 # here instead of the views folder
 
 
-class CogHelpView(ui.View):
+class CogHelpView(View):
     def __init__(
         self,
         cmd: "StrapBotHelp",
@@ -61,7 +62,7 @@ class CogButton(ui.Button):
         )
 
 
-class HelpView(ui.View):
+class HelpView(View):
     def __init__(self, mapping, cmd: "StrapBotHelp", *, timeout: float = 180):
         super().__init__(timeout=timeout)
         self.current_cog: typing.Optional[commands.Cog] = None
@@ -105,9 +106,8 @@ class StrapBotHelp(commands.HelpCommand):
     def _get_cog_path(
         self, cog: commands.Cog, lang: typing.Optional[str] = None
     ) -> str:
-        p = os.path.abspath("./langs")
-        cname = type(cog).__name__
-        return os.path.join(p, lang or self.context.language_to_use, "cogs", cname)
+        cname = "__custom__" if hasattr(cog, "guild_id") else type(cog).__name__
+        return os.path.join(LANGS_PATH, lang or self.context.language_to_use, "cogs", cname)
 
     def _get_cog_lang_file(self, cog: commands.Cog, path: str) -> str:
         fp = os.path.join(self._get_cog_path(cog), path)
@@ -151,10 +151,10 @@ class StrapBotHelp(commands.HelpCommand):
         my_guild = self.context.format_message(
             "my_server", {"my_guild": "https://discord.gg/G4de45Bywg"}, lang=self.lang
         )
-        path = f"langs/{self.context.language_to_use}/help.md"
+        path = os.path.join(LANGS_PATH, self.context.language_to_use, "help.md")
         if not os.path.exists(path):
             deflang = os.getenv(DEFAULT_LANG_ENV, "en")
-            path = f"langs/{deflang}/help.md"
+            path = os.path.join(LANGS_PATH, deflang, "help.md")
 
         ret = (
             open(path)
@@ -202,10 +202,15 @@ class StrapBotHelp(commands.HelpCommand):
 
     async def send_bot_help(self, mapping: dict[commands.Cog, list]):
         async with self.context.typing():
+            cust = self.context.bot.get_cog(self.context.guild.id)
+            if cust:
+                mapping[cust] = await self.get_runnable_commands(cust)
+
             for cog in mapping.copy().keys():
                 # please always add commands to a cog, at least to Utilities
                 if not cog:
                     continue
+
                 check = await discord.utils.maybe_coroutine(cog.cog_check, self.context)
                 if not check or not await self.get_runnable_commands(cog):
                     mapping.pop(cog)

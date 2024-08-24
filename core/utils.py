@@ -69,7 +69,8 @@ IS_TERMINAL = sys.stdout.isatty() and sys.stderr.isatty()
 MARKOV_FS_NAME = "fs"  # keeping it as default for compatibility purposes
 EXTS_FS_NAME = "custom"
 PKL_NAME = "chn_{guild_id}.pkl"
-EXT_NAME = "ext_{guild_id}.py"
+EXT_NAME = "custom.g{guild_id}"
+EXT_FNAME = "ext_{guild_id}.py"
 
 # ===== Debugging =====
 
@@ -208,7 +209,7 @@ def custom_ext_from_code(
     Get the custom extension from its code,
     to be loaded with bot._load_from_module_spec().
     """
-    name = f"custom.g{guild_id}"
+    name = EXT_NAME.format(guild_id=guild_id)
     loader = ExtensionLoader(name, code)
     spec: ModuleSpec = spec_from_loader(  # type: ignore
         name,
@@ -240,7 +241,7 @@ async def get_ext_from_db(
     fs = AsyncIOMotorGridFSBucket(db, EXTS_FS_NAME)
 
     try:
-        data = await fs.open_download_stream_by_name(EXT_NAME.format(guild_id=guild_id))
+        data = await fs.open_download_stream_by_name(EXT_FNAME.format(guild_id=guild_id))
     except NoFile:
         return
 
@@ -257,7 +258,7 @@ async def get_ext_from_db(
 
 async def upload_code_to_db(db: AgnosticDatabase, guild_id: int, code: str) -> None:
     fs = AsyncIOMotorGridFSBucket(db, EXTS_FS_NAME)
-    await fs.upload_from_stream(EXT_NAME.format(guild_id=guild_id), code.encode())
+    await fs.upload_from_stream(EXT_FNAME.format(guild_id=guild_id), code.encode())
 
 
 class ExtensionLoader(Loader):
