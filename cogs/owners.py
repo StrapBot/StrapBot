@@ -238,15 +238,15 @@ class Owners(commands.Cog):
                     continue
 
                 if isinstance(r["url"], dict):
-                    r["url"] = (
-                        (
-                            await self.bot.get_channel(
-                                r["url"]["channel"]
-                            ).fetch_message(r["url"]["message"])
-                        )
-                        .attachments[0]
-                        .url
-                    )
+                    d = r["url"]
+                    c = self.bot.get_channel(d["channel_id"])
+                    if c:
+                        m = await c.fetch_message(d["message"])  # type: ignore
+                        if m and m.attachments:
+                            r["url"] = m.attachments[0].url
+
+                    if isinstance(r["url"], dict):
+                        r["url"] = "None"
 
                 revs.append(r)
 

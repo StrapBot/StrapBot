@@ -66,7 +66,9 @@ class DenyReasonSelect(ui.Select):
             ReviewStatus(int(self.values[0])),
         )
         await self.view.remove_page(interaction, self.view.current)
-        await interaction.followup.send(self.ctx.format_message("denied"), ephemeral=True)
+        await interaction.followup.send(
+            self.ctx.format_message("denied"), ephemeral=True
+        )
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         return self.ctx.author.id == interaction.user.id

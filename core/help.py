@@ -22,7 +22,7 @@ class CogHelpView(View):
         *,
         timeout: float = 180,
     ):
-        super().__init__(timeout=timeout)
+        super().__init__(cmd.context, timeout=timeout)
         self.cmd = cmd
         self.cog = cog
         self.view = oldview
@@ -64,7 +64,7 @@ class CogButton(ui.Button):
 
 class HelpView(View):
     def __init__(self, mapping, cmd: "StrapBotHelp", *, timeout: float = 180):
-        super().__init__(timeout=timeout)
+        super().__init__(cmd.context, timeout=timeout)
         self.current_cog: typing.Optional[commands.Cog] = None
         self.cmd = cmd
         self.mapping = mapping
@@ -106,7 +106,7 @@ class StrapBotHelp(commands.HelpCommand):
     def _get_cog_dataname(self, cog: commands.Cog) -> str:
         ret = (
             "__custom__"
-            if getattr(cog, "guild_id", None) == self.context.guild.id
+            if getattr(cog, "guild_id", None) == self.context.guild.id  # type: ignore
             else type(cog).__name__
         )
         return ret
@@ -212,7 +212,7 @@ class StrapBotHelp(commands.HelpCommand):
 
     async def send_bot_help(self, mapping: dict[commands.Cog, list]):
         async with self.context.typing():
-            cust = self.context.bot.get_cog(self.context.guild.id)
+            cust = self.context.bot.get_cog(self.context.guild.id)  # type: ignore
             if cust:
                 mapping[cust] = await self.get_runnable_commands(cust)
 

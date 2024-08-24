@@ -1,11 +1,9 @@
-import typing
-
 from discord.utils import MISSING
 from strapbot import StrapBot
 from typing import Any, Dict, List, Optional
 from discord import ui
 from discord.interactions import Interaction
-from discord.ui.item import Item
+from discord.ui.item import Item, V
 from ..context import StrapContext
 
 
@@ -33,6 +31,18 @@ class View(ui.View):
         for child in children:
             if hasattr(child, "label") and child.label != None:  # type: ignore
                 child.label = self.ctx.format_message(child.label)  # type: ignore
+
+            if hasattr(child, "placeholder") and child.placeholder != None:  # type: ignore
+                child.placeholder = self.ctx.format_message(child.placeholder)  # type: ignore
+
+            if hasattr(child, "options") and child.options != None:  # type: ignore
+                for option in child.options:  # type: ignore
+                    option.label = self.ctx.format_message(option.label)
+
+    def add_item(self, item: Item[V]):
+        ret = super().add_item(item)
+        self.format_items()
+        return ret
 
     async def on_error(
         self, interaction: Interaction[StrapBot], error: Exception, item: Item[Any]

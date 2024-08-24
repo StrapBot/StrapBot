@@ -78,7 +78,6 @@ class Cog(_OriginalCog):
                     finally:
                         raise e
 
-        # check if we're overriding the default
         if cls.bot_check is not Cog.bot_check:
             bot.add_check(self.bot_check)
 

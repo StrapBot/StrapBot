@@ -485,6 +485,7 @@ class StrapBot(commands.Bot):
         errors = 0
         cerrors = 0
         gerrors = 0
+
         async def _load(ext):
             nonlocal errors, cerrors, gerrors
             custom = ext in cexts
@@ -508,7 +509,7 @@ class StrapBot(commands.Bot):
         tasks = []
         for ext in set(list(exts) + list(cexts)):
             tasks.append(_load(ext))
-        
+
         await asyncio.gather(*tasks)
 
         if gexts:
@@ -516,7 +517,7 @@ class StrapBot(commands.Bot):
             tasks = []
             for ext in set(gexts):
                 tasks.append(_load(ext))
-            
+
             await asyncio.gather(*tasks)
 
         additional = " with [bold]no errors[/]"
@@ -998,7 +999,7 @@ class StrapBot(commands.Bot):
         This method is overridden to add support for custom cogs,
         which only work in specified guilds.
         """
-        if hasattr(cog, "guild_id") and cog.guild_id is not None:
+        if hasattr(cog, "guild_id") and cog.guild_id is not None:  # type: ignore
             g_id: int = cog.guild_id  # type: ignore
             existing = self.custom_cogs.get(g_id)
 
@@ -1129,8 +1130,8 @@ class StrapBot(commands.Bot):
                     requirements = find_requirements(code)
             else:
                 if is_message:
-                    chn = self.get_channel(url["channel_id"])
-                    msg = await chn.fetch_message(url["message_id"])
+                    chn = self.get_channel(url["channel_id"])  # type: ignore
+                    msg = await chn.fetch_message(url["message_id"])  # type: ignore
                     url = msg.attachments[0].url
 
                 async with self.session.get(url) as req:
@@ -1177,7 +1178,7 @@ class StrapBot(commands.Bot):
 
     async def approve_review(self, guild_id: int):
         if EXT_NAME.format(guild_id=guild_id) in self.extensions:
-            self.unload_extension(guild_id)
+            await self.unload_extension(guild_id)
 
         data = await self.set_ext_status(guild_id, ReviewStatus.setting)
         if not data:
@@ -1296,11 +1297,11 @@ class StrapBot(commands.Bot):
 
         if gid:
             for cmd in self.custom_commands.copy().values():
-                if cmd.module is not None and _is_submodule(name, cmd.module):
+                if cmd.module is not None and _is_submodule(name, cmd.module):  # type: ignore
                     if isinstance(cmd, commands.GroupMixin):
                         cmd.recursively_remove_all_commands()
 
-                    self.remove_command(cmd.name, gid)
+                    self.remove_command(cmd.name, gid)  # type: ignore
 
         return await super()._remove_module_references(name)
 
