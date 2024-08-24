@@ -1,5 +1,12 @@
 from .core import View
-from discord import ui, Interaction, Embed, SelectOption, ButtonStyle, InteractionResponded
+from discord import (
+    ui,
+    Interaction,
+    Embed,
+    SelectOption,
+    ButtonStyle,
+    InteractionResponded,
+)
 from ..context import StrapContext
 from typing import Optional
 from .pagination import PaginationView
@@ -52,13 +59,12 @@ class DenyReasonSelect(ui.Select):
         self.view: ExtensionReviewsView
 
     async def callback(self, interaction: Interaction):
-        await interaction.response.defer()
         await self.ctx.bot.set_ext_status(
             self.view.requests[self.view.current]["_id"],
             ReviewStatus(int(self.values[0])),
         )
         await self.view.remove_page(interaction, self.view.current)
-        await interaction.followup.send("Success", ephemeral=True)
+        await interaction.followup.send("success", ephemeral=True)
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         return self.ctx.author.id == interaction.user.id
@@ -66,8 +72,7 @@ class DenyReasonSelect(ui.Select):
 
 class ExtensionReviewsView(PaginationView):
     def __init__(self, ctx: StrapContext, *requests: list[dict], **kwargs):
-        self.ctx = ctx
-        self.requests = requests
+        self.requests = list(requests)
         pages = []
         for req in requests:
 
@@ -90,44 +95,44 @@ class ExtensionReviewsView(PaginationView):
                 )
             )
 
-        super().__init__(*pages, **kwargs)
+        self.ignore.__discord_ui_model_kwargs__["row"] = 3 + int(len(pages) > 1)
+        super().__init__(*pages, context=ctx, **kwargs)
         self.add_item(
             DenyReasonSelect(
                 ctx,
                 placeholder="Deny? Select a reason here",
-                custom_id="deny_reason",                
+                custom_id="deny_reason",
             )
         )
 
     async def remove_page(self, interaction: Interaction, index: int):
         if len(self.pages) == 1:
-            a = dict(content="done", view=None)
+            a = dict(content="done", view=None, embed=None)
             try:
-                await interaction.response.edit_message(
-                    **a
-                )
+                await interaction.response.edit_message(**a)
             except InteractionResponded:
                 await interaction.followup.edit_message(self.message.id, **a)
-            
+
             self.stop()
             return
+        elif len(self.pages) == 2:
+            self.remove_item(self.ignore)
+            self.ignore.row = 3
+            self.add_item(self.ignore)
 
         self.requests.pop(index)
         await super().remove_page(interaction, index)
 
     @ui.button(label="btn_accept", row=3, style=ButtonStyle.green)
     async def accept(self, interaction: Interaction, button: ui.Button):
-        await interaction.response.defer()
         t = None
         try:
             t = self.ctx.bot.loop.create_task(
-                self.ctx.bot.approve_review(
-                    self.requests[self.current]["_id"]
-                )
+                self.ctx.bot.approve_review(self.requests[self.current]["_id"])
             )
 
-            await self.remove_page(self.current)
-            await interaction.response.send_message(
+            await self.remove_page(interaction, self.current)
+            await interaction.followup.send(
                 "success",
                 ephemeral=True,
             )

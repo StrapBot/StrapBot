@@ -59,10 +59,8 @@ class PaginationView(View):
             if not content and not embeds:
                 continue
 
-            ret.append(
-                {"embeds": embeds, "content": str(content) if content else None}
-            )
-        
+            ret.append({"embeds": embeds, "content": str(content) if content else None})
+
         return ret
 
     @property
@@ -114,15 +112,7 @@ class PaginationView(View):
         kwargs.update(self.pages[self.current].copy())
         if len(self.pages) > 1 or self.additional_children or self._stop_button_changed:
             kwargs["view"] = self
-            if len(self.pages) > 1:
-                self.update_buttons()
-            else:
-                for i in self.navigation_children:
-                    if isinstance(i, StopButton) and self._stop_button_changed:
-                        # the stop button has been replaced, don't remove it
-                        continue
-
-                    self.remove_item(i)
+            self.update_buttons()
 
         elif "view" not in kwargs:
             kwargs["view"] = None
@@ -156,7 +146,12 @@ class PaginationView(View):
     def do_remove_page(self, index: int):
         self.pages.pop(index)
 
-    async def add_page(self, interaction: discord.Interaction, *pages: Union[Embed, List[Embed], str], index: int = -1):
+    async def add_page(
+        self,
+        interaction: discord.Interaction,
+        *pages: Union[Embed, List[Embed], str],
+        index: int = -1,
+    ):
         if not pages:
             return
 
@@ -185,12 +180,22 @@ class PaginationView(View):
         await interaction.response.edit_message(**kwargs)
 
     def update_buttons(self):
-        l_disabled = self.current == 0
-        r_disabled = self.current == len(self.pages) - 1
-        self.first_page.disabled = l_disabled
-        self.previous_page.disabled = l_disabled
-        self.next_page.disabled = r_disabled
-        self.last_page.disabled = r_disabled
+        # TODO: implement a way to restore the buttons
+        #       in case they were removed previously
+        if len(self.pages) > 1:
+            l_disabled = self.current == 0
+            r_disabled = self.current == len(self.pages) - 1
+            self.first_page.disabled = l_disabled
+            self.previous_page.disabled = l_disabled
+            self.next_page.disabled = r_disabled
+            self.last_page.disabled = r_disabled
+        else:
+            for i in self.navigation_children:
+                if isinstance(i, StopButton) and self._stop_button_changed:
+                    # the stop button has been replaced, don't remove it
+                    continue
+
+                self.remove_item(i)
 
     @ui.button(emoji="◀️", custom_id="nav_previous", row=3, style=ButtonStyle.green)
     async def previous_page(self, interaction: discord.Interaction, button: ui.Button):

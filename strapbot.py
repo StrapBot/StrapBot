@@ -478,13 +478,13 @@ class StrapBot(commands.Bot):
         entries = await self.get_db("CustomCogs", cog=False).find().to_list(None)
 
         for entry in entries:
-            if entry.get("status", "") == "ok":
+            if entry.get("status", "") == ReviewStatus.ok.value:
                 gexts.add(entry["_id"])
 
         errors = 0
         cerrors = 0
         gerrors = 0
-        for ext in set(list(exts) + list(cexts)):
+        for ext in set(list(exts) + list(cexts) + list(gexts)):
             custom = ext in cexts
             guild = ext in gexts
             text = "custom extension" if custom else "extension"
@@ -1276,6 +1276,7 @@ class StrapBot(commands.Bot):
 
     async def close(self):
         self._closing = True
+        print(end="\r")
         if self.use_repl and not self.debugging and self.console:
             self.console.stop()
 
