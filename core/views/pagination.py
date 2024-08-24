@@ -39,10 +39,14 @@ class PaginationView(View):
                 self._children[i] = stop_button
                 break
 
-        self.pages: List[dict] = []
         self.author: Union[discord.Member, discord.User]
         if not pages:
             raise ValueError
+
+        self.pages: List[dict] = self._parse_pages(*pages)
+
+    def _parse_pages(self, *pages: Union[Embed, List[Embed], str]) -> list:
+        ret = []
         for page in pages:
             if isinstance(page, Embed):
                 embeds = [page]
@@ -55,9 +59,11 @@ class PaginationView(View):
             if not content and not embeds:
                 continue
 
-            self.pages.append(
+            ret.append(
                 {"embeds": embeds, "content": str(content) if content else None}
             )
+        
+        return ret
 
     @property
     def navigation_children(self) -> List[ui.Item[Self]]:
@@ -101,7 +107,8 @@ class PaginationView(View):
         A manual alternative to start() to use
         for `Interaction`s or when editing a message.
 
-        Returns the keyword arguments to pass.
+        Returns the keyword arguments to pass when sending.
+        Note that you will need to set the `message` attribute manually.
         """
         self.author = author
         kwargs.update(self.pages[self.current].copy())
@@ -137,6 +144,31 @@ class PaginationView(View):
 
         self.message = await send(**kwargs)
         return self.message
+
+    def do_add_page(self, *pages: Union[Embed, List[Embed], str], index: int = -1):
+        if not pages:
+            return
+
+        pages1 = self.pages[:index]
+        pages2 = self.pages[index:]
+        self.pages = pages1 + self._parse_pages(*pages) + pages2
+
+    def do_remove_page(self, index: int):
+        self.pages.pop(index)
+
+    async def add_page(self, interaction: discord.Interaction, *pages: Union[Embed, List[Embed], str], index: int = -1):
+        if not pages:
+            return
+
+        self.do_add_page(*pages, index=index)
+        await self.show_page(interaction, self.current)
+
+    async def remove_page(self, interaction: discord.Interaction, index: int):
+        # NOTE: when adding a button to remove a page, make sure
+        #       to handle when all the pages are removed.
+        self.do_remove_page(index)
+        i = self.current - int(self.current >= index and self.current > 0)
+        await self.show_page(interaction, i)
 
     async def show_page(self, interaction: discord.Interaction, index: int):
         if interaction.user.id != self.author.id:

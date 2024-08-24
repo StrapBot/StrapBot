@@ -1,5 +1,5 @@
 from .core import View
-from discord import ui, Interaction, Embed, SelectOption, ButtonStyle
+from discord import ui, Interaction, Embed, SelectOption, ButtonStyle, InteractionResponded
 from ..context import StrapContext
 from typing import Optional
 from .pagination import PaginationView
@@ -18,7 +18,9 @@ class CustomExtensionConfirmationView(View):
     async def yes(self, interaction: Interaction, button: ui.Button):
         await interaction.response.defer()
         await self.ctx.bot.send_ext_for_review(self.ctx.guild.id, self.url, self.name)
-        await interaction.followup.edit_message(interaction.message.id, content="done", view=None)
+        await interaction.followup.edit_message(
+            interaction.message.id, content="done", view=None
+        )
         self.stop()
 
     @ui.button(label="btn_no", style=ButtonStyle.red, disabled=True)
@@ -38,10 +40,11 @@ class DenyReasonSelect(ui.Select):
     def __init__(self, ctx: StrapContext, *args, **kwargs):
         options = [
             SelectOption(
-                label=" ".join(o.name.split("_")).capitalize(),
+                label=" ".join(o.name.split("_")).title(),
                 value=o.value,
             )
             for o in ReviewStatus
+            if o.value < 0
         ]
 
         super().__init__(*args, options=options, **kwargs)
@@ -54,35 +57,8 @@ class DenyReasonSelect(ui.Select):
             self.view.requests[self.view.current]["_id"],
             ReviewStatus(int(self.values[0])),
         )
-        await interaction.response.send_message("Success", ephemeral=True)
-
-    async def interaction_check(self, interaction: Interaction) -> bool:
-        return self.ctx.author.id == interaction.user.id
-
-
-class AcceptButton(ui.Button):
-    def __init__(self, ctx: StrapContext, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.ctx = ctx
-        self.view: ExtensionReviewsView
-
-    async def callback(self, interaction: Interaction):
-        await interaction.response.defer()
-        t = None
-        try:
-            t = self.ctx.bot.loop.create_task(
-                self.ctx.bot.approve_review(
-                    self.view.requests[self.view.current]["_id"]
-                )
-            )
-
-            await interaction.response.send_message(
-                "Success, the extension is " "being set up in the background",
-                ephemeral=True,
-            )
-        finally:
-            if t and not t.done():
-                await t
+        await self.view.remove_page(interaction, self.view.current)
+        await interaction.followup.send("Success", ephemeral=True)
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         return self.ctx.author.id == interaction.user.id
@@ -94,7 +70,7 @@ class ExtensionReviewsView(PaginationView):
         self.requests = requests
         pages = []
         for req in requests:
-            
+
             desc = f"URL: {req['url']}\nName: `{req['name']}`"
 
             guild = ctx.bot.get_guild(req["_id"])
@@ -117,7 +93,48 @@ class ExtensionReviewsView(PaginationView):
         super().__init__(*pages, **kwargs)
         self.add_item(
             DenyReasonSelect(
-                ctx, placeholder="Deny? Select a reason here", custom_id="deny_reason"
+                ctx,
+                placeholder="Deny? Select a reason here",
+                custom_id="deny_reason",                
             )
         )
-        self.add_item(AcceptButton(ctx, label="Accept", style=ButtonStyle.green))
+
+    async def remove_page(self, interaction: Interaction, index: int):
+        if len(self.pages) == 1:
+            a = dict(content="done", view=None)
+            try:
+                await interaction.response.edit_message(
+                    **a
+                )
+            except InteractionResponded:
+                await interaction.followup.edit_message(self.message.id, **a)
+            
+            self.stop()
+            return
+
+        self.requests.pop(index)
+        await super().remove_page(interaction, index)
+
+    @ui.button(label="btn_accept", row=3, style=ButtonStyle.green)
+    async def accept(self, interaction: Interaction, button: ui.Button):
+        await interaction.response.defer()
+        t = None
+        try:
+            t = self.ctx.bot.loop.create_task(
+                self.ctx.bot.approve_review(
+                    self.requests[self.current]["_id"]
+                )
+            )
+
+            await self.remove_page(self.current)
+            await interaction.response.send_message(
+                "success",
+                ephemeral=True,
+            )
+        finally:
+            if t and not t.done():
+                await t
+
+    @ui.button(label="btn_ignore", row=4, style=ButtonStyle.blurple)
+    async def ignore(self, interaction: Interaction, button: ui.Button):
+        await self.remove_page(interaction, self.current)

@@ -1047,7 +1047,7 @@ class StrapBot(commands.Bot):
         )
 
     async def delete_review(self, guild_id: int):
-        db = self.get_db("Approvals", cog=False)
+        db = self.get_db("CustomCogs", cog=False)
         await db.delete_one({"_id": guild_id})
 
     async def download_extension(self, url: Union[str, Dict[str, str]], name: str):
@@ -1194,7 +1194,10 @@ class StrapBot(commands.Bot):
             if not data:
                 raise commands.ExtensionNotFound(str(guild_id))
 
-            if data["status"] not in [ReviewStatus.ok.value, ReviewStatus.setting.value]:
+            if data["status"] not in [
+                ReviewStatus.ok.value,
+                ReviewStatus.setting.value,
+            ]:
                 if data["status"] == ReviewStatus.errored.value:
                     raise ValueError(
                         f"Extension {guild_id} has errors and cannot be loaded"

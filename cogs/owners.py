@@ -247,8 +247,12 @@ class Owners(commands.Cog):
                         .attachments[0]
                         .url
                     )
-                
+
                 revs.append(r)
+
+            if not revs:
+                await ctx.send("no_reviews")
+                return
 
             view = ExtensionReviewsView(ctx, *revs)
             await view.start(ctx)
