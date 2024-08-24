@@ -241,8 +241,8 @@ class Owners(commands.Cog):
                     r["url"] = (
                         (
                             await self.bot.get_channel(
-                                r["url"]["channel_id"]
-                            ).fetch_message(r["url"]["message_id"])
+                                r["url"]["channel"]
+                            ).fetch_message(r["url"]["message"])
                         )
                         .attachments[0]
                         .url

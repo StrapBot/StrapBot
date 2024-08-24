@@ -1,3 +1,11 @@
+"""
+This string at the beginning is used by the bot to detect the required packages to install.
+You can replace this text with your own requirements, or remove this string if you don't need any.
+
+If you host your cog on a git repository, you can also add a requirements.txt file to the root of your repository
+
+The requirements will only be detected if this string is at the beginning of the file.
+"""
 import discord
 
 # this is the equivalent of `discord.ext.commands`
@@ -23,5 +31,5 @@ class MyGuildCog(commands.Cog):
     
 # IMPORTANT: guild_id MUST be passed, both in the setup function and in the cog.
 # otherwise your extension will be rejected for "missing setup function".
-async def setup(bot: commands.Bot, guild_id: int):
+async def setup(bot: commands.Bot, guild_id: int=None):
     await bot.add_cog(MyGuildCog(guild_id))

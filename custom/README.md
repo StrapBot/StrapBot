@@ -30,4 +30,8 @@ This directory contains examples for adding your own features and settings to th
 5. **Follow the Discord Terms of Service**
     - This one should be common sense, and this one rule should be self-explanatory, but extensions that do not follow the [Discord ToS](https://discord.com/terms) will not be accepted.
 
+6. **Packages**
+    - If your code requires external packages from `pip`, you can specify them on your extension's docstring (the string at the very beginning of the file).
+    - If you're using Git, you can also put a `requirements.txt` file on the root of your repository, so the docstring will be ignored.
+
 *Please note that these guidelines are subject to change, so you should always review them to ensure your code remains compliant.*

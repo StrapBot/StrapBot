@@ -241,7 +241,9 @@ async def get_ext_from_db(
     fs = AsyncIOMotorGridFSBucket(db, EXTS_FS_NAME)
 
     try:
-        data = await fs.open_download_stream_by_name(EXT_FNAME.format(guild_id=guild_id))
+        data = await fs.open_download_stream_by_name(
+            EXT_FNAME.format(guild_id=guild_id)
+        )
     except NoFile:
         return
 

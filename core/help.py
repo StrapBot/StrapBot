@@ -77,7 +77,7 @@ class HelpView(View):
                 cmd,
                 cog,
                 label=cmd.get_cog_name(cog),
-                custom_id=type(cog).__name__,
+                custom_id=cmd._get_cog_dataname(cog),
                 style=discord.ButtonStyle.green,
                 emoji=getattr(cog, "emoji", None),
             )
@@ -103,11 +103,21 @@ class StrapBotHelp(commands.HelpCommand):
     def lang(self):
         return get_lang(self.context.language_to_use, cog=self.cog, command=self)
 
+    def _get_cog_dataname(self, cog: commands.Cog) -> str:
+        ret = (
+            "__custom__"
+            if getattr(cog, "guild_id", None) == self.context.guild.id
+            else type(cog).__name__
+        )
+        return ret
+
     def _get_cog_path(
         self, cog: commands.Cog, lang: typing.Optional[str] = None
     ) -> str:
-        cname = "__custom__" if hasattr(cog, "guild_id") else type(cog).__name__
-        return os.path.join(LANGS_PATH, lang or self.context.language_to_use, "cogs", cname)
+        cname = self._get_cog_dataname(cog)
+        return os.path.join(
+            LANGS_PATH, lang or self.context.language_to_use, "cogs", cname
+        )
 
     def _get_cog_lang_file(self, cog: commands.Cog, path: str) -> str:
         fp = os.path.join(self._get_cog_path(cog), path)

@@ -485,7 +485,8 @@ class StrapBot(commands.Bot):
         errors = 0
         cerrors = 0
         gerrors = 0
-        for ext in set(list(exts) + list(cexts) + list(gexts)):
+        async def _load(ext):
+            nonlocal errors, cerrors, gerrors
             custom = ext in cexts
             guild = ext in gexts
             text = "custom extension" if custom else "extension"
@@ -503,6 +504,20 @@ class StrapBot(commands.Bot):
                 logger.error(f"Error loading {text} [red bold]{ext}[/]", exc_info=e)
             else:
                 logger.debug(f"{text.capitalize()} [bold]{ext}[/] loaded successfully.")
+
+        tasks = []
+        for ext in set(list(exts) + list(cexts)):
+            tasks.append(_load(ext))
+        
+        await asyncio.gather(*tasks)
+
+        if gexts:
+            logger.debug("Loading guild extensions...")
+            tasks = []
+            for ext in set(gexts):
+                tasks.append(_load(ext))
+            
+            await asyncio.gather(*tasks)
 
         additional = " with [bold]no errors[/]"
         if errors:
@@ -533,8 +548,8 @@ class StrapBot(commands.Bot):
         cloaded = len(cexts) - cerrors
         gloaded = len(gexts) - gerrors
         c = "s" if loaded != 1 else ""
-        if cexts:
-            if gexts:
+        if cloaded:
+            if gloaded:
                 c += ","
             else:
                 c += " and"
@@ -542,7 +557,7 @@ class StrapBot(commands.Bot):
             c += f" [bold green]{cloaded}[/] custom extension"
             c += "s" if cloaded != 1 else ""
 
-        if gexts:
+        if gloaded:
             c += f" and [bold green]{gloaded}[/] guild extension"
             c += "s" if gloaded != 1 else ""
 
@@ -847,7 +862,7 @@ class StrapBot(commands.Bot):
         while hasattr(exc, "original"):
             exc = exc.original  #  type: ignore
 
-        if not hasattr(ctx.cog, "guild_id"):
+        if getattr(ctx.cog, "guild_id", None) is None:
             await super().on_command_error(ctx, exc)
 
         if isinstance(exc, commands.CommandNotFound):
@@ -898,14 +913,23 @@ class StrapBot(commands.Bot):
         This method is overridden to add support for custom commands,
         which only work in specified guilds.
         """
-        if command.cog and hasattr(command.cog, "guild_id"):
+        if (
+            command.cog
+            and hasattr(command.cog, "guild_id")
+            and command.cog.guild_id is not None
+        ):
             guild_id = command.cog.guild_id
-            if command.name in self.custom_commands[guild_id]:
+            _cmd_exists = (
+                lambda cmd: cmd in self.all_commands
+                or cmd in self.custom_commands[guild_id]
+            )
+
+            if _cmd_exists(command.name):
                 raise commands.CommandRegistrationError(command.name)
 
             self.custom_commands[guild_id][command.name] = command
             for alias in command.aliases:
-                if alias in self.custom_commands[guild_id]:
+                if _cmd_exists(alias):
                     self.remove_command(command.name, guild_id)
                     raise commands.CommandRegistrationError(alias, alias_conflict=True)
 
@@ -974,7 +998,7 @@ class StrapBot(commands.Bot):
         This method is overridden to add support for custom cogs,
         which only work in specified guilds.
         """
-        if hasattr(cog, "guild_id"):
+        if hasattr(cog, "guild_id") and cog.guild_id is not None:
             g_id: int = cog.guild_id  # type: ignore
             existing = self.custom_cogs.get(g_id)
 
@@ -1100,9 +1124,7 @@ class StrapBot(commands.Bot):
                 code = open(os.path.join(dir, f"{name}.py")).read()
                 reqf = os.path.join(dir, "requirements.txt")
                 if os.path.exists(reqf):
-                    requirements = (
-                        open(reqf).read().split()
-                    )
+                    requirements = ["-r", reqf]
                 else:
                     requirements = find_requirements(code)
             else:
@@ -1154,6 +1176,9 @@ class StrapBot(commands.Bot):
         return await db.find_one({"_id": guild_id})
 
     async def approve_review(self, guild_id: int):
+        if EXT_NAME.format(guild_id=guild_id) in self.extensions:
+            self.unload_extension(guild_id)
+
         data = await self.set_ext_status(guild_id, ReviewStatus.setting)
         if not data:
             return
@@ -1251,7 +1276,7 @@ class StrapBot(commands.Bot):
     ):
         if isinstance(name, int):
             name = EXT_NAME.format(guild_id=name)
-        
+
         return await super().reload_extension(name, package=package)
 
     async def unload_extension(self, name: Union[str, int]):

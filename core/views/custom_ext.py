@@ -32,7 +32,9 @@ class CustomExtensionConfirmationView(View):
 
     @ui.button(label="btn_no", style=ButtonStyle.red, disabled=True)
     async def no(self, interaction: Interaction, button: ui.Button):
-        await interaction.response.edit_message(content=self.ctx.format_message("cancelled"), view=None)
+        await interaction.response.edit_message(
+            content=self.ctx.format_message("cancelled"), view=None
+        )
         self.stop()
 
     async def reenable_buttons(self, msg):
@@ -64,7 +66,7 @@ class DenyReasonSelect(ui.Select):
             ReviewStatus(int(self.values[0])),
         )
         await self.view.remove_page(interaction, self.view.current)
-        await interaction.followup.send("denied", ephemeral=True)
+        await interaction.followup.send(self.ctx.format_message("denied"), ephemeral=True)
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         return self.ctx.author.id == interaction.user.id
@@ -107,7 +109,7 @@ class ExtensionReviewsView(PaginationView):
 
     async def remove_page(self, interaction: Interaction, index: int):
         if len(self.pages) == 1:
-            a = dict(content="done", view=None, embed=None)
+            a = dict(content=self.ctx.format_message("done"), view=None, embed=None)
             try:
                 await interaction.response.edit_message(**a)
             except InteractionResponded:
@@ -132,11 +134,8 @@ class ExtensionReviewsView(PaginationView):
 
             await self.remove_page(interaction, self.current)
 
-            if self.ctx.bot.get_cog(guild_id):
-                self.ctx.bot.remove_cog(guild_id)
-
             await interaction.followup.send(
-                "approved",
+                self.ctx.format_message("approved"),
                 ephemeral=True,
             )
         finally:
