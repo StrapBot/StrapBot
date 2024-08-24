@@ -126,7 +126,7 @@ class Utilities(commands.Cog):
         url: Optional[str] = None,
         name: Optional[str] = None,
     ):
-        status = await self.bot.get_ext_status(ctx.guild.id)
+        status = await self.bot.get_ext_status(ctx.guild.id)  # type: ignore
         if status and status == ReviewStatus.banned:
             await ctx.send("banned")
             return
@@ -141,13 +141,13 @@ class Utilities(commands.Cog):
             url = {
                 "channel": ctx.channel.id,
                 "message": ctx.message.id,
-            }
+            }  # type: ignore
 
         rules = (
             "https://github.com/StrapBot/StrapBot"
             "/blob/main/custom#extension-guidelines"
         )
-        view = CustomExtensionConfirmationView(ctx, url, name)
+        view = CustomExtensionConfirmationView(ctx, url, name)  # type: ignore
         msg = await ctx.send(
             "confirm",
             "\n\n",
@@ -163,7 +163,7 @@ class Utilities(commands.Cog):
     @commands.has_permissions(administrator=True)
     async def status(self, ctx: StrapContext):
         """Check the custom extension's status."""
-        status = await self.bot.get_ext_status(ctx.guild.id)
+        status = await self.bot.get_ext_status(ctx.guild.id)  # type: ignore
         if not status:
             await ctx.send("none")
             return

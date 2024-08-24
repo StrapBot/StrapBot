@@ -8,25 +8,31 @@ from discord import (
     InteractionResponded,
 )
 from ..context import StrapContext
-from typing import Optional
+from typing import Optional, Union
 from .pagination import PaginationView
 from ..utils import ReviewStatus
 
 
 class CustomExtensionConfirmationView(View):
     def __init__(
-        self, ctx: StrapContext, url: str, name: Optional[str] = None, *args, **kwargs
+        self,
+        ctx: StrapContext,
+        url: Union[str, dict],
+        name: Optional[str] = None,
+        *args,
+        **kwargs,
     ):
         super().__init__(ctx, *args, timeout=None, **kwargs)
         self.url = url
         self.name = name
+        self.ctx: StrapContext
 
     @ui.button(label="btn_yes", style=ButtonStyle.green, disabled=True)
     async def yes(self, interaction: Interaction, button: ui.Button):
         await interaction.response.defer()
-        await self.ctx.bot.send_ext_for_review(self.ctx.guild.id, self.url, self.name)
+        await self.ctx.bot.send_ext_for_review(self.ctx.guild.id, self.url, self.name)  # type: ignore
         await interaction.followup.edit_message(
-            interaction.message.id, content=self.ctx.format_message("done"), view=None
+            interaction.message.id, content=self.ctx.format_message("done"), view=None  # type: ignore
         )
         self.stop()
 
@@ -50,7 +56,7 @@ class DenyReasonSelect(ui.Select):
         options = [
             SelectOption(
                 label=" ".join(o.name.split("_")).title(),
-                value=o.value,
+                value=str(o.value),
             )
             for o in ReviewStatus
             if o.value < 0
@@ -62,7 +68,7 @@ class DenyReasonSelect(ui.Select):
 
     async def callback(self, interaction: Interaction):
         await self.ctx.bot.set_ext_status(
-            self.view.requests[self.view.current]["_id"],
+            self.view.requests[self.view.current]["_id"],  # type: ignore
             ReviewStatus(int(self.values[0])),
         )
         await self.view.remove_page(interaction, self.view.current)
@@ -80,10 +86,10 @@ class ExtensionReviewsView(PaginationView):
         pages = []
         for req in requests:
 
-            desc = f"URL: {req['url']}\nName: `{req['name']}`"
+            desc = f"URL: {req['url']}\nName: `{req['name']}`"  # type: ignore
 
-            guild = ctx.bot.get_guild(req["_id"])
-            name = str(req["_id"])
+            guild = ctx.bot.get_guild(req["_id"])  # type: ignore
+            name = str(req["_id"])  # type: ignore
             icon = None
             if guild:
                 name = guild.name
@@ -99,8 +105,9 @@ class ExtensionReviewsView(PaginationView):
                 )
             )
 
-        self.ignore.__discord_ui_model_kwargs__["row"] = 3 + int(len(pages) > 1)
+        self.ignore.__discord_ui_model_kwargs__["row"] = 3 + int(len(pages) > 1)  # type: ignore
         super().__init__(*pages, context=ctx, **kwargs)
+        self.ctx: StrapContext
         self.add_item(
             DenyReasonSelect(
                 ctx,
@@ -111,11 +118,11 @@ class ExtensionReviewsView(PaginationView):
 
     async def remove_page(self, interaction: Interaction, index: int):
         if len(self.pages) == 1:
-            a = dict(content=self.ctx.format_message("done"), view=None, embed=None)
+            a = dict(content=self.ctx.format_message("done"), view=None, embed=None)  # type: ignore
             try:
-                await interaction.response.edit_message(**a)
+                await interaction.response.edit_message(**a)  # type: ignore
             except InteractionResponded:
-                await interaction.followup.edit_message(self.message.id, **a)
+                await interaction.followup.edit_message(self.message.id, **a)  # type: ignore
 
             self.stop()
             return
@@ -130,7 +137,7 @@ class ExtensionReviewsView(PaginationView):
     @ui.button(label="btn_accept", row=3, style=ButtonStyle.green)
     async def accept(self, interaction: Interaction, button: ui.Button):
         t = None
-        guild_id = self.requests[self.current]["_id"]
+        guild_id = self.requests[self.current]["_id"]  # type: ignore
         try:
             t = self.ctx.bot.loop.create_task(self.ctx.bot.approve_review(guild_id))
 

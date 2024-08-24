@@ -1067,7 +1067,7 @@ class StrapBot(commands.Bot):
         return await super().remove_cog(name_or_guild_id, guild=guild, guilds=guilds)
 
     async def send_ext_for_review(
-        self, guild_id: int, url: Union[str, Dict[str, str]], name: str
+        self, guild_id: int, url: Union[str, Dict[str, str]], name: Optional[str]
     ):
         db = self.get_db("CustomCogs", cog=False)
         data = await db.find_one({"_id": guild_id})
