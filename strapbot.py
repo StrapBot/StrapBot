@@ -467,7 +467,8 @@ class StrapBot(commands.Bot):
         gexts = set()
         for ext in os.listdir("cogs"):
             ext = os.path.splitext(ext)
-            if ext[1] == ".py":
+            # NOTE: this is temporary, because the commands aren't finished
+            if ext[1] == ".py" and ext[0] != "moderation":
                 exts.add(f"cogs.{ext[0]}")
 
         if os.path.exists("custom/cogs"):
