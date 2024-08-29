@@ -5,6 +5,8 @@
 
 A multifunction Discord bot, with multiple languages support, moderation, text generation (using the Markov chain) and YouTube news!
 
+![Demo](demo.png)
+
 Moderation commands are yet to be finished: auto-unmute and auto-unban are still missing.
 
 ## Self-hosting
